@@ -1,0 +1,182 @@
+{
+  "agents/__init__.py": {
+    "mtime": 1789767787.577254,
+    "seen": 1789771412.9253032,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "agents/organism/__init__.py": {
+    "mtime": 1789767787.5773363,
+    "seen": 1789771412.9253078,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "agents/organism/organism.py": {
+    "mtime": 1789768020.915124,
+    "seen": 1789771412.9253097,
+    "ast_hash": "f8954cf59d6a4bfba917c501d7732c57",
+    "semantic_hash": "f8954cf59d6a4bfba917c501d7732c57"
+  },
+  "agents/sensors/__init__.py": {
+    "mtime": 1789767787.5774164,
+    "seen": 1789771412.9253104,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "analytics/__init__.py": {
+    "mtime": 1789767787.5947547,
+    "seen": 1789771412.9253116,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "analytics/metrics/__init__.py": {
+    "mtime": 1789767787.5949235,
+    "seen": 1789771412.925312,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "analytics/statistical_comparison/__init__.py": {
+    "mtime": 1789767787.6274076,
+    "seen": 1789771412.925313,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "app/__init__.py": {
+    "mtime": 1789767794.963231,
+    "seen": 1789771412.9253135,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "app/run.py": {
+    "mtime": 1789767962.916498,
+    "seen": 1789771412.9253142,
+    "ast_hash": "8e8a654bb9b8499b4895ce334d3853fe",
+    "semantic_hash": "8e8a654bb9b8499b4895ce334d3853fe"
+  },
+  "configs/baseline.json": {
+    "mtime": 1789767817.053733,
+    "seen": 1789771412.9253151,
+    "ast_hash": "5f40f2bf7b47703f1e9aade0b00b00fb",
+    "semantic_hash": "5f40f2bf7b47703f1e9aade0b00b00fb"
+  },
+  "configs/mutation_rate.json": {
+    "mtime": 1789767823.04625,
+    "seen": 1789771412.9253159,
+    "ast_hash": "70ab6d6c2370825060751c28954eabfe",
+    "semantic_hash": "70ab6d6c2370825060751c28954eabfe"
+  },
+  "evolution/__init__.py": {
+    "mtime": 1789767787.5778368,
+    "seen": 1789771412.9253166,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "evolution/crossover/__init__.py": {
+    "mtime": 1789767787.5943732,
+    "seen": 1789771412.9253173,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "evolution/mutation/__init__.py": {
+    "mtime": 1789767787.5946546,
+    "seen": 1789771412.9253182,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "evolution/selection/__init__.py": {
+    "mtime": 1789767787.5937386,
+    "seen": 1789771412.925319,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "experiments/__init__.py": {
+    "mtime": 1789767794.963363,
+    "seen": 1789771412.9253194,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "experiments/config_driven/__init__.py": {
+    "mtime": 1789767787.6318982,
+    "seen": 1789771412.9253201,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "experiments/run.py": {
+    "mtime": 1789767975.277237,
+    "seen": 1789771412.9253209,
+    "ast_hash": "c21c2ece853ed4df541a862d83fbdafc",
+    "semantic_hash": "c21c2ece853ed4df541a862d83fbdafc"
+  },
+  "neural/__init__.py": {
+    "mtime": 1789767787.5774963,
+    "seen": 1789771412.9253216,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "neural/batched_inference/__init__.py": {
+    "mtime": 1789767787.577757,
+    "seen": 1789771412.9253223,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "neural/genome/__init__.py": {
+    "mtime": 1789767787.5776753,
+    "seen": 1789771412.925323,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "neural/network/__init__.py": {
+    "mtime": 1789767787.5775788,
+    "seen": 1789771412.9253235,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "simulation/__init__.py": {
+    "mtime": 1789767787.5768058,
+    "seen": 1789771412.9253244,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "simulation/engine/__init__.py": {
+    "mtime": 1789767787.5771694,
+    "seen": 1789771412.9253254,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "simulation/environment/__init__.py": {
+    "mtime": 1789767787.5769644,
+    "seen": 1789771412.925326,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "simulation/environment/world.py": {
+    "mtime": 1789767993.2311637,
+    "seen": 1789771412.9253268,
+    "ast_hash": "7f591fce3dbffc9a58e145b2d9ee220d",
+    "semantic_hash": "7f591fce3dbffc9a58e145b2d9ee220d"
+  },
+  "simulation/physics/__init__.py": {
+    "mtime": 1789767787.5770798,
+    "seen": 1789771412.9253275,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "visualization/__init__.py": {
+    "mtime": 1789767787.6280317,
+    "seen": 1789771412.9253285,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "visualization/dashboard/__init__.py": {
+    "mtime": 1789767787.6304445,
+    "seen": 1789771412.9253292,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "visualization/renderer/__init__.py": {
+    "mtime": 1789767787.6289678,
+    "seen": 1789771412.92533,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  }
+}
