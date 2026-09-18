@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────
+# Environment variables (secrets)
+# ─────────────────────────────────────────────
+.env
+*.env
+.env.local
+.env.*.local
+!backend_services/config-service/envs/*.env
+
+# ─────────────────────────────────────────────
+# Python caches and virtualenvs
+# ─────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pytest_cache/
+.venv/
+venv/
+
+# ─────────────────────────────────────────────
+# Dependencies (node_modules)
+# ─────────────────────────────────────────────
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# ─────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ─────────────────────────────────────────────
+# OS junk
+# ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────
+# IDE / Editor files
+# ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.iml
+
+# ─────────────────────────────────────────────
+# Build / distribution folders
+# ─────────────────────────────────────────────
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ─────────────────────────────────────────────
+# Docker volumes (if you mount them locally)
+# ─────────────────────────────────────────────
+/data/
+postgres_data/
+redis_data/
+minio_data/
+
+# ─────────────────────────────────────────────
+# Temporary files
+# ─────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.bak
+
+# ─────────────────────────────────────────────
+# Coverage reports (if you run tests)
+# ─────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─────────────────────────────────────────────
+# Uploads (if you store files locally)
+# ─────────────────────────────────────────────
+uploads/
+
+# ─────────────────────────────────────────────
+# AI agents (if you store files locally)
+# ─────────────────────────────────────────────
+.claude/
+.codex/
+.copilot/
+CLAUDE.md
+skills-lock.json
+.agents/
+.remember
