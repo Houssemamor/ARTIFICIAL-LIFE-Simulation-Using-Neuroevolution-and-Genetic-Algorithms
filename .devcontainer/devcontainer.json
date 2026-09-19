@@ -1,0 +1,20 @@
+{
+    "name": "Artificial Life Neuroevolution Simulation",
+    "dockerFile": "Dockerfile",
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true
+    },
+    "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "usernamehw.errorlens",
+        " streetsidesoftware.code-spell-checker",
+        "ms-vscode.vscode-typescript-tslint-plugin"
+    ],
+    "postCreateCommand": "pip install -e .[dev,debug]"
+}

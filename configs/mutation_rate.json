@@ -1,0 +1,30 @@
+{
+  "experiment_name": "mutation_rate_study",
+  "mode": "headless",
+  "device": "cpu",
+  "world": {
+    "width": 1200,
+    "height": 700,
+    "food_count": 20,
+    "obstacle_count": 10
+  },
+  "population": {
+    "size": 250,
+    "agent": {
+      "sensors": 7,
+      "brain": {
+        "architecture": [12, 32, 16, 3]
+      }
+    }
+  },
+  "evolution": {
+    "generations": 500,
+    "mutation_rate": 0.05,
+    "crossover_rate": 0.7,
+    "elitism_count": 2
+  },
+  "experiment": {
+    "seeds": 10,
+    "save_interval": 50
+  }
+}

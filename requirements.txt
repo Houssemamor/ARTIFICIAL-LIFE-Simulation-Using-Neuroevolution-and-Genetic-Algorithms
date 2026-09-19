@@ -1,0 +1,12 @@
+# Core dependencies for Artificial Life Neuroevolution Simulation
+torch>=2.0.0
+pygame>=2.5.0
+numpy>=1.24.0
+
+# Optional dependencies for debugging and development
+# imgui[pygame]>=2.5.0  # Dear ImGui bindings for pygame (debugging tools)
+# pyimgui>=2.5.0        # Alternative ImGui binding
+
+# Optional dependencies for web dashboard (mentioned in README as optional)
+# fastapi>=0.100.0
+# react>=18.0.0  # Note: This is a JS dependency, not Python
