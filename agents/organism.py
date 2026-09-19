@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Optional
 import numpy as np
 from simulation.physics import Vector2D
+from simulation.environment import World
 
 
 class Organism:

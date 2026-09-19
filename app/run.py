@@ -7,6 +7,8 @@ import argparse
 import json
 import sys
 import os
+import numpy as np
+import pygame
 from typing import List
 
 # Add the project root to the Python path
