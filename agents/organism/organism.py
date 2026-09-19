@@ -8,6 +8,14 @@ neural network controllers, genomes, and life cycle management.
 import numpy as np
 from typing import List, Tuple, Optional
 import json
+import sys
+import os
+
+# Add the project root to the Python path (three levels up:
+# organism.py -> agents/organism -> agents -> project root)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from simulation.environment import World
 
 
 class Organism:
@@ -73,7 +81,7 @@ class Organism:
         self.num_sensors = num_sensors
         self.is_alive = True
 
-    def update_sensors(self, world: 'World') -> np.ndarray:
+    def update_sensors(self, world: World) -> np.ndarray:
         """
         Update sensor readings based on current world state.
         This is a placeholder - actual implementation will be in agents.sensors module.
@@ -115,7 +123,7 @@ class Organism:
             return np.zeros(3, dtype=np.float32)
 
     def update_position(self, steering: float, acceleration: float,
-                       world: 'World', dt: float = 1.0) -> None:
+                       world: World, dt: float = 1.0) -> None:
         """
         Update the organism's position based on steering and acceleration.
 
@@ -147,7 +155,7 @@ class Organism:
         # self.y = max(world.boundary_margin,
         #              min(self.height - world.boundary_margin, self.y))
 
-    def consume_food(self, world: 'World') -> bool:
+    def consume_food(self, world: World) -> bool:
         """
         Attempt to consume food at current position.
 
@@ -163,11 +171,11 @@ class Organism:
         # Check if there's food nearby (simplified consumption radius)
         consumption_radius = 5.0  # pixels
 
-        for i, (food_x, food_y) in enumerate(world.food_positions):
-            distance = np.sqrt((self.x - food_x)**2 + (self.y - food_y)**2)
+        for i, food in enumerate(world.food):
+            distance = np.sqrt((self.x - food.x)**2 + (self.y - food.y)**2)
             if distance < consumption_radius:
                 # Consume the food
-                world.food_positions.pop(i)
+                world.food.pop(i)
                 self.energy += 50.0  # Gain energy from food
                 return True
 
