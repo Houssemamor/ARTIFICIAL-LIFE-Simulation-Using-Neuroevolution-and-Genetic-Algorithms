@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation.world_config import load_config
 from simulation.environment import World
+from simulation.engine import resolve_collisions
 from agents.organism import Organism
 from visualization.renderer import Renderer
 
@@ -38,7 +39,7 @@ def main():
 
     # Create world from config
     world = World()
-    world.load_from_config(config.dict())
+    world.load_from_config(config.model_dump())
 
     # Create initial population
     population_size = config.population.size
@@ -90,9 +91,15 @@ def main():
 
             # Perform physics steps while we have enough accumulated time
             while physics_accumulator >= physics_dt:
-                # Update each organism with placeholder motion
+                # Move all agents first so collision checks see final positions
                 for agent in agents:
                     agent.update_placeholder_motion(world, dt=physics_dt)
+
+                # Detect contacts and apply the collision penalty
+                resolve_collisions(agents, world)
+
+                # Metabolism and aging after motion and collision resolution
+                for agent in agents:
                     agent.update_energy()
                     agent.increment_age()
                 physics_accumulator -= physics_dt

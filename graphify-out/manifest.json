@@ -5,18 +5,6 @@
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
-  "agents/organism/__init__.py": {
-    "mtime": 1789767787.5773363,
-    "seen": 1789771412.9253078,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
-  },
-  "agents/organism/organism.py": {
-    "mtime": 1789768020.915124,
-    "seen": 1789771412.9253097,
-    "ast_hash": "f8954cf59d6a4bfba917c501d7732c57",
-    "semantic_hash": "f8954cf59d6a4bfba917c501d7732c57"
-  },
   "agents/sensors/__init__.py": {
     "mtime": 1789767787.5774164,
     "seen": 1789771412.9253104,
@@ -48,16 +36,16 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "app/run.py": {
-    "mtime": 1789767962.916498,
-    "seen": 1789771412.9253142,
-    "ast_hash": "8e8a654bb9b8499b4895ce334d3853fe",
-    "semantic_hash": "8e8a654bb9b8499b4895ce334d3853fe"
+    "mtime": 1789899811.4080083,
+    "seen": 1789917892.3158562,
+    "ast_hash": "6f29a54b7fb30ea5315d3b3be2b3ac03",
+    "semantic_hash": "6f29a54b7fb30ea5315d3b3be2b3ac03"
   },
   "configs/baseline.json": {
-    "mtime": 1789767817.053733,
-    "seen": 1789771412.9253151,
-    "ast_hash": "5f40f2bf7b47703f1e9aade0b00b00fb",
-    "semantic_hash": "5f40f2bf7b47703f1e9aade0b00b00fb"
+    "mtime": 1789841308.9723861,
+    "seen": 1789917892.315857,
+    "ast_hash": "1321dae05dc31f28b643da5a975c3c43",
+    "semantic_hash": "1321dae05dc31f28b643da5a975c3c43"
   },
   "configs/mutation_rate.json": {
     "mtime": 1789767823.04625,
@@ -138,28 +126,22 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "simulation/engine/__init__.py": {
-    "mtime": 1789767787.5771694,
-    "seen": 1789771412.9253254,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+    "mtime": 1789899544.8190339,
+    "seen": 1789917892.3158705,
+    "ast_hash": "3460c4b54a747a43f96ca8d2504755c7",
+    "semantic_hash": "3460c4b54a747a43f96ca8d2504755c7"
   },
   "simulation/environment/__init__.py": {
-    "mtime": 1789767787.5769644,
-    "seen": 1789771412.925326,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
-  },
-  "simulation/environment/world.py": {
-    "mtime": 1789767993.2311637,
-    "seen": 1789771412.9253268,
-    "ast_hash": "7f591fce3dbffc9a58e145b2d9ee220d",
-    "semantic_hash": "7f591fce3dbffc9a58e145b2d9ee220d"
+    "mtime": 1789840982.0154126,
+    "seen": 1789917892.3158712,
+    "ast_hash": "2aa11efe1babac362e7fb43f2880fc6a",
+    "semantic_hash": "2aa11efe1babac362e7fb43f2880fc6a"
   },
   "simulation/physics/__init__.py": {
-    "mtime": 1789767787.5770798,
-    "seen": 1789771412.9253275,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+    "mtime": 1789773652.2125063,
+    "seen": 1789917892.315872,
+    "ast_hash": "24ee3df31700f333acc3e055ae77a821",
+    "semantic_hash": "24ee3df31700f333acc3e055ae77a821"
   },
   "visualization/__init__.py": {
     "mtime": 1789767787.6280317,
@@ -178,5 +160,173 @@
     "seen": 1789771412.92533,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  ".devcontainer/devcontainer.json": {
+    "mtime": 1789772660.0720296,
+    "seen": 1789917892.3158388,
+    "ast_hash": "fce004ba0fac63be098e5586a894fb44",
+    "semantic_hash": "fce004ba0fac63be098e5586a894fb44"
+  },
+  "agents/organism.py": {
+    "mtime": 1789899677.326615,
+    "seen": 1789917892.3158474,
+    "ast_hash": "10cc0ab53134954f29ec21f4eb6936f8",
+    "semantic_hash": "10cc0ab53134954f29ec21f4eb6936f8"
+  },
+  "pyproject.toml": {
+    "mtime": 1789772650.4287357,
+    "seen": 1789917892.3158686,
+    "ast_hash": "61dae209cd7cfe4e9fefde37c1b39228",
+    "semantic_hash": "61dae209cd7cfe4e9fefde37c1b39228"
+  },
+  "simulation/physics/aabb.py": {
+    "mtime": 1789775325.5802367,
+    "seen": 1789917892.315873,
+    "ast_hash": "704d77176eaa0f79e01a8fe09b18ec98",
+    "semantic_hash": "704d77176eaa0f79e01a8fe09b18ec98"
+  },
+  "simulation/physics/spatial_hash.py": {
+    "mtime": 1789775561.9326992,
+    "seen": 1789917892.3158739,
+    "ast_hash": "5d1b13088677226f2ff0d480fab6a97b",
+    "semantic_hash": "5d1b13088677226f2ff0d480fab6a97b"
+  },
+  "simulation/physics/vector2d.py": {
+    "mtime": 1789772565.5136263,
+    "seen": 1789917892.3158743,
+    "ast_hash": "ba89f28723861cc494d221c2701c0036",
+    "semantic_hash": "ba89f28723861cc494d221c2701c0036"
+  },
+  "simulation/world_config.py": {
+    "mtime": 1789841180.329721,
+    "seen": 1789917892.315875,
+    "ast_hash": "046f8559eeb0f9dfbaaf6833b205b64c",
+    "semantic_hash": "046f8559eeb0f9dfbaaf6833b205b64c"
+  },
+  "tests/debug_physics.py": {
+    "mtime": 1789773432.9592502,
+    "seen": 1789917892.3158755,
+    "ast_hash": "39a69ad9a65c86d13c4db76fa7109887",
+    "semantic_hash": "39a69ad9a65c86d13c4db76fa7109887"
+  },
+  "tests/debug_rect_query.py": {
+    "mtime": 1789773961.997888,
+    "seen": 1789917892.3158762,
+    "ast_hash": "e18e3161db80946a6ebbd7e4442f5912",
+    "semantic_hash": "e18e3161db80946a6ebbd7e4442f5912"
+  },
+  "tests/debug_stored_values.py": {
+    "mtime": 1789773988.1511364,
+    "seen": 1789917892.315877,
+    "ast_hash": "fe1de31753ab93a4773b100198cb6ead",
+    "semantic_hash": "fe1de31753ab93a4773b100198cb6ead"
+  },
+  "tests/debug_test_exact.py": {
+    "mtime": 1789773456.4564514,
+    "seen": 1789917892.3158777,
+    "ast_hash": "a4d862e93a7e2464982f64162c9e7f3a",
+    "semantic_hash": "a4d862e93a7e2464982f64162c9e7f3a"
+  },
+  "tests/debug_test_update.py": {
+    "mtime": 1789775286.7578926,
+    "seen": 1789917892.3158784,
+    "ast_hash": "78c3915e0f3238bbb70deb61610f151b",
+    "semantic_hash": "78c3915e0f3238bbb70deb61610f151b"
+  },
+  "tests/debug_test_update2.py": {
+    "mtime": 1789775305.7911966,
+    "seen": 1789917892.315879,
+    "ast_hash": "e6d71ca9cc50c5f54ae23a0575363f65",
+    "semantic_hash": "e6d71ca9cc50c5f54ae23a0575363f65"
+  },
+  "tests/debug_update.py": {
+    "mtime": 1789774987.976002,
+    "seen": 1789917892.3158796,
+    "ast_hash": "1503dbf88aee17a025a146be07bccedb",
+    "semantic_hash": "1503dbf88aee17a025a146be07bccedb"
+  },
+  "tests/debug_verlet.py": {
+    "mtime": 1789773564.5028698,
+    "seen": 1789917892.3158808,
+    "ast_hash": "9af6e7e3d34b849bb03e88fb8b5d25cc",
+    "semantic_hash": "9af6e7e3d34b849bb03e88fb8b5d25cc"
+  },
+  "tests/integration/test_reset.py": {
+    "mtime": 1789840797.979334,
+    "seen": 1789917892.3158815,
+    "ast_hash": "1758dadcb1ed982f86fa7677899c9fea",
+    "semantic_hash": "1758dadcb1ed982f86fa7677899c9fea"
+  },
+  "tests/test_spatial_hash.py": {
+    "mtime": 1789863704.218101,
+    "seen": 1789917892.3158824,
+    "ast_hash": "93485c1bebe3bebf74ade7923c569a11",
+    "semantic_hash": "93485c1bebe3bebf74ade7923c569a11"
+  },
+  "tests/test_vector2d.py": {
+    "mtime": 1789772710.0690458,
+    "seen": 1789917892.3158832,
+    "ast_hash": "0bff7ec9ee5afb22c05e19095b3ab60f",
+    "semantic_hash": "0bff7ec9ee5afb22c05e19095b3ab60f"
+  },
+  "tests/unit/test_environment.py": {
+    "mtime": 1789841214.2565587,
+    "seen": 1789917892.315884,
+    "ast_hash": "12b9596aa06d112d6a79a64c361ed357",
+    "semantic_hash": "12b9596aa06d112d6a79a64c361ed357"
+  },
+  "tests/unit/test_physics.py": {
+    "mtime": 1789841116.127516,
+    "seen": 1789917892.3158846,
+    "ast_hash": "b90105d42ab801b72b207d5966df7d5e",
+    "semantic_hash": "b90105d42ab801b72b207d5966df7d5e"
+  },
+  "tests/unit/test_world_config.py": {
+    "mtime": 1789900148.73287,
+    "seen": 1789917892.3158853,
+    "ast_hash": "534c4d7144c41099807af02075d3997a",
+    "semantic_hash": "534c4d7144c41099807af02075d3997a"
+  },
+  "visualization/renderer.py": {
+    "mtime": 1789840704.145346,
+    "seen": 1789917892.3158882,
+    "ast_hash": "b0d10030c91348e538d7f23030b7b57e",
+    "semantic_hash": "b0d10030c91348e538d7f23030b7b57e"
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1789844933.526198,
+    "seen": 1789917892.3158894,
+    "ast_hash": "1355ae9efdc27d23529c038d90ad8e73",
+    "semantic_hash": "1355ae9efdc27d23529c038d90ad8e73"
+  },
+  "PLAN.md": {
+    "mtime": 1789839463.4182346,
+    "seen": 1789917892.31589,
+    "ast_hash": "3c7ed09edf6dc15d3e1053711a942c6b",
+    "semantic_hash": "3c7ed09edf6dc15d3e1053711a942c6b"
+  },
+  "README.md": {
+    "mtime": 1789912718.925553,
+    "seen": 1789917892.315891,
+    "ast_hash": "ef6bf1834f7e1745129554f236ca1640",
+    "semantic_hash": "ef6bf1834f7e1745129554f236ca1640"
+  },
+  "requirements.txt": {
+    "mtime": 1789772516.0127234,
+    "seen": 1789917892.3158917,
+    "ast_hash": "4552bab56783c9e11b185dd4b41ab826",
+    "semantic_hash": "4552bab56783c9e11b185dd4b41ab826"
+  },
+  "docs/Artificial_Life_Neuroevolution_Design_Document.pdf": {
+    "mtime": 1789587776.0,
+    "seen": 1789917892.3158925,
+    "ast_hash": "b9b43471c5dbacab849f459f45da97b3",
+    "semantic_hash": "b9b43471c5dbacab849f459f45da97b3"
+  },
+  "docs/Artificial_Life_Neuroevolution_Design_Document_v2.pdf": {
+    "mtime": 1789758622.365222,
+    "seen": 1789917892.315893,
+    "ast_hash": "7b686d047e643efc67977a503890441a",
+    "semantic_hash": "7b686d047e643efc67977a503890441a"
   }
 }

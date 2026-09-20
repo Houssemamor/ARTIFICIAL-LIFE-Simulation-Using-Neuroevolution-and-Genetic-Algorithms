@@ -105,7 +105,8 @@ def test_spatial_hash_queries():
     assert 0 in points_at_5_5  # Object 0
 
     # Test rectangle query
-    query_rect = AABB(0, 0, 20, 20)  # Should catch objects 0, 1, 2, 4
+    # Rect must span y up to 30 to contain object 1 at (15.0, 25.0)
+    query_rect = AABB(0, 0, 30, 30)  # Should catch objects 0, 1, 2, 4
     objects_in_rect = sh.query_rect(query_rect)
     assert len(objects_in_rect) >= 4  # At least these 4 objects
     assert 0 in objects_in_rect

@@ -51,6 +51,10 @@ class Organism:
         self.genome: Optional[np.ndarray] = None
         self.is_alive = True
 
+        # Contact counter, incremented by collision resolution; feeds the
+        # 'collision' fitness weight (configs/baseline.json) in later phases
+        self.collisions = 0
+
         # Placeholder for neural network and sensors (to be implemented later)
         self.brain = None
         self.sensors = None
@@ -189,7 +193,8 @@ class Organism:
             'age': self.age,
             'fitness': self.fitness,
             'genome': self.genome.tolist() if self.genome is not None else None,
-            'is_alive': self.is_alive
+            'is_alive': self.is_alive,
+            'collisions': self.collisions
         }
 
     def load_state(self, state: dict) -> None:
@@ -212,3 +217,4 @@ class Organism:
         else:
             self.genome = None
         self.is_alive = state['is_alive']
+        self.collisions = state['collisions']
