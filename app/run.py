@@ -16,8 +16,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation.world_config import load_config
 from simulation.environment import World
-from simulation.engine import resolve_collisions
+from simulation.engine import step_simulation
 from agents.organism import Organism
+from agents.sensors import RayCaster
+from neural.genome import genome_size
 from visualization.renderer import Renderer
 
 
@@ -49,8 +51,11 @@ def main():
         x = np.random.uniform(world.boundary_margin, world.width - world.boundary_margin)
         y = np.random.uniform(world.boundary_margin, world.height - world.boundary_margin)
         agent = Organism(i, x, y, initial_energy=100.0)
-        agent.initialize_genome(genome_size=100)  # Placeholder genome size
+        agent.initialize_genome(genome_size=genome_size())  # Real controller genome
         agents.append(agent)
+
+    # Sensor system: fixed 7-ray casting + 12-dim observation encoding
+    agent_raycaster = RayCaster()
 
     # Set up renderer
     renderer = Renderer(world.width, world.height)
@@ -89,19 +94,11 @@ def main():
             # Accumulate time for physics steps
             physics_accumulator += elapsed * simulation_speed
 
-            # Perform physics steps while we have enough accumulated time
+            # Perform physics steps while we have enough accumulated time,
+            # each step running the full batched NN pipeline for the population
             while physics_accumulator >= physics_dt:
-                # Move all agents first so collision checks see final positions
-                for agent in agents:
-                    agent.update_placeholder_motion(world, dt=physics_dt)
-
-                # Detect contacts and apply the collision penalty
-                resolve_collisions(agents, world)
-
-                # Metabolism and aging after motion and collision resolution
-                for agent in agents:
-                    agent.update_energy()
-                    agent.increment_age()
+                # Move all agents via observed -> batched inference -> actions
+                step_simulation(world, agents, agent_raycaster, dt=physics_dt)
                 physics_accumulator -= physics_dt
 
         # Render at most at the target render FPS

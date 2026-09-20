@@ -302,10 +302,10 @@ artificial-life-sim/
 
 ### Deliverables — Phase 2
 
-- [ ] Working ray-based sensor system with a fixed, documented observation encoding
-- [ ] Genome pack/unpack utilities with passing round-trip tests
-- [ ] Fully wired observe → batched-inference → act loop, replacing the Phase 1 placeholder
-- [ ] Passing batched-vs-per-agent equivalence test
+- [x] Working ray-based sensor system with a fixed, documented observation encoding
+- [x] Genome pack/unpack utilities with passing round-trip tests
+- [x] Fully wired observe → batched-inference → act loop, replacing the Phase 1 placeholder
+- [x] Passing batched-vs-per-agent equivalence test
 
 ---
 

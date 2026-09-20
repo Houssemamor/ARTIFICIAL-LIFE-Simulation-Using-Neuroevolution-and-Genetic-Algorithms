@@ -55,13 +55,19 @@ class Organism:
         # 'collision' fitness weight (configs/baseline.json) in later phases
         self.collisions = 0
 
-        # Placeholder for neural network and sensors (to be implemented later)
+        # Neural network controller wiring (Phase 2)
         self.brain = None
         self.sensors = None
 
-        # For placeholder motion: random steering and acceleration
-        self.last_steering = 0.0  # -1 to 1
-        self.last_acceleration = 0.0  # 0 to 1
+        # Last observation vector fed to the controller (12-dim); None until
+        # the first engine step. Kept for debugging and the Phase 2 dashboards.
+        self.last_observation = None
+
+        # Motion state set by apply_action; consumed by update_energy to
+        # compute the action energy cost in Phase 3
+        self.last_steering = 0.0  # -1 to 1, from network output
+        self.last_acceleration = 0.0  # 0 to 1, from network output
+        self.last_eat_signal = 0.0  # 0 to 1, from network output
 
     def initialize_genome(self, genome_size: int) -> None:
         """
@@ -72,38 +78,41 @@ class Organism:
         """
         self.genome = np.random.uniform(-1, 1, genome_size).astype(np.float32)
 
-    def update_placeholder_motion(self, world: 'World', dt: float = 1.0) -> None:
+    def apply_action(self, steering: float, acceleration: float,
+                     eat_signal: float, world: 'World', dt: float = 1.0) -> None:
         """
-        Update the organism's position using placeholder random motion.
-        This is used in Phase 1 before neural networks are implemented.
+        Apply one decoded network action to the agent's physics.
+
+        Replaces the Phase 1 random-motion stub. The network output already
+        uses the design doc's activation space, so the only work here is
+        scaling to sim units and integrating velocity into position.
 
         Args:
-            world (World): The world instance for boundary checking
-            dt (float): Time step (default: 1.0)
+            steering (float): heading change in [-1, 1] (controller tanh).
+            acceleration (float): throttle in [0, 1] (controller sigmoid).
+            eat_signal (float): eat gate in [0, 1] (controller sigmoid).
+            world (World): The world instance for boundary checking.
+            dt (float): Time step (default: 1.0).
         """
         if not self.is_alive:
             return
 
-        # Generate random steering (-1 to 1) and acceleration (0 to 1)
-        self.last_steering = np.random.uniform(-1, 1)
-        self.last_acceleration = np.random.uniform(0, 1)
+        self.last_steering = float(steering)
+        self.last_acceleration = float(acceleration)
+        self.last_eat_signal = float(eat_signal)
 
-        # Convert steering to heading change, acceleration to speed change
-        # Max heading change per step: 0.1 radians
-        # Max speed: 5.0 pixels per step
-        heading_change = self.last_steering * 0.1
-        speed = self.last_acceleration * 5.0
+        # Max heading change per step: 0.1 radians (matches Phase 1
+        # placeholder tuning so behavior is comparable at dt=1)
+        heading_change = steering * 0.1
+        # Max speed: 5.0 pixels per step (same cap as Phase 1)
+        speed = acceleration * 5.0
 
-        # Update heading and velocity
         self.heading += heading_change
-        # Keep heading in reasonable range (optional)
         self.heading = self.heading % (2 * np.pi)
 
-        # Update velocity based on heading and speed
         self.velocity.x = np.cos(self.heading) * speed
         self.velocity.y = np.sin(self.heading) * speed
 
-        # Update position
         self.position.x += self.velocity.x * dt
         self.position.y += self.velocity.y * dt
 
@@ -111,14 +120,14 @@ class Organism:
         margin = getattr(world, 'boundary_margin', 10.0)
         if self.position.x < margin:
             self.position.x = margin
-            self.velocity.x = 0  # Stop horizontal movement at boundary
+            self.velocity.x = 0
         elif self.position.x > world.width - margin:
             self.position.x = world.width - margin
             self.velocity.x = 0
 
         if self.position.y < margin:
             self.position.y = margin
-            self.velocity.y = 0  # Stop vertical movement at boundary
+            self.velocity.y = 0
         elif self.position.y > world.height - margin:
             self.position.y = world.height - margin
             self.velocity.y = 0
