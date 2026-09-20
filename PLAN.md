@@ -344,10 +344,10 @@ artificial-life-sim/
 
 ### Deliverables — Phase 3
 
-- [ ] Explicit, tested energy-balance model
-- [ ] A calibration pipeline producing `configs/calibration.json`, so fitness weights are never chosen blind
-- [ ] A working genetic algorithm with three interchangeable, tested crossover methods
-- [ ] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
+- [x] Explicit, tested energy-balance model
+- [x] A calibration pipeline producing `configs/calibration.json`, so fitness weights are never chosen blind
+- [x] A working genetic algorithm with three interchangeable, tested crossover methods
+- [x] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
 
 ---
 

@@ -10,6 +10,7 @@ from typing import Optional
 import numpy as np
 from simulation.physics import Vector2D
 from simulation.environment import World
+from agents.energy import EnergyConfig, update_energy, DEFAULT_ENERGY_CONFIG
 
 
 class Organism:
@@ -54,6 +55,15 @@ class Organism:
         # Contact counter, incremented by collision resolution; feeds the
         # 'collision' fitness weight (configs/baseline.json) in later phases
         self.collisions = 0
+
+        # Accumulated collision penalty this step, applied in update_energy
+        self._collision_penalty_this_step = 0.0
+
+        # Food consumed this step (for energy gain)
+        self._food_consumed_this_step = False
+
+        # Energy configuration (allows per-agent override for testing)
+        self._energy_config = DEFAULT_ENERGY_CONFIG
 
         # Neural network controller wiring (Phase 2)
         self.brain = None
@@ -153,30 +163,40 @@ class Organism:
             if distance < consumption_radius:
                 # Consume the food
                 world.food.pop(i)
-                self.energy += 50.0  # Gain energy from food
+                self._food_consumed_this_step = True
                 return True
 
         return False
 
-    def update_energy(self, metabolism_rate: float = 0.1) -> None:
+    def update_energy(self, energy_config: Optional[EnergyConfig] = None) -> None:
         """
-        Update energy level based on metabolism and actions.
+        Update energy level using the Phase 3 energy balance equation.
 
         Args:
-            metabolism_rate (float): Rate of energy consumption per step (default: 0.1)
+            energy_config: Optional EnergyConfig override. Uses the agent's
+                stored config if not provided.
         """
         if not self.is_alive:
             return
 
-        # Basic metabolism
-        self.energy -= metabolism_rate
+        config = energy_config or self._energy_config
 
-        # Additional energy cost for actions (proportional to acceleration)
-        action_cost = abs(self.last_acceleration) * 0.05
-        self.energy -= action_cost
+        new_energy, new_health, is_dead = update_energy(
+            energy=self.energy,
+            health=self.health,
+            acceleration=self.last_acceleration,
+            steering=self.last_steering,
+            eat_event=self._food_consumed_this_step,
+            collision_penalty_applied=self._collision_penalty_this_step,
+            config=config,
+        )
 
-        # Check if organism has died from lack of energy
-        if self.energy <= 0:
+        self.energy = new_energy
+        self.health = new_health
+        self._collision_penalty_this_step = 0.0
+        self._food_consumed_this_step = False
+
+        if is_dead:
             self.is_alive = False
             self.energy = 0.0
 
@@ -184,6 +204,18 @@ class Organism:
         """Increment the organism's age by one simulation step."""
         if self.is_alive:
             self.age += 1
+
+    def add_collision_penalty(self, penalty: float) -> None:
+        """
+        Accumulate collision penalty for this step.
+
+        The penalty is applied in update_energy.
+
+        Args:
+            penalty: Energy cost to add.
+        """
+        if self.is_alive:
+            self._collision_penalty_this_step += penalty
 
     def get_state(self) -> dict:
         """

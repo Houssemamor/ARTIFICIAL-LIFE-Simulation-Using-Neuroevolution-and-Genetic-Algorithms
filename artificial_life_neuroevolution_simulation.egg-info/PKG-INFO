@@ -1,3 +1,36 @@
+Metadata-Version: 2.4
+Name: artificial-life-neuroevolution-simulation
+Version: 0.1.0
+Summary: An immersive artificial life simulation with neuroevolution agents
+Author-email: Developer <dev@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/example/artificial-life-neuroevolution
+Project-URL: Documentation, https://github.com/example/artificial-life-neuroevolution/wiki
+Project-URL: Repository, https://github.com/example/artificial-life-neuroevolution
+Keywords: artificial life,neuroevolution,simulation,AI,evolution
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Artificial Life
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.0.0
+Requires-Dist: pygame>=2.5.0
+Requires-Dist: numpy>=1.24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: flake8>=6.0; extra == "dev"
+Requires-Dist: black>=22.0; extra == "dev"
+Requires-Dist: isort>=5.0; extra == "dev"
+Requires-Dist: mypy>=0.9; extra == "dev"
+Provides-Extra: debug
+Requires-Dist: imgui[pygame]>=2.5.0; extra == "debug"
+
 # Artificial Life Neuroevolution Simulation
 
 A 2D artificial-life simulation in which autonomous organisms learn and evolve behaviors through neural-network controllers optimized by a genetic algorithm.
@@ -54,7 +87,7 @@ python -m experiments.run --config configs/mutation_rate.json --seeds 10 --mode 
 | Phase 1 | Environment + renderer + basic physics | Agents move and collide reliably | ✅ Completed |
 | Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ✅ Complete |
 | Phase 2 | Sensors + fixed neural controller, batched from the start | Agents react to observations through batched NN outputs | ✅ Complete |
-| Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ✅ Complete |
+| Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ❌ Not Started |
 | Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ❌ Not Started |
 | Phase 5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ❌ Not Started |
 | Phase 6 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ❌ Not Started |

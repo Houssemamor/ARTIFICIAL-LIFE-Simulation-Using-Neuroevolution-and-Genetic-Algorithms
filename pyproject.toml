@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "artificial-life-neuroevolution-simulation"
+version = "0.1.0"
 description = "An immersive artificial life simulation with neuroevolution agents"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -24,15 +25,16 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 
+dependencies = [
+    "torch>=2.0.0",
+    "pygame>=2.5.0",
+    "numpy>=1.24.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/example/artificial-life-neuroevolution"
 Documentation = "https://github.com/example/artificial-life-neuroevolution/wiki"
 Repository = "https://github.com/example/artificial-life-neuroevolution"
-
-[project.dependencies]
-torch = ">=2.0.0"
-pygame = ">=2.5.0"
-numpy = ">=1.24.0"
 
 [project.optional-dependencies]
 dev = [
@@ -45,6 +47,10 @@ dev = [
 debug = [
     "imgui[pygame]>=2.5.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "agents*", "neural*", "simulation*", "visualization*", "mutation*", "crossover*", "selection*", "evolution*", "analytics*", "metrics*", "config_driven*", "statistical_comparison*", "experiments*"]
 
 [tool.black]
 line-length = 100

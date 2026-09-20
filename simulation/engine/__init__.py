@@ -143,7 +143,7 @@ def resolve_collisions(agents, world, penalty: float = 2.0) -> int:
                 continue
             # Penalty on contact: energy cost, tracked per agent to feed the
             # 'collision' fitness weight (configs/baseline.json) in later phases
-            agent.energy -= penalty
+            agent.add_collision_penalty(penalty)
             agent.collisions += 1
             total_contacts += 1
 
