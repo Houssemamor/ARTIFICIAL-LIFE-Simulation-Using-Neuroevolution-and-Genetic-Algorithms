@@ -52,7 +52,7 @@ python -m experiments.run --config configs/mutation_rate.json --seeds 10 --mode 
 |-------|------|----------------|---------|
 | Phase 0 | Project setup & environment | Installable, empty project skeleton matching the Section 0 tree | ✅ Complete |
 | Phase 1 | Environment + renderer + basic physics | Agents move and collide reliably | ✅ Completed |
-| Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ❌ Not Started |
+| Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ✅ Complete |
 | Phase 2 | Sensors + fixed neural controller, batched from the start | Agents react to observations through batched NN outputs | ❌ Not Started |
 | Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ❌ Not Started |
 | Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ❌ Not Started |

@@ -266,10 +266,10 @@ artificial-life-sim/
 
 ### Deliverables — Phase 1.5
 
-- [ ] `neural/batched_inference.py`, proven correct and fast, before any real sensor/GA code depends on it
-- [ ] A written benchmark report with concrete steps/sec numbers for 50/100/250/500 agents
-- [ ] A performance test that will catch any future regression in inference throughput
-- [ ] Confirmed evidence the real-time NFR is achievable, before further code is built on a potentially slow foundation
+- [x] `neural/batched_inference.py`, proven correct and fast, before any real sensor/GA code depends on it
+- [x] A written benchmark report with concrete steps/sec numbers for 50/100/250/500 agents
+- [x] A performance test that will catch any future regression in inference throughput
+- [x] Confirmed evidence the real-time NFR is achievable, before further code is built on a potentially slow foundation
 
 ---
 
