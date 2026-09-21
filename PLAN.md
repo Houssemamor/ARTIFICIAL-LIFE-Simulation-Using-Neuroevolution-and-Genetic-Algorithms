@@ -378,10 +378,10 @@ artificial-life-sim/
 
 ### Deliverables — Phase 4
 
-- [ ] Full experiment-folder logging pipeline
-- [ ] A determinism module enforced identically in GUI and headless modes
-- [ ] Verified bit-for-bit reproducibility on the CPU-deterministic tier
-- [ ] Working checkpoint save/restore
+- [x] Full experiment-folder logging pipeline
+- [x] A determinism module enforced identically in GUI and headless modes
+- [x] Verified bit-for-bit reproducibility on the CPU-deterministic tier
+- [x] Working checkpoint save/restore
 
 ---
 
