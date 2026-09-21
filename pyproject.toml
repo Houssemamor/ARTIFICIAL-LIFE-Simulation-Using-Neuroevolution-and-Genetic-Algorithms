@@ -26,9 +26,12 @@ classifiers = [
 ]
 
 dependencies = [
-    "torch>=2.0.0",
-    "pygame>=2.5.0",
-    "numpy>=1.24.0",
+    "torch==2.14.0",
+    "pygame-ce==2.5.8",
+    "numpy==2.5.3",
+    "pydantic==2.12.5",
+    "pydantic-settings==2.14.2",
+    "pydantic-core==2.41.5",
 ]
 
 [project.urls]
@@ -38,11 +41,15 @@ Repository = "https://github.com/example/artificial-life-neuroevolution"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
-    "flake8>=6.0",
-    "black>=22.0",
-    "isort>=5.0",
-    "mypy>=0.9",
+    "pytest==8.4.0",
+    "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
+    "flake8==7.3.0",
+    "black==23.12.1",
+    "isort==5.13.2",
+    "mypy==1.8.0",
+    "mypy-extensions==1.0.0",
+    "types-setuptools==69.5.1",
 ]
 debug = [
     "imgui[pygame]>=2.5.0",

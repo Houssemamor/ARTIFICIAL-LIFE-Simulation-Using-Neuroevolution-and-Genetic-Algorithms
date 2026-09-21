@@ -19,15 +19,22 @@ Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
-Requires-Dist: torch>=2.0.0
-Requires-Dist: pygame>=2.5.0
-Requires-Dist: numpy>=1.24.0
+Requires-Dist: torch==2.14.0
+Requires-Dist: pygame-ce==2.5.8
+Requires-Dist: numpy==2.5.3
+Requires-Dist: pydantic==2.12.5
+Requires-Dist: pydantic-settings==2.14.2
+Requires-Dist: pydantic-core==2.41.5
 Provides-Extra: dev
-Requires-Dist: pytest>=7.0; extra == "dev"
-Requires-Dist: flake8>=6.0; extra == "dev"
-Requires-Dist: black>=22.0; extra == "dev"
-Requires-Dist: isort>=5.0; extra == "dev"
-Requires-Dist: mypy>=0.9; extra == "dev"
+Requires-Dist: pytest==8.4.0; extra == "dev"
+Requires-Dist: pytest-asyncio==1.4.0; extra == "dev"
+Requires-Dist: pytest-cov==7.1.0; extra == "dev"
+Requires-Dist: flake8==7.3.0; extra == "dev"
+Requires-Dist: black==23.12.1; extra == "dev"
+Requires-Dist: isort==5.13.2; extra == "dev"
+Requires-Dist: mypy==1.8.0; extra == "dev"
+Requires-Dist: mypy-extensions==1.0.0; extra == "dev"
+Requires-Dist: types-setuptools==69.5.1; extra == "dev"
 Provides-Extra: debug
 Requires-Dist: imgui[pygame]>=2.5.0; extra == "debug"
 
@@ -87,7 +94,7 @@ python -m experiments.run --config configs/mutation_rate.json --seeds 10 --mode 
 | Phase 1 | Environment + renderer + basic physics | Agents move and collide reliably | ✅ Completed |
 | Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ✅ Complete |
 | Phase 2 | Sensors + fixed neural controller, batched from the start | Agents react to observations through batched NN outputs | ✅ Complete |
-| Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ❌ Not Started |
+| Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ✅ Complete |
 | Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ❌ Not Started |
 | Phase 5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ❌ Not Started |
 | Phase 6 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ❌ Not Started |

@@ -5,6 +5,7 @@ Implements tournament selection with elitism.
 """
 
 from __future__ import annotations
+from typing import Optional
 import numpy as np
 
 
@@ -37,7 +38,9 @@ def tournament_selection(
 
     parents = []
     for _ in range(num_parents):
-        tournament_indices = rng.choice(n, size=min(tournament_size, n), replace=False)
+        tournament_indices = rng.choice(
+            n, size=min(tournament_size, n), replace=False
+        )
         tournament_fitnesses = fitnesses[tournament_indices]
         winner_idx = tournament_indices[np.argmax(tournament_fitnesses)]
         parents.append(population[winner_idx].copy())
@@ -102,7 +105,8 @@ def select_parents(
     if rng is None:
         rng = np.random.default_rng()
 
-    elites, remaining_pop = elitism_selection(population, fitnesses, elite_count)
+    elites, remaining_pop = elitism_selection(
+        population, fitnesses, elite_count)
 
     if len(elites) >= num_parents:
         return elites[:num_parents], elites

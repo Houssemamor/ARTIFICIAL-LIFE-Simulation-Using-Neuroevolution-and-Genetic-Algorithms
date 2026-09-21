@@ -40,7 +40,9 @@ def gaussian_mutation(
 
     mutated = genome.copy()
     mask = rng.random(genome.shape) < mutation_rate
-    noise = rng.normal(0, mutation_strength, size=genome.shape).astype(genome.dtype)
+    noise = rng.normal(
+        0, mutation_strength, size=genome.shape
+    ).astype(genome.dtype)
     mutated[mask] += noise[mask]
     np.clip(mutated, clip_min, clip_max, out=mutated)
     return mutated

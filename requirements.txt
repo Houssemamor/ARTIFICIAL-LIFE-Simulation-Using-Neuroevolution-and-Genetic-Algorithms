@@ -1,7 +1,23 @@
 # Core dependencies for Artificial Life Neuroevolution Simulation
-torch>=2.0.0
-pygame>=2.5.0
-numpy>=1.24.0
+torch==2.14.0
+pygame-ce==2.5.8
+numpy==2.5.3
+
+# Configuration & validation
+pydantic==2.12.5
+pydantic-settings==2.14.2
+pydantic-core==2.41.5
+
+# Testing
+pytest==8.4.0
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+
+# Code quality
+flake8==7.3.0
+black==23.12.1
+isort==5.13.2
+mypy==1.8.0
 
 # Optional dependencies for debugging and development
 # imgui[pygame]>=2.5.0  # Dear ImGui bindings for pygame (debugging tools)

@@ -1,8 +1,8 @@
 """
 Genetic algorithm orchestration for Artificial Life Neuroevolution Simulation.
 
-Implements the run_generation loop: observe/act (Phase 2) + fitness accumulation
-+ selection + crossover + mutation + replacement.
+Implements the run_generation loop: observe/act (Phase 2) + fitness
+accumulation + selection + crossover + mutation + replacement.
 """
 
 from __future__ import annotations
@@ -15,13 +15,11 @@ from agents.organism import Organism
 from agents.sensors import RayCaster
 from agents.energy import EnergyConfig, DEFAULT_ENERGY_CONFIG
 from neural.batched_inference import batched_forward, stack_population_weights
-from neural.genome import genome_size
-from simulation.environment import World, Food, Obstacle
-from simulation.engine import step_simulation, resolve_collisions
+from simulation.environment import World
+from simulation.engine import resolve_collisions
 from simulation.world_config import BaselineConfig
-from simulation.physics import Vector2D
-from evolution.selection import tournament_selection, elitism_selection, select_parents
-from evolution.crossover import crossover_population, CrossoverMethod
+from evolution.selection import select_parents
+from evolution.crossover import crossover_population
 from evolution.mutation import mutate_population
 
 
@@ -61,7 +59,8 @@ def compute_fitness(
         food_eaten: Number of food items consumed.
         exploration_distance: Mean distance from start position.
         collisions: Number of collisions.
-        calibration_scales: Dict with keys 'survival', 'food', 'exploration', 'collision'.
+        calibration_scales: Dict with keys 'survival', 'food',
+            'exploration', 'collision'.
         fitness_weights: Dict with same keys, values sum to 1.0.
 
     Returns:
@@ -126,12 +125,9 @@ def run_generation(
     raycaster = RayCaster()
 
     # Tracking for fitness computation
-    steps_survived = np.zeros(population_size, dtype=int)
     food_eaten = np.zeros(population_size, dtype=int)
     exploration_distance = np.zeros(population_size, dtype=float)
     collisions_total = np.zeros(population_size, dtype=int)
-
-    initial_positions = np.array([(a.position.x, a.position.y) for a in population])
 
     # Evaluation phase
     for step in range(max_steps):
@@ -152,12 +148,13 @@ def run_generation(
             steering = float(action_logits[idx, 0])
             acceleration = float(action_logits[idx, 1])
             eat_signal = float(action_logits[idx, 2])
-            agent.apply_action(steering, acceleration, eat_signal, world, dt=1.0)
+            agent.apply_action(steering, acceleration, eat_signal, world,
+                               dt=1.0)
             if eat_signal > 0.5:
                 if agent.consume_food(world):
                     food_eaten[agent.id] += 1
 
-        step_collisions = resolve_collisions(live_agents, world)
+        resolve_collisions(live_agents, world)
         for agent in live_agents:
             collisions_total[agent.id] += agent.collisions
             agent.collisions = 0
@@ -174,7 +171,8 @@ def run_generation(
         agent_id = agent.id
         steps = agent.age
         food = food_eaten[agent_id]
-        expl = exploration_distance[agent_id] if agent_id < len(exploration_distance) else 0.0
+        expl = (exploration_distance[agent_id]
+                if agent_id < len(exploration_distance) else 0.0)
         cols = collisions_total[agent_id]
         fitnesses[agent_id] = compute_fitness(
             agent, steps, food, expl, cols, calibration_scales, fitness_weights
@@ -186,7 +184,6 @@ def run_generation(
     elite_count = config.evolution.elitism_count
     elite_indices = sorted_indices[:elite_count]
     elite_genomes = [population[i].genome.copy() for i in elite_indices]
-    elite_fitnesses = fitnesses[elite_indices]
 
     # Select parents for crossover (includes elites + tournament winners)
     parents, _ = select_parents(
@@ -204,7 +201,8 @@ def run_generation(
     for p in parents:
         matched = False
         for i in range(population_size):
-            if population[i].genome is not None and np.array_equal(p, population[i].genome):
+            genome_i = population[i].genome
+            if genome_i is not None and np.array_equal(p, genome_i):
                 parent_fitnesses.append(fitnesses[i])
                 matched = True
                 break
@@ -235,8 +233,12 @@ def run_generation(
     # Create new population
     new_population = []
     for i in range(population_size):
-        x = rng.uniform(world.boundary_margin, world.width - world.boundary_margin)
-        y = rng.uniform(world.boundary_margin, world.height - world.boundary_margin)
+        x = rng.uniform(
+            world.boundary_margin, world.width - world.boundary_margin
+        )
+        y = rng.uniform(
+            world.boundary_margin, world.height - world.boundary_margin
+        )
         agent = Organism(i, x, y, initial_energy=100.0)
         if i < elite_count:
             agent.genome = elite_genomes[i]

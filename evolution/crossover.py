@@ -14,7 +14,7 @@ Design doc reference: Section 19.2
 """
 
 from __future__ import annotations
-from typing import Literal
+from typing import Literal, Optional
 import numpy as np
 
 
@@ -177,9 +177,14 @@ def crossover_population(
             valid_parents = np.where(probs > 0)[0]
             if len(valid_parents) >= 2:
                 p1_idx, p2_idx = rng.choice(
-                    valid_parents, size=2, replace=False, p=probs[valid_parents] / np.sum(probs[valid_parents])
+                    valid_parents,
+                    size=2,
+                    replace=False,
+                    p=probs[valid_parents] / np.sum(probs[valid_parents]),
                 )
-                child = crossover(parents[p1_idx], parents[p2_idx], method, rng)
+                child = crossover(
+                    parents[p1_idx], parents[p2_idx], method, rng
+                )
             else:
                 # Not enough valid parents, clone
                 p_idx = rng.choice(len(parents), p=probs)

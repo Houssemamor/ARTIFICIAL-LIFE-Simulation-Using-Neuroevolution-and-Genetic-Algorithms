@@ -31,27 +31,78 @@ v2.0 adds two secondary questions:
 
 ## Stack
 
-- Python (primary)
-- PyGame (simulation engine / renderer)
-- PyTorch (batched population inference)
+- Python 3.14+ (primary)
+- PyGame-ce (simulation engine / renderer) — required on Python 3.14
+- PyTorch 2.14+ (batched population inference)
+- Pydantic 2.12+ (config validation)
 - Optional: FastAPI + React web dashboard (presentation layer only, not coupled to core)
 
-## Execution Modes
+## Installation
 
 ```bash
-# Interactive GUI
-python -m app.run --config configs/baseline.json --mode gui
+# 1. Clone and create virtual environment
+git clone <repo-url>
+cd ARTIFICIAL-LIFE-Simulation-Using-Neuroevolution-and-Genetic-Algorithms
+python -m venv .venv
 
-# Headless scheduled experiment
-python -m experiments.run --config configs/mutation_rate.json --seeds 10 --mode headless --device cpu
+# 2. Activate environment
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+# 3. Install pinned dependencies and package in editable mode
+pip install -r requirements.txt
+pip install -e .
+```
+
+**Pinned dependencies (from `requirements.txt`):**
+- `torch==2.14.0`
+- `pygame-ce==2.5.8` (required on Python 3.14; plain `pygame` has no wheel)
+- `numpy==2.5.3`
+- `pydantic==2.12.5`, `pydantic-settings==2.14.2`, `pydantic-core==2.41.5`
+- `pytest==8.4.0`, `pytest-asyncio==1.4.0`, `pytest-cov==7.1.0`
+- `flake8==7.3.0`, `black==23.12.1`, `isort==5.13.2`, `mypy==1.8.0`
+
+**Note:** On Python 3.14, plain `pygame` fails to build from source. This project uses `pygame-ce` (drop-in replacement) which provides Python 3.14 wheels.
+
+## Running
+
+```bash
+# Activate venv first (see Installation)
+
+# Phase 1: Placeholder random-walk agents (no neural controller)
+python app/run.py --config configs/baseline.json --agent-mode placeholder
+
+# Phase 2+: Neural controller (batched inference)
+python app/run.py --config configs/baseline.json --agent-mode neural
+
+# Headless experiment (Phase 3+)
+python -m experiments.run --config configs/baseline.json --mode headless --device cpu
+```
+
+**Agent modes:**
+- `--agent-mode placeholder`: Phase 1 random-walk motion (validates physics/render loop)
+- `--agent-mode neural`: Phase 2+ batched NN inference (12-32-16-3 MLP)
+
+## Running Tests
+
+```bash
+# Full suite (103 tests)
+pytest tests/ -q
+
+# Specific test groups
+pytest tests/unit/ -q
+pytest tests/integration/ -q
+pytest tests/performance/ -q
 ```
 
 ## Development Plan (summary)
 
 | Phase | Work | Exit criterion | Status |
 |-------|------|----------------|---------|
-| Phase 0 | Project setup & environment | Installable, empty project skeleton matching the Section 0 tree | ✅ Complete |
-| Phase 1 | Environment + renderer + basic physics | Agents move and collide reliably | ✅ Completed |
+| Phase 0 | Project setup & environment | Installable project, pinned deps, green pytest | ✅ Complete |
+| Phase 1 | Environment + renderer + basic physics | Agents move and collide reliably | ✅ Complete |
 | Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ✅ Complete |
 | Phase 2 | Sensors + fixed neural controller, batched from the start | Agents react to observations through batched NN outputs | ✅ Complete |
 | Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ✅ Complete |
@@ -90,39 +141,47 @@ As of September 2026, the following components have been implemented:
 - ✅ Configuration validation using Pydantic models (`simulation/world_config.py`)
 - ✅ Baseline and experiment configuration files (`configs/baseline.json`, `configs/mutation_rate.json`)
 - ✅ Empty package structure with `__init__.py` files for all modules
+- ✅ Pinned dependencies in `requirements.txt` and `pyproject.toml`
+- ✅ `pip install -e .` works on Python 3.14
 
-### Core Simulation Components (Phase 1 - In Progress)
-- ✅ `World` class (`simulation/environment/world.py`) - manages food, obstacles, boundaries
+### Core Simulation Components (Phase 1 - Complete)
+- ✅ `World` class (`simulation/environment.py`) - manages food, obstacles, boundaries
 - ✅ Physics mathematics (`simulation/physics/`) - Vector2D, AABB, SpatialHash implementations
-- ✅ `Organism` class (`agents/organism.py`) - basic life cycle, energy management, placeholder neural/sensory systems
+- ✅ `Organism` class (`agents/organism.py`) - life cycle, energy management, collision tracking
 - ✅ `Renderer` class (`visualization/renderer.py`) - PyGame-based world rendering
-- ✅ GUI entry point (`app/run.py`) - basic simulation loop with placeholder agent motion
-- ✅ Headless entry point (`experiments/run.py`) - experiment framework skeleton
+- ✅ GUI entry point (`app/run.py`) - dual-mode: `--agent-mode placeholder` (Phase 1) / `--agent-mode neural` (Phase 2+)
+- ✅ Headless entry point (`experiments/run.py`) - experiment framework
 - ✅ Unit tests for physics and environment components
 
-### Pending Implementation
-- ❌ Neural network system (`neural/network.py`, `neural/batched_inference.py`, etc.)
-- ❌ Sensor system (`agents/sensors.py`)
-- ❌ Energy-balance equation (`agents/energy.py`)
-- ❌ Genetic algorithm (`evolution/genetic_algorithm.py`, `selection.py`, `crossover.py`, `mutation.py`)
-- ❌ Experiment logging and analytics (`analytics/experiment_logger.py`, `statistics.py`, etc.)
-- ❌ Proper simulation engine (`simulation/engine.py`) - currently uses placeholder motion
-- ❌ Checkpointing system (`neural/checkpoint.py`)
+### Batched Inference (Phase 1.5 - Complete)
+- ✅ `neural/batched_inference.py` - population-wide forward pass (`batched_forward`)
+- ✅ `neural/network.py` - 12-32-16-3 MLP topology
+- ✅ `neural/genome.py` - pack/unpack genome ↔ weights with round-trip tests
+- ✅ Benchmark: 10,762 steps/sec at 250 agents (358× real-time FPS target)
+
+### Sensors + Fixed Neural Controller (Phase 2 - Complete)
+- ✅ `agents/sensors.py` - 7-ray casting (-90..+90°), 12-dim observation encoding
+- ✅ `simulation/engine/__init__.py` - observe → batched_forward → act pipeline
+- ✅ Batched-vs-per-agent equivalence test (≤1e-5 tolerance)
+
+### Fitness Calibration + Genetic Algorithm (Phase 3 - Complete)
+- ✅ `agents/energy.py` - energy balance equation (metabolism + action costs + food gain - collision penalty)
+- ✅ `analytics/calibration.py` - random/stand-still calibration → `configs/calibration.json`
+- ✅ `evolution/` - tournament selection + elitism, 3 crossover methods (blend/uniform/none), Gaussian mutation
+- ✅ `evolution/genetic_algorithm.py` - `run_generation()` orchestration + normalized fitness
+- ✅ 43 new unit/integration tests (energy, fitness, crossover, one-generation)
+
+## Pending Implementation (Phase 4+)
+- ❌ Experiment logging pipeline (`analytics/experiment_logger.py`)
 - ❌ Determinism utilities (`simulation/determinism.py`)
+- ❌ Checkpointing system (`neural/checkpoint.py`)
 - ❌ Hall of fame tracking (`analytics/hall_of_fame.py`)
-- ❌ NEAT topology evolution components (`evolution/neat/`)
+- ❌ NEAT topology evolution (`evolution/neat/`)
+- ❌ Statistical comparison pipeline
 - ❌ Web dashboard (`webdash/` - optional, Phase 8)
 
 ## Next Steps
 
-To advance the simulation toward the Phase 1 exit criterion ("Agents move and collide reliably"), the following work is needed:
-
-1. Implement proper neural network controllers in `neural/network.py`
-2. Implement sensory ray-casting in `agents/sensors.py`
-3. Connect neural outputs to physics inputs in the simulation engine
-4. Implement the energy-balance equation in `agents/energy.py`
-5. Replace placeholder motion in `app/run.py` with proper physics integration
-6. Implement the genetic algorithm in the `evolution/` modules
-7. Add experiment logging and analytics capabilities
+Phase 4 begins with experiment logging, determinism enforcement, and checkpoint save/restore. See [Plan](PLAN.md) for the detailed first-steps plan.
 
 Once these components are implemented and integrated, agents will be able to process sensory information through neural networks, convert that to physical actions, and exhibit emergent behaviors guided by evolutionary selection pressures.

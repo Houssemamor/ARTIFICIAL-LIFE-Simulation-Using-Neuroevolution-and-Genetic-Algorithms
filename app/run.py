@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
 Artificial Life Neuroevolution Simulation - GUI Mode Entry Point
+
+Supports two agent modes:
+- neural: agents use the fixed 12-32-16-3 neural controller (Phase 2+)
+- placeholder: agents use random-walk motion (Phase 1 baseline)
 """
 
 import argparse
@@ -23,11 +27,39 @@ from neural.genome import genome_size
 from visualization.renderer import Renderer
 
 
+def step_placeholder(world, agents, dt: float = 1.0) -> int:
+    """
+    Phase 1 placeholder motion: random steering, constant low acceleration.
+
+    This is the pre-neural random walk used to validate physics/render loop
+    before the neural controller was wired in Phase 2.
+    """
+    for agent in agents:
+        if not agent.is_alive:
+            continue
+        # Random steering in [-1, 1], constant low acceleration
+        steering = np.random.uniform(-1.0, 1.0)
+        acceleration = 0.3
+        eat_signal = 0.0
+        agent.apply_action(steering, acceleration, eat_signal, world, dt=dt)
+
+    from simulation.engine import resolve_collisions
+    collisions = resolve_collisions(agents, world)
+
+    for agent in agents:
+        agent.update_energy()
+        agent.increment_age()
+
+    return collisions
+
+
 def main():
     """Main entry point for GUI mode."""
     parser = argparse.ArgumentParser(description='Run Artificial Life Neuroevolution Simulation (GUI)')
     parser.add_argument('--config', type=str, required=True, help='Path to configuration JSON file')
     parser.add_argument('--mode', type=str, choices=['gui', 'headless'], default='gui', help='Execution mode')
+    parser.add_argument('--agent-mode', type=str, choices=['neural', 'placeholder'], default='neural',
+                        help='Agent behavior: neural (Phase 2+ NN controller) or placeholder (Phase 1 random walk)')
 
     args = parser.parse_args()
 
@@ -37,6 +69,7 @@ def main():
     print(f"Starting Artificial Life Neuroevolution Simulation")
     print(f"Configuration: {args.config}")
     print(f"Mode: {args.mode}")
+    print(f"Agent mode: {args.agent_mode}")
     print(f"Experiment: {config.experiment_name}")
 
     # Create world from config
@@ -47,14 +80,17 @@ def main():
     population_size = config.population.size
     agents: List[Organism] = []
     for i in range(population_size):
-        # Spawn agents at random positions within the world
         x = np.random.uniform(world.boundary_margin, world.width - world.boundary_margin)
         y = np.random.uniform(world.boundary_margin, world.height - world.boundary_margin)
         agent = Organism(i, x, y, initial_energy=100.0)
-        agent.initialize_genome(genome_size=genome_size())  # Real controller genome
+        if args.agent_mode == 'neural':
+            agent.initialize_genome(genome_size=genome_size())
+        else:
+            # Placeholder agents don't need a genome
+            agent.genome = np.zeros(genome_size(), dtype=np.float32)
         agents.append(agent)
 
-    # Sensor system: fixed 7-ray casting + 12-dim observation encoding
+    # Sensor system (only used in neural mode)
     agent_raycaster = RayCaster()
 
     # Set up renderer
@@ -62,53 +98,40 @@ def main():
 
     # Simulation state
     simulation_paused = False
-    simulation_speed = 1.0  # 1.0 = real-time, 10.0 = 10x faster
-    physics_dt = 1.0 / 60.0  # Fixed physics timestep (60 Hz)
+    simulation_speed = 1.0
+    physics_dt = 1.0 / 60.0
     physics_accumulator = 0.0
-    last_render_time = 0.0
-    render_dt = 1.0 / 30.0  # Target render FPS (30 Hz) - can be lower than physics
+    render_dt = 1.0 / 30.0
 
-    # Clock for timing
     import time
     last_time = time.time()
 
     # Main loop
     running = True
     while running:
-        # Calculate elapsed time
         current_time = time.time()
         elapsed = current_time - last_time
         last_time = current_time
 
-        # Handle events
         running = renderer.handle_events()
-        # Check for pause (simplify: we'll use spacebar to pause)
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
             simulation_paused = not simulation_paused
-            # Debounce: wait a bit to avoid multiple toggles
             pygame.time.wait(200)
 
-        # Update simulation if not paused
         if not simulation_paused:
-            # Accumulate time for physics steps
             physics_accumulator += elapsed * simulation_speed
 
-            # Perform physics steps while we have enough accumulated time,
-            # each step running the full batched NN pipeline for the population
             while physics_accumulator >= physics_dt:
-                # Move all agents via observed -> batched inference -> actions
-                step_simulation(world, agents, agent_raycaster, dt=physics_dt)
+                if args.agent_mode == 'neural':
+                    step_simulation(world, agents, agent_raycaster, dt=physics_dt)
+                else:
+                    step_placeholder(world, agents, dt=physics_dt)
                 physics_accumulator -= physics_dt
 
-        # Render at most at the target render FPS
-        # We'll render every frame for simplicity, but we could limit it
         renderer.draw_world(world, agents)
+        renderer.clock.tick(60)
 
-        # Cap the render loop to prevent excessive CPU usage
-        renderer.clock.tick(60)  # Limit to 60 FPS
-
-    # Clean up
     renderer.quit()
     print("Simulation ended.")
 
