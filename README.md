@@ -106,8 +106,8 @@ pytest tests/performance/ -q
 | Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ✅ Complete |
 | Phase 2 | Sensors + fixed neural controller, batched from the start | Agents react to observations through batched NN outputs | ✅ Complete |
 | Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ✅ Complete |
-| Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ❌ Not Started |
-| Phase 5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ❌ Not Started |
+| Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ✅ Complete |
+| Phase 4.5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ✅ Complete |
 | Phase 6 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ❌ Not Started |
 | Phase 7 | Predator/prey + reproduction + hall-of-fame evaluation | Multi-agent ecosystem stable; co-evolution measured against frozen checkpoints | ❌ Not Started |
 | Phase 8 | NEAT-style extension (Appendix C) + packaging + final report | Topology evolution works on an isolated benchmark, matching the Appendix C spec | ❌ Not Started |
@@ -171,17 +171,21 @@ As of September 2026, the following components have been implemented:
 - ✅ `evolution/genetic_algorithm.py` - `run_generation()` orchestration + normalized fitness
 - ✅ 43 new unit/integration tests (energy, fitness, crossover, one-generation)
 
-## Pending Implementation (Phase 4+)
-- ❌ Experiment logging pipeline (`analytics/experiment_logger.py`)
-- ❌ Determinism utilities (`simulation/determinism.py`)
-- ❌ Checkpointing system (`neural/checkpoint.py`)
-- ❌ Hall of fame tracking (`analytics/hall_of_fame.py`)
-- ❌ NEAT topology evolution (`evolution/neat/`)
-- ❌ Statistical comparison pipeline
-- ❌ Web dashboard (`webdash/` - optional, Phase 8)
+### Analytics, Checkpoints, Determinism (Phase 4 - Complete)
+- ✅ `analytics/experiment_logger.py` - experiment folder structure (config.json, metadata.json, generation_metrics.csv, agent_metrics.csv, best_genome.json, checkpoints/, stats_summary.json)
+- ✅ `simulation/determinism.py` - `DeterminismConfig`, `set_deterministic_seeds()` (separate torch/numpy/random seeds, deterministic algorithms, thread pinning)
+- ✅ `neural/checkpoint.py` - genome + architecture save/restore with bit-for-bit verification
+- ✅ `tests/integration/test_seeded_rerun.py` - byte-for-bit reproducibility across runs
+- ✅ `tests/integration/test_checkpoint_restore.py` - checkpoint save/restore verification
+
+### Statistics + Comparison Pipeline (Phase 4.5 - Complete)
+- ✅ `docs/related_work.md` - positioning against Sims (1994), Stanley & Miikkulainen NEAT (2002), AVIDA
+- ✅ `analytics/statistics.py` - `mann_whitney_u()`, `bootstrap_ci()`, `holm_bonferroni()`, `rank_biserial_correlation()`, `compare_conditions()`
+- ✅ `analytics/compare_conditions.py` - end-to-end pairwise comparison pipeline
+- ✅ `tests/unit/test_statistics.py` - 26 tests cross-checking against scipy/statsmodels
 
 ## Next Steps
 
-Phase 4 begins with experiment logging, determinism enforcement, and checkpoint save/restore. See [Plan](PLAN.md) for the detailed first-steps plan.
+Phase 5 begins with generalization experiments (unseen layouts) and Experiment D (fitness weighting sensitivity). See [Plan](PLAN.md) for the detailed first-steps plan.
 
 Once these components are implemented and integrated, agents will be able to process sensory information through neural networks, convert that to physical actions, and exhibit emergent behaviors guided by evolutionary selection pressures.

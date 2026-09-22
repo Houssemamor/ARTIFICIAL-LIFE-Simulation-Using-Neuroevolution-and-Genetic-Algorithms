@@ -410,10 +410,10 @@ artificial-life-sim/
 
 ### Deliverables — Phase 4.5
 
-- [ ] `docs/related_work.md`
-- [ ] A tested statistics module (Mann-Whitney U, bootstrap CI, Holm-Bonferroni, effect size)
-- [ ] An end-to-end condition-comparison pipeline producing `stats_summary.json`
-- [ ] Confirmed statistical machinery correctness before real experiments depend on it
+- [x] `docs/related_work.md`
+- [x] A tested statistics module (Mann-Whitney U, bootstrap CI, Holm-Bonferroni, effect size)
+- [x] An end-to-end condition-comparison pipeline producing `stats_summary.json`
+- [x] Confirmed statistical machinery correctness before real experiments depend on it
 
 ---
 
