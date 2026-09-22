@@ -31,8 +31,8 @@ v2.0 adds two secondary questions:
 
 ## Stack
 
-- Python 3.14+ (primary)
-- PyGame-ce (simulation engine / renderer) — required on Python 3.14
+- Python 3.12+ (primary)
+- PyGame-ce (simulation engine / renderer) — required on Python 3.12+
 - PyTorch 2.14+ (batched population inference)
 - Pydantic 2.12+ (config validation)
 - Optional: FastAPI + React web dashboard (presentation layer only, not coupled to core)
@@ -64,7 +64,7 @@ pip install -e .
 - `pytest==8.4.0`, `pytest-asyncio==1.4.0`, `pytest-cov==7.1.0`
 - `flake8==7.3.0`, `black==23.12.1`, `isort==5.13.2`, `mypy==1.8.0`
 
-**Note:** On Python 3.14, plain `pygame` fails to build from source. This project uses `pygame-ce` (drop-in replacement) which provides Python 3.14 wheels.
+**Note:** On Python 3.12+, plain `pygame` fails to build from source. This project uses `pygame-ce` (drop-in replacement) which provides Python 3.12+ wheels.
 
 ## Running
 
