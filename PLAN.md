@@ -444,9 +444,9 @@ artificial-life-sim/
 
 ### Deliverables — Phase 5
 
-- [ ] Documented generalization-gap result (train vs. unseen performance)
-- [ ] Documented, statistically-compared fitness-weighting result (Experiment D)
-- [ ] Reusable generalization-evaluation and experiment-runner scripts for later phases
+- [x] Documented generalization-gap result (train vs. unseen performance)
+- [x] Documented, statistically-compared fitness-weighting result (Experiment D)
+- [x] Reusable generalization-evaluation and experiment-runner scripts for later phases
 
 ---
 

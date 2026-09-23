@@ -15,6 +15,10 @@ class WorldConfig(BaseModel):
     height: int = Field(700, gt=0)
     food_count: int = Field(20, ge=0)
     obstacle_count: int = Field(10, ge=0)
+    # Seeds the global numpy RNG before food/obstacle placement so each
+    # layout (A1-A3 train / B1-B3 test in Phase 5) is reproducible and
+    # distinct. None = unseeded (legacy behavior).
+    layout_seed: Optional[int] = None
 
 
 class BrainConfig(BaseModel):
@@ -40,6 +44,10 @@ class EvolutionConfig(BaseModel):
     mutation_rate: float = Field(0.05, ge=0, le=1)
     crossover_rate: float = Field(0.7, ge=0, le=1)
     elitism_count: int = Field(2, ge=0)
+    # Simulation steps each genome is evaluated for per generation.
+    # Kept configurable so Phase 5 experiments can trade fidelity for
+    # wall-clock time (ray casting is O(agents x objects) per step).
+    evaluation_steps: int = Field(1000, gt=0)
 
 
 class ExperimentConfig(BaseModel):

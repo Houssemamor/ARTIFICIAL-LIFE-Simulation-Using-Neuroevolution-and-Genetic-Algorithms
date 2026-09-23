@@ -116,11 +116,16 @@ def run_generation(
     if energy_config is None:
         energy_config = DEFAULT_ENERGY_CONFIG
 
+    # Layout seed: fixed food/obstacle placement for this generation's
+    # world so evaluation conditions are identical across the population
+    if config.world.layout_seed is not None:
+        np.random.seed(config.world.layout_seed)
+
     world = World(config.world.width, config.world.height)
     world.load_from_config(config.model_dump())
 
     population_size = config.population.size
-    max_steps = 1000  # Could be configurable
+    max_steps = config.evolution.evaluation_steps
 
     raycaster = RayCaster()
 
@@ -163,11 +168,12 @@ def run_generation(
             agent.update_energy(energy_config)
             agent.increment_age()
 
-    # Compute fitness for each agent
+    # Compute fitness for each agent. Dead agents are scored on what they
+    # achieved before death (age, food, collisions) rather than skipped:
+    # skipping them gave every death an identical fitness of 0, erasing the
+    # difference between dying at step 1 and step evaluation_steps-1.
     fitnesses = np.zeros(population_size, dtype=float)
     for agent in population:
-        if not agent.is_alive:
-            continue
         agent_id = agent.id
         steps = agent.age
         food = food_eaten[agent_id]

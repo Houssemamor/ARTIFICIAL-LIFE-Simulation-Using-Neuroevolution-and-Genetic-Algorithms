@@ -3,6 +3,9 @@
 from analytics.calibration import run_calibration, load_calibration, CalibrationResult
 from analytics.statistics import (
     mann_whitney_u,
+    wilcoxon_signed_rank,
+    matched_pairs_rank_biserial,
+    compare_conditions_paired,
     bootstrap_ci,
     holm_bonferroni,
     rank_biserial_correlation,
@@ -14,6 +17,9 @@ __all__ = [
     "load_calibration",
     "CalibrationResult",
     "mann_whitney_u",
+    "wilcoxon_signed_rank",
+    "matched_pairs_rank_biserial",
+    "compare_conditions_paired",
     "bootstrap_ci",
     "holm_bonferroni",
     "rank_biserial_correlation",

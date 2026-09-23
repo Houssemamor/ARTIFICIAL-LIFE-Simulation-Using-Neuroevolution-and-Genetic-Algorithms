@@ -12,6 +12,9 @@ from scipy import stats
 
 from analytics.statistics import (
     mann_whitney_u,
+    wilcoxon_signed_rank,
+    matched_pairs_rank_biserial,
+    compare_conditions_paired,
     bootstrap_ci,
     holm_bonferroni,
     rank_biserial_correlation,
@@ -75,6 +78,134 @@ class TestMannWhitneyU:
 
         assert np.isclose(u_our, u_scipy, rtol=1e-10)
         assert np.isclose(p_our, p_scipy, rtol=1e-10)
+
+
+class TestWilcoxonSignedRank:
+    """Cross-check Wilcoxon signed-rank against scipy.stats.wilcoxon."""
+
+    def test_matches_scipy(self) -> None:
+        rng = np.random.default_rng(42)
+        x = rng.normal(0.3, 1, 30)
+        y = rng.normal(0, 1, 30)
+
+        w_our, p_our = wilcoxon_signed_rank(x, y)
+        w_scipy, p_scipy = stats.wilcoxon(x, y, alternative="two-sided",
+                                          zero_method="wilcox")
+
+        assert np.isclose(w_our, w_scipy, rtol=1e-10)
+        assert np.isclose(p_our, p_scipy, rtol=1e-10)
+
+    def test_length_mismatch_raises(self) -> None:
+        with pytest.raises(ValueError):
+            wilcoxon_signed_rank(np.array([1.0, 2.0]), np.array([1.0]))
+
+    def test_all_zero_differences(self) -> None:
+        x = np.array([1.0, 2.0, 3.0])
+        w, p = wilcoxon_signed_rank(x, x.copy())
+        # scipy raises on all-zero differences; our wrapper returns the
+        # degenerate "no evidence" result instead
+        assert w == 0.0
+        assert p == 1.0
+
+    def test_systematic_shift_detected(self) -> None:
+        rng = np.random.default_rng(0)
+        x = rng.normal(1.0, 0.1, 20)
+        y = np.zeros(20)
+        _, p = wilcoxon_signed_rank(x, y)
+        assert p < 0.001
+
+
+class TestMatchedPairsRankBiserial:
+    """Cross-check matched-pairs rank-biserial against manual calculation."""
+
+    def test_manual_small_example(self) -> None:
+        # diffs = [+3, -1, +2]; abs diffs = [3, 1, 2], ranks = [3, 1, 2]
+        # pos ranks (diff>0): 3 + 2 = 5, neg ranks: 1
+        # r = (5 - 1) / (3 + 1 + 2) = 4/6
+        x = np.array([4.0, 0.0, 5.0])
+        y = np.array([1.0, 1.0, 3.0])
+        r = matched_pairs_rank_biserial(x, y)
+        assert np.isclose(r, 4.0 / 6.0)
+
+    def test_perfect_positive(self) -> None:
+        x = np.array([5.0, 6.0, 7.0])
+        y = np.array([1.0, 2.0, 3.0])
+        assert np.isclose(matched_pairs_rank_biserial(x, y), 1.0)
+
+    def test_perfect_negative(self) -> None:
+        x = np.array([1.0, 2.0, 3.0])
+        y = np.array([5.0, 6.0, 7.0])
+        assert np.isclose(matched_pairs_rank_biserial(x, y), -1.0)
+
+    def test_all_zero_diffs_returns_nan(self) -> None:
+        x = np.array([1.0, 2.0])
+        assert np.isnan(matched_pairs_rank_biserial(x, x.copy()))
+
+    def test_ties_and_zeros_excluded(self) -> None:
+        # One tie (rank split) and one zero-diff pair (excluded)
+        x = np.array([2.0, 3.0, 5.0])
+        y = np.array([1.0, 3.0, 4.0])
+        # diffs = [+1, 0, +1]; zero excluded -> diffs [+1, +1], ranks [1.5, 1.5]
+        # r = (3 - 0) / 3 = 1.0
+        assert np.isclose(matched_pairs_rank_biserial(x, y), 1.0)
+
+
+class TestCompareConditionsPaired:
+    """Test the paired condition-comparison pipeline."""
+
+    def test_basic_paired_comparison(self) -> None:
+        # n=6: exact Wilcoxon min two-sided p = 2/64 = 0.031 < 0.05,
+        # so a perfectly consistent pair can reach significance
+        conditions = {
+            "a": np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
+            "b": np.array([1.5, 2.5, 3.5, 4.5, 5.5, 6.5]),  # b consistently higher
+        }
+        result = compare_conditions_paired(conditions, alpha=0.05,
+                                           n_resamples=1000)
+        assert result["n_seeds"] == 6
+        assert len(result["pairwise"]) == 1
+        entry = result["pairwise"][0]
+        assert entry["condition_a"] == "a"
+        assert entry["condition_b"] == "b"
+        assert entry["mean_diff"] < 0  # a - b negative
+        assert entry["matched_pairs_rank_biserial"] == -1.0
+        assert "a_vs_b" in result["significant_pairs"]
+
+    def test_length_mismatch_raises(self) -> None:
+        with pytest.raises(ValueError):
+            compare_conditions_paired({
+                "a": np.array([1.0, 2.0]),
+                "b": np.array([1.0, 2.0, 3.0]),
+            })
+
+    def test_single_condition_raises(self) -> None:
+        with pytest.raises(ValueError):
+            compare_conditions_paired({"a": np.array([1.0])})
+
+    def test_no_difference_not_significant(self) -> None:
+        # Identical scores: Wilcoxon degenerates to p=1.0
+        conditions = {
+            "a": np.array([1.0, 2.0, 3.0]),
+            "b": np.array([1.0, 2.0, 3.0]),
+        }
+        result = compare_conditions_paired(conditions, n_resamples=500)
+        assert result["pairwise"][0]["p_value"] == 1.0
+        assert result["significant_pairs"] == []
+
+    def test_three_conditions_three_pairs(self) -> None:
+        # n=8: exact min p = 2/256 = 0.0078 < Holm threshold 0.05/6
+        conditions = {
+            "a": np.array([1.0, 1.2, 0.8, 1.1, 1.05, 0.95, 1.15, 0.85]),
+            "b": np.array([2.0, 2.2, 1.8, 2.1, 2.05, 1.95, 2.15, 1.85]),
+            "c": np.array([3.0, 3.2, 2.8, 3.1, 3.05, 2.95, 3.15, 2.85]),
+        }
+        result = compare_conditions_paired(conditions, n_resamples=500)
+        assert len(result["pairwise"]) == 3
+        labels = {f"{p['condition_a']}_vs_{p['condition_b']}"
+                  for p in result["pairwise"]}
+        assert labels == {"a_vs_b", "a_vs_c", "b_vs_c"}
+        # All pairs perfectly ordered -> all significant after Holm
+        assert set(result["significant_pairs"]) == labels
 
 
 class TestBootstrapCI:

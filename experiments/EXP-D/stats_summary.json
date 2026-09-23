@@ -1,0 +1,146 @@
+{
+  "experiment": "experiment_d_fitness_weighting",
+  "n_seeds": 10,
+  "per_condition_scores": {
+    "equal": [
+      0.5280000000000001,
+      0.5907500000000001,
+      0.5770000000000002,
+      0.5082500000000001,
+      0.5142500000000002,
+      0.5592500000000001,
+      0.6000000000000001,
+      0.46875,
+      0.5392500000000001,
+      0.5630000000000001
+    ],
+    "resource-weighted": [
+      0.5032500000000001,
+      0.4432500000000001,
+      0.5690000000000002,
+      0.4940000000000001,
+      0.5155000000000001,
+      0.5847500000000001,
+      0.5755000000000001,
+      0.58125,
+      0.48900000000000005,
+      0.5642500000000001
+    ],
+    "exploration-weighted": [
+      0.557,
+      0.5175000000000001,
+      0.6000000000000001,
+      0.378,
+      0.5670000000000001,
+      0.5592500000000001,
+      0.6000000000000001,
+      0.47575,
+      0.5255000000000001,
+      0.5135
+    ],
+    "survival-weighted": [
+      0.5475000000000001,
+      0.47300000000000003,
+      0.5657500000000001,
+      0.4235000000000001,
+      0.5555000000000001,
+      0.5947500000000001,
+      0.6000000000000001,
+      0.50675,
+      0.5705000000000001,
+      0.38875000000000004
+    ]
+  },
+  "comparison": {
+    "metric": "balanced_evaluation_fitness",
+    "alpha": 0.05,
+    "pairwise": [
+      {
+        "condition_a": "equal",
+        "condition_b": "resource-weighted",
+        "mean_diff": 0.012875000000000015,
+        "p_value": 0.431640625,
+        "matched_pairs_rank_biserial": 0.3090909090909091,
+        "diff_ci95": [
+          -0.025302499999999947,
+          0.05167562500000003
+        ]
+      },
+      {
+        "condition_a": "equal",
+        "condition_b": "exploration-weighted",
+        "mean_diff": 0.015500000000000059,
+        "p_value": 0.640625,
+        "matched_pairs_rank_biserial": 0.2222222222222222,
+        "diff_ci95": [
+          -0.014700624999999929,
+          0.049875625000000035
+        ]
+      },
+      {
+        "condition_a": "equal",
+        "condition_b": "survival-weighted",
+        "mean_diff": 0.02225000000000003,
+        "p_value": 0.8203125,
+        "matched_pairs_rank_biserial": 0.1111111111111111,
+        "diff_ci95": [
+          -0.01920124999999996,
+          0.07072500000000004
+        ]
+      },
+      {
+        "condition_a": "resource-weighted",
+        "condition_b": "exploration-weighted",
+        "mean_diff": 0.002625000000000044,
+        "p_value": 0.921875,
+        "matched_pairs_rank_biserial": -0.05454545454545454,
+        "diff_ci95": [
+          -0.03447687499999994,
+          0.04422562500000005
+        ]
+      },
+      {
+        "condition_a": "resource-weighted",
+        "condition_b": "survival-weighted",
+        "mean_diff": 0.009375000000000017,
+        "p_value": 0.921875,
+        "matched_pairs_rank_biserial": -0.05454545454545454,
+        "diff_ci95": [
+          -0.03085062500000002,
+          0.058450000000000044
+        ]
+      },
+      {
+        "condition_a": "exploration-weighted",
+        "condition_b": "survival-weighted",
+        "mean_diff": 0.006749999999999973,
+        "p_value": 1.0,
+        "matched_pairs_rank_biserial": -0.022222222222222223,
+        "diff_ci95": [
+          -0.021576875000000016,
+          0.040126874999999944
+        ]
+      }
+    ],
+    "significant_pairs": [],
+    "bootstrap_cis": {
+      "equal": [
+        0.5204250000000001,
+        0.5683256250000002
+      ],
+      "resource-weighted": [
+        0.5029987500000002,
+        0.5598500000000001
+      ],
+      "exploration-weighted": [
+        0.48717375,
+        0.5642756250000001
+      ],
+      "survival-weighted": [
+        0.47764750000000017,
+        0.563175
+      ]
+    },
+    "n_seeds": 10
+  }
+}

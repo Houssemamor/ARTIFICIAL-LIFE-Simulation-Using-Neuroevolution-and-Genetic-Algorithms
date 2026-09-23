@@ -108,9 +108,10 @@ pytest tests/performance/ -q
 | Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ✅ Complete |
 | Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ✅ Complete |
 | Phase 4.5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ✅ Complete |
-| Phase 6 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ❌ Not Started |
-| Phase 7 | Predator/prey + reproduction + hall-of-fame evaluation | Multi-agent ecosystem stable; co-evolution measured against frozen checkpoints | ❌ Not Started |
-| Phase 8 | NEAT-style extension (Appendix C) + packaging + final report | Topology evolution works on an isolated benchmark, matching the Appendix C spec | ❌ Not Started |
+| Phase 5 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ✅ Complete |
+| Phase 6 | Predator/prey + reproduction + hall-of-fame evaluation | Multi-agent ecosystem stable; co-evolution measured against frozen checkpoints | ❌ Not Started |
+| Phase 7 | NEAT-style extension (Appendix C) | Topology evolution works on an isolated benchmark, matching the Appendix C spec | ❌ Not Started |
+| Phase 8 | Packaging, final report, dashboard polish, presentation | Packaged, tested, installable application + complete presentation package | ❌ Not Started |
 
 See [Plan](PLAN.md) for the first-steps plan.
 
@@ -184,8 +185,23 @@ As of September 2026, the following components have been implemented:
 - ✅ `analytics/compare_conditions.py` - end-to-end pairwise comparison pipeline
 - ✅ `tests/unit/test_statistics.py` - 26 tests cross-checking against scipy/statsmodels
 
+### Generalization + Experiment D (Phase 5 - Complete)
+- ✅ `configs/generalization_train.json` / `generalization_test.json` - layouts A1-A3 (train) / B1-B3 (held-out), varying placement seed only
+- ✅ `configs/fitness_weighting_d1.json` ... `d4.json` - equal / resource / exploration / survival-weighted conditions
+- ✅ `experiments/experiment_runner.py` - reusable train / freeze / balanced-evaluation primitives
+- ✅ `experiments/run_generalization.py` - train A1-A3, evaluate frozen genomes on B1-B3, Mann-Whitney + bootstrap + effect size
+- ✅ `experiments/run_experiment_d.py` - D1-D4 x 10 seeds through `compare_conditions` with Holm-Bonferroni
+- ✅ `docs/generalization_results.md` - no detectable gap (p=1.0, r=0.0); degenerate-landscape analysis documented
+- ✅ `docs/experiment_d_results.md` - no significant pairs after Holm; direction + caveats documented
+- ✅ `tests/integration/test_experiment_runners.py` - runner smoke tests (6 tests)
+- ✅ `WorldConfig.layout_seed` + `EvolutionConfig.evaluation_steps` schema extensions
+
 ## Next Steps
 
-Phase 5 begins with generalization experiments (unseen layouts) and Experiment D (fitness weighting sensitivity). See [Plan](PLAN.md) for the detailed first-steps plan.
+Phase 6 begins with predator/prey roles, explicit reproduction, and
+hall-of-fame evaluation. Both Phase 5 result docs recommend making the
+fitness components live (metabolic cost, consumption radius, exploration
+computation) and rerunning the Phase 5 experiments before drawing
+conclusions from them. See [Plan](PLAN.md) for the detailed plan.
 
 Once these components are implemented and integrated, agents will be able to process sensory information through neural networks, convert that to physical actions, and exhibit emergent behaviors guided by evolutionary selection pressures.

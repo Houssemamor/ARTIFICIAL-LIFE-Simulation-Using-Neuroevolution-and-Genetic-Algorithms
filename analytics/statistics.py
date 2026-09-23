@@ -8,7 +8,7 @@ in tests/unit/test_statistics.py.
 from __future__ import annotations
 import numpy as np
 from scipy import stats
-from typing import Tuple, List, Dict, Any, Callable, Optional
+from typing import Tuple, List, Dict, Any, Callable, Optional, Callable, Optional
 
 
 def mann_whitney_u(
@@ -36,6 +36,163 @@ def mann_whitney_u(
     # Use scipy's implementation as reference (cross-checked in tests)
     u_stat, p_value = stats.mannwhitneyu(x, y, alternative=alternative)
     return float(u_stat), float(p_value)
+
+
+def wilcoxon_signed_rank(
+    x: np.ndarray,
+    y: np.ndarray,
+) -> Tuple[float, float]:
+    """
+    Wilcoxon signed-rank test on paired samples.
+
+    The paired analogue of Mann-Whitney U: tests whether the paired
+    differences x - y are symmetrically distributed around zero. Use this
+    (not mann_whitney_u) whenever the two samples share units - e.g. the
+    same frozen genome scored on train vs. held-out layouts, or conditions
+    compared seed-by-seed with a common initial population.
+
+    Args:
+        x: First sample (1D array), paired element-wise with y.
+        y: Second sample (1D array), same length as x.
+
+    Returns:
+        Tuple of (W statistic, two-sided p-value). Returns (0.0, 1.0)
+        when all paired differences are exactly zero.
+    """
+    x = np.asarray(x, dtype=float).ravel()
+    y = np.asarray(y, dtype=float).ravel()
+    if x.size != y.size:
+        raise ValueError(f"paired samples must have equal length: {x.size} != {y.size}")
+    if x.size == 0:
+        raise ValueError("paired samples must be non-empty")
+
+    diffs = x - y
+    if np.all(diffs == 0.0):
+        return 0.0, 1.0
+    w_stat, p_value = stats.wilcoxon(x, y, alternative="two-sided",
+                                      zero_method="wilcox")
+    return float(w_stat), float(p_value)
+
+
+def matched_pairs_rank_biserial(
+    x: np.ndarray,
+    y: np.ndarray,
+) -> float:
+    """
+    Matched-pairs rank-biserial correlation (effect size for the
+    Wilcoxon signed-rank test).
+
+    r = (sum of positive signed ranks - sum of |negative| signed ranks)
+        / (total rank sum of non-zero differences)
+
+    Range [-1, 1]: +1 = x consistently larger, -1 = y consistently larger,
+    0 = no systematic direction. Zero-difference pairs are excluded.
+
+    Args:
+        x: First sample, paired element-wise with y.
+        y: Second sample, same length as x.
+
+    Returns:
+        Matched-pairs rank-biserial correlation. NaN if all differences
+        are zero or the arrays are empty.
+    """
+    x = np.asarray(x, dtype=float).ravel()
+    y = np.asarray(y, dtype=float).ravel()
+    diffs = x - y
+    diffs = diffs[diffs != 0.0]
+    if diffs.size == 0:
+        return float("nan")
+
+    ranks = stats.rankdata(np.abs(diffs))
+    pos = ranks[diffs > 0].sum()
+    neg = ranks[diffs < 0].sum()
+    return float((pos - neg) / ranks.sum())
+
+
+def compare_conditions_paired(
+    condition_results: Dict[str, np.ndarray],
+    metric: str = "fitness",
+    alpha: float = 0.05,
+    n_resamples: int = 10000,
+) -> Dict[str, Any]:
+    """
+    Paired counterpart of compare_conditions: every condition must supply
+    one score per seed, aligned by index, and every pairwise comparison is
+    a paired (within-seed) test.
+
+    Runs Wilcoxon signed-rank per pair, Holm-Bonferroni correction across
+    the pair family, matched-pairs rank-biserial effect sizes, and
+    bootstrap CIs on the per-pair differences.
+
+    Args:
+        condition_results: Dict condition_name -> 1D array of per-seed
+            scores. All arrays must have equal length (aligned by seed).
+        metric: Metric name (for labeling).
+        alpha: Family-wise error rate for Holm-Bonferroni.
+        n_resamples: Bootstrap resamples for difference CIs.
+
+    Returns:
+        Dict with keys:
+            - "pairwise": list of per-pair dicts (p_value, effect_size,
+              mean_diff, diff_ci95)
+            - "significant_pairs": pair labels surviving Holm correction
+            - "bootstrap_cis": per-condition score CIs
+            - "n_seeds": number of aligned scores per condition
+
+    Raises:
+        ValueError: If fewer than 2 conditions or array lengths differ.
+    """
+    names = list(condition_results.keys())
+    if len(names) < 2:
+        raise ValueError("Need at least 2 conditions for comparison")
+    arrays = {k: np.asarray(v, dtype=float).ravel()
+              for k, v in condition_results.items()}
+    lengths = {v.size for v in arrays.values()}
+    if len(lengths) != 1:
+        raise ValueError("All conditions must have equal-length "
+                         f"(seed-aligned) score arrays, got {lengths}")
+    n = arrays[names[0]].size
+
+    results: Dict[str, Any] = {
+        "metric": metric,
+        "alpha": alpha,
+        "pairwise": [],
+        "significant_pairs": [],
+        "bootstrap_cis": {},
+        "n_seeds": n,
+    }
+    for name in names:
+        results["bootstrap_cis"][name] = bootstrap_ci(
+            arrays[name], n_resamples=n_resamples,
+            rng=np.random.default_rng(100))
+
+    p_values: List[float] = []
+    pair_labels: List[str] = []
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            label = f"{names[i]}_vs_{names[j]}"
+            a, b = arrays[names[i]], arrays[names[j]]
+            diffs = a - b
+            _, p_val = wilcoxon_signed_rank(a, b)
+            effect = matched_pairs_rank_biserial(a, b)
+            diff_ci = bootstrap_ci(diffs, n_resamples=n_resamples,
+                                    rng=np.random.default_rng(101))
+            p_values.append(p_val)
+            pair_labels.append(label)
+            results["pairwise"].append({
+                "condition_a": names[i],
+                "condition_b": names[j],
+                "mean_diff": float(diffs.mean()),
+                "p_value": float(p_val),
+                "matched_pairs_rank_biserial": effect,
+                "diff_ci95": diff_ci,
+            })
+
+    rejections = holm_bonferroni(p_values, alpha=alpha)
+    for label, reject in zip(pair_labels, rejections):
+        if reject:
+            results["significant_pairs"].append(label)
+    return results
 
 
 def bootstrap_ci(

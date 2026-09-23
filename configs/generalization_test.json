@@ -1,0 +1,66 @@
+{
+  "description": "Held-out test layouts B1-B3 for the Phase 5 generalization experiment. Placement seeds are disjoint from the training layouts (A1-A3 use 101-103); all other parameters match generalization_train.json.",
+  "base_config": {
+    "mode": "headless",
+    "device": "cpu",
+    "reproducibility_tier": "cpu-deterministic",
+    "seed": {
+      "torch": null,
+      "numpy": null,
+      "random": null
+    },
+    "world": {
+      "width": 1200,
+      "height": 700,
+      "food_count": 20,
+      "obstacle_count": 10
+    },
+    "population": {
+      "size": 40,
+      "agent": {
+        "sensors": 7,
+        "brain": {
+          "architecture": [
+            12,
+            32,
+            16,
+            3
+          ]
+        }
+      }
+    },
+    "evolution": {
+      "generations": 12,
+      "mutation_rate": 0.05,
+      "crossover_rate": 0.7,
+      "elitism_count": 2,
+      "evaluation_steps": 150
+    },
+    "experiment": {
+      "seeds": 10,
+      "save_interval": 50
+    },
+    "crossover_method": "blend",
+    "fitness_weights": {
+      "survival": 0.4,
+      "food": 0.3,
+      "exploration": 0.2,
+      "collision": 0.1
+    },
+    "experiment_name": "generalization_test"
+  },
+  "layouts": [
+    {
+      "name": "B1",
+      "layout_seed": 901
+    },
+    {
+      "name": "B2",
+      "layout_seed": 902
+    },
+    {
+      "name": "B3",
+      "layout_seed": 903
+    }
+  ]
+}
