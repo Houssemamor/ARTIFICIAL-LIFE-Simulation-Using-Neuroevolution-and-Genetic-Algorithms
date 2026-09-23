@@ -8,7 +8,7 @@ in tests/unit/test_statistics.py.
 from __future__ import annotations
 import numpy as np
 from scipy import stats
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, List, Dict, Any, Callable, Optional
 
 
 def mann_whitney_u(
@@ -40,11 +40,11 @@ def mann_whitney_u(
 
 def bootstrap_ci(
     data: np.ndarray,
-    statistic: callable = np.mean,
+    statistic: Callable[[np.ndarray], float] = np.mean,
     n_resamples: int = 10000,
     confidence_level: float = 0.95,
     method: str = "percentile",
-    rng: np.random.Generator = None,
+    rng: Optional[np.random.Generator] = None,
 ) -> Tuple[float, float]:
     """
     Bootstrap confidence interval for a statistic.
@@ -54,29 +54,42 @@ def bootstrap_ci(
         statistic: Function to compute on each resample (default: mean).
         n_resamples: Number of bootstrap resamples.
         confidence_level: Confidence level (e.g., 0.95 for 95% CI).
-        method: "percentile" or "basic" (percentile method used).
+        method: "percentile" or "basic" bootstrap method.
         rng: Optional random generator for reproducibility.
 
     Returns:
         Tuple of (lower_bound, upper_bound).
+
+    Raises:
+        ValueError: If method is not "percentile" or "basic".
     """
     data = np.asarray(data, dtype=float).ravel()
     if data.size == 0:
         return (np.nan, np.nan)
 
+    if method not in ("percentile", "basic"):
+        raise ValueError(f"method must be 'percentile' or 'basic', got '{method}'")
+
     if rng is None:
         rng = np.random.default_rng()
 
     n = data.size
-    bootstrap_stats = np.empty(n_resamples, dtype=float)
 
-    for i in range(n_resamples):
-        resample = rng.choice(data, size=n, replace=True)
-        bootstrap_stats[i] = statistic(resample)
+    # Vectorized resampling: shape (n_resamples, n)
+    resamples = rng.choice(data, size=(n_resamples, n), replace=True)
+    bootstrap_stats = np.apply_along_axis(statistic, 1, resamples)
 
     alpha = 1 - confidence_level
-    lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
-    upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
+    lower_pct = 100 * alpha / 2
+    upper_pct = 100 * (1 - alpha / 2)
+
+    if method == "percentile":
+        lower = np.percentile(bootstrap_stats, lower_pct)
+        upper = np.percentile(bootstrap_stats, upper_pct)
+    else:  # basic method
+        stat_val = statistic(data)
+        lower = 2 * stat_val - np.percentile(bootstrap_stats, upper_pct)
+        upper = 2 * stat_val - np.percentile(bootstrap_stats, lower_pct)
 
     return float(lower), float(upper)
 
@@ -97,8 +110,13 @@ def holm_bonferroni(
 
     Returns:
         List of booleans: True if hypothesis is rejected (significant).
+
+    Raises:
+        ValueError: If any p-value is NaN.
     """
     p_values = np.asarray(p_values, dtype=float)
+    if np.any(np.isnan(p_values)):
+        raise ValueError("p_values contains NaN")
     n = len(p_values)
     if n == 0:
         return []
@@ -184,7 +202,7 @@ def compare_conditions(
     """
     condition_names = list(condition_results.keys())
     if len(condition_names) < 2:
-        return {"error": "Need at least 2 conditions"}
+        raise ValueError("Need at least 2 conditions for comparison")
 
     results = {
         "metric": metric,
