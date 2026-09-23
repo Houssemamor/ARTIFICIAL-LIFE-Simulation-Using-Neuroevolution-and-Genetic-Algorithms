@@ -24,12 +24,28 @@ from analytics.statistics import compare_conditions_paired
 from experiments.experiment_runner import (evaluate_genome, load_layouts,
                                            train_best_genome,
                                            write_stats_summary)
+from simulation.determinism import DeterminismConfig, set_deterministic_seeds
 
 CONDITION_CONFIGS = ["configs/fitness_weighting_d1.json",
                      "configs/fitness_weighting_d2.json",
                      "configs/fitness_weighting_d3.json",
                      "configs/fitness_weighting_d4.json"]
 OUTPUT_DIR = Path("experiments/EXP-D")
+
+
+def apply_seed_determinism(run_seed: int) -> None:
+    """
+    Enforce the cpu-deterministic tier for one per-seed run. Mirrors
+    run_generalization.apply_seed_determinism (same derivation).
+    """
+    set_deterministic_seeds(DeterminismConfig(
+        torch_seed=run_seed,
+        numpy_seed=run_seed + 10_000,
+        random_seed=run_seed + 20_000,
+        device="cpu",
+        reproducibility_tier="cpu-deterministic",
+        num_threads=1,
+    ))
 
 
 def _load_condition(path: str):
@@ -63,6 +79,7 @@ def run_experiment_d(seeds: int) -> dict:
         scores = []
         for seed in range(seeds):
             t0 = time.time()
+            apply_seed_determinism(seed)
             genome, _ = train_best_genome(cond_config, run_seed=seed)
             evaluation = evaluate_genome(
                 cond_config, genome,

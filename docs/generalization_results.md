@@ -32,17 +32,23 @@ Raw results: `experiments/EXP-GEN/stats_summary.json`
 
 | Measure | Value |
 |---------|-------|
-| Train score (mean over 10 seeds) | 0.5252 |
-| Unseen score (mean over 10 seeds) | 0.5365 |
-| Gap (train - unseen) | -0.0113 |
+| Train score (mean over 10 seeds) | 0.3304 |
+| Unseen score (mean over 10 seeds) | 0.3411 |
+| Gap (train - unseen) | -0.0107 |
 | Gap 95% bootstrap CI | [-0.021, -0.002] |
-| Train 95% bootstrap CI | [0.500, 0.546] |
-| Unseen 95% bootstrap CI | [0.517, 0.552] |
+| Train 95% bootstrap CI | [0.312, 0.347] |
+| Unseen 95% bootstrap CI | [0.325, 0.355] |
 | Wilcoxon signed-rank W | 9.0 |
 | Wilcoxon p-value (two-sided) | 0.0645 |
 | Matched-pairs rank-biserial | -0.673 |
 
 Per-seed gaps: 8 of 10 seeds score slightly higher on unseen layouts.
+
+Note on scales: scores in this revision are normalized against the
+**measured** calibration scales (`configs/calibration.json`), not the
+hand-picked constants used in the first confirmatory pass; absolute
+values therefore differ from earlier drafts, and the comparison
+structure is unchanged.
 
 ## Interpretation
 
@@ -60,14 +66,18 @@ transfer. Reading it as "unseen layouts are easier" would be
 over-interpretation; the defensible claim is that performance is
 comparable across the two sets.
 
-**The landscape caveat still applies.** Training telemetry shows the GA
-learns collision avoidance within 1-2 generations and then plateaus:
-food is only rarely eaten (typically 0-0.1 items per seed), survival
-saturates within the 150-step evaluation, and the exploration component
-is never computed. The measured transfer is transfer of
-obstacle-avoidance, which is weakly layout-dependent. As with the
-original run, a layout-independent skill shows no gap almost by
-definition.
+**The landscape caveat still applies.** Under the current (fixed)
+evaluation geometry, training telemetry shows no measurable learning at
+all: the fitness-over-generations curve is flat for every condition
+(see `docs/crossover_results.md` and
+`experiments/EXP-E/fitness_curve.svg`). Food is only rarely eaten
+(typically 0-0.1 items per seed), survival saturates within the
+150-step evaluation, and the exploration component is never computed.
+An earlier telemetry table in a draft of this document showed apparent
+collision-avoidance learning within 1-2 generations - that was an
+artifact of corner-line spawning and is retracted. A controller with no
+learned, layout-dependent skill trivially shows no gap: the measured
+transfer is of an essentially static phenotype.
 
 ## Recommendations
 

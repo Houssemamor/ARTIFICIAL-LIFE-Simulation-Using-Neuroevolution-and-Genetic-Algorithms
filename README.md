@@ -56,6 +56,9 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+For exact-environment reproducibility (all transitive dependencies pinned),
+use `requirements.lock.txt` instead of `requirements.txt`.
+
 **Pinned dependencies (from `requirements.txt`):**
 - `torch==2.14.0`
 - `pygame-ce==2.5.8` (required on Python 3.14; plain `pygame` has no wheel)
@@ -88,7 +91,7 @@ python -m experiments.run --config configs/baseline.json --mode headless --devic
 ## Running Tests
 
 ```bash
-# Full suite (103 tests)
+# Full suite (161 tests)
 pytest tests/ -q
 
 # Specific test groups
@@ -105,7 +108,7 @@ pytest tests/performance/ -q
 | Phase 1 | Environment + renderer + basic physics | Agents move and collide reliably | ✅ Complete |
 | Phase 1.5 (NEW) | Prototype batched population inference; benchmark steps/sec | Measured steps/sec at 250 agents feeds the compute budget | ✅ Complete |
 | Phase 2 | Sensors + fixed neural controller, batched from the start | Agents react to observations through batched NN outputs | ✅ Complete |
-| Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ✅ Complete |
+| Phase 3 | Fitness calibration/normalization + GA + crossover comparison arm | Fitness improves over controlled runs; crossover variants compared | ⚠️ Complete with caveat¹ |
 | Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ✅ Complete |
 | Phase 4.5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ✅ Complete |
 | Phase 5 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ✅ Complete |
@@ -114,6 +117,12 @@ pytest tests/performance/ -q
 | Phase 8 | Packaging, final report, dashboard polish, presentation | Packaged, tested, installable application + complete presentation package | ❌ Not Started |
 
 See [Plan](PLAN.md) for the first-steps plan.
+
+¹ Crossover variants were compared (Experiment E, `docs/crossover_results.md`) and
+the fitness-over-generations plot was produced (`experiments/EXP-E/fitness_curve.svg`),
+but the curve is flat: the GA does not measurably improve fitness under the current
+degenerate dynamics. The Phase 3 "fitness improves" exit expectation remains open
+until the recommended dynamics changes land.
 
 ## Key Design Rules
 
@@ -181,27 +190,30 @@ As of September 2026, the following components have been implemented:
 
 ### Statistics + Comparison Pipeline (Phase 4.5 - Complete)
 - ✅ `docs/related_work.md` - positioning against Sims (1994), Stanley & Miikkulainen NEAT (2002), AVIDA
-- ✅ `analytics/statistics.py` - `mann_whitney_u()`, `bootstrap_ci()`, `holm_bonferroni()`, `rank_biserial_correlation()`, `compare_conditions()`
-- ✅ `analytics/compare_conditions.py` - end-to-end pairwise comparison pipeline
-- ✅ `tests/unit/test_statistics.py` - 26 tests cross-checking against scipy/statsmodels
+- ✅ `analytics/statistics.py` - `mann_whitney_u()`, `wilcoxon_signed_rank()`, `bootstrap_ci()`, `holm_bonferroni()`, effect sizes, `compare_conditions()` (unpaired) and `compare_conditions_paired()` (seed-blocked designs)
+- ✅ `tests/unit/test_statistics.py` - 40 tests cross-checking against scipy/statsmodels
 
 ### Generalization + Experiment D (Phase 5 - Complete)
 - ✅ `configs/generalization_train.json` / `generalization_test.json` - layouts A1-A3 (train) / B1-B3 (held-out), varying placement seed only
 - ✅ `configs/fitness_weighting_d1.json` ... `d4.json` - equal / resource / exploration / survival-weighted conditions
-- ✅ `experiments/experiment_runner.py` - reusable train / freeze / balanced-evaluation primitives
-- ✅ `experiments/run_generalization.py` - train A1-A3, evaluate frozen genomes on B1-B3, Mann-Whitney + bootstrap + effect size
-- ✅ `experiments/run_experiment_d.py` - D1-D4 x 10 seeds through `compare_conditions` with Holm-Bonferroni
-- ✅ `docs/generalization_results.md` - no detectable gap (p=1.0, r=0.0); degenerate-landscape analysis documented
-- ✅ `docs/experiment_d_results.md` - no significant pairs after Holm; direction + caveats documented
-- ✅ `tests/integration/test_experiment_runners.py` - runner smoke tests (6 tests)
+- ✅ `experiments/experiment_runner.py` - reusable train / freeze / balanced-evaluation primitives; fitness normalized against measured scales from `configs/calibration.json` (never hand-picked constants)
+- ✅ `experiments/run_generalization.py` - train A1-A3, evaluate frozen genomes on B1-B3, paired Wilcoxon + bootstrap CIs + matched-pairs effect size
+- ✅ `experiments/run_experiment_d.py` - D1-D4 x 10 seeds through the paired comparison pipeline (Wilcoxon + Holm-Bonferroni)
+- ✅ `experiments/run_crossover_experiment.py` - Experiment E (blend/uniform/mutation-only) through the same paired pipeline; writes the fitness-over-generations SVG
+- ✅ `docs/generalization_results.md` - no detectable gap (paired p=0.0645; borderline reverse gap attributed to layout idiosyncrasy); degenerate-landscape analysis
+- ✅ `docs/experiment_d_results.md` - no significant pairs after Holm; caveats documented
+- ✅ `docs/crossover_results.md` - no significant pairs; fitness curve is FLAT (Phase 3 "fitness improves" expectation open)
+- ✅ `tests/integration/test_experiment_runners.py` - runner smoke tests (8 tests)
 - ✅ `WorldConfig.layout_seed` + `EvolutionConfig.evaluation_steps` schema extensions
+- ✅ Determinism enforced at every entry point (GUI, headless, all experiment runners) via `set_deterministic_seeds`
 
 ## Next Steps
 
 Phase 6 begins with predator/prey roles, explicit reproduction, and
-hall-of-fame evaluation. Both Phase 5 result docs recommend making the
-fitness components live (metabolic cost, consumption radius, exploration
-computation) and rerunning the Phase 5 experiments before drawing
-conclusions from them. See [Plan](PLAN.md) for the detailed plan.
+hall-of-fame evaluation. All three Phase 5 result docs (generalization,
+Experiment D, Experiment E) recommend making the fitness components live
+(metabolic cost, consumption radius, exploration computation) and
+rerunning the experiments before drawing conclusions from them. See
+[Plan](PLAN.md) for the detailed plan.
 
 Once these components are implemented and integrated, agents will be able to process sensory information through neural networks, convert that to physical actions, and exhibit emergent behaviors guided by evolutionary selection pressures.

@@ -8,6 +8,9 @@ pydantic==2.12.5
 pydantic-settings==2.14.2
 pydantic-core==2.41.5
 
+# Statistics (Phase 4.5 pipeline: scipy.stats for Mann-Whitney/Wilcoxon)
+scipy==1.18.1
+
 # Testing
 pytest==8.4.0
 pytest-asyncio==1.4.0

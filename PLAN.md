@@ -100,8 +100,7 @@ artificial-life-sim/
 │   ├── __init__.py
 │   ├── calibration.py                # fitness reference-scale calibration
 │   ├── experiment_logger.py          # experiments/EXP-XXX/ writer
-│   ├── statistics.py                 # Mann-Whitney U, bootstrap CI, Holm-Bonferroni
-│   ├── compare_conditions.py         # pairwise comparison orchestration
+│   ├── statistics.py                 # Mann-Whitney U, Wilcoxon, bootstrap CI, Holm-Bonferroni, compare_conditions(_paired)
 │   ├── hall_of_fame.py               # frozen-opponent archive (Phase 6)
 │   └── reports.py                    # plot + summary generation
 │
@@ -192,10 +191,10 @@ artificial-life-sim/
 
 **Deliverables**
 
-- [ ] Installable, empty project skeleton matching the Section 0 tree
-- [ ] Pinned dependency lockfile
-- [ ] `configs/baseline.json` containing every field the v2.0 design document's Section 18.2 configuration example specifies
-- [ ] A green (zero-test) `pytest` run, proving the test scaffold itself works
+- [x] Installable, empty project skeleton matching the Section 0 tree
+- [x] Pinned dependency lockfile
+- [x] `configs/baseline.json` containing every field the v2.0 design document's Section 18.2 configuration example specifies
+- [x] A green (zero-test) `pytest` run, proving the test scaffold itself works
 
 ---
 
@@ -232,10 +231,10 @@ artificial-life-sim/
 
 ### Deliverables — Phase 1
 
-- [ ] Running GUI app showing a live, bounded 2D world with food, obstacles, and moving placeholder agents
-- [ ] Fixed-timestep physics fully decoupled from render FPS
-- [ ] Passing unit tests for boundary collision and world reset
-- [ ] `configs/baseline.json` validated end-to-end for the first time via `world_config.py`
+- [x] Running GUI app showing a live, bounded 2D world with food, obstacles, and moving placeholder agents
+- [x] Fixed-timestep physics fully decoupled from render FPS
+- [x] Passing unit tests for boundary collision and world reset
+- [x] `configs/baseline.json` validated end-to-end for the first time via `world_config.py`
 
 ---
 
@@ -347,7 +346,8 @@ artificial-life-sim/
 - [x] Explicit, tested energy-balance model
 - [x] A calibration pipeline producing `configs/calibration.json`, so fitness weights are never chosen blind
 - [x] A working genetic algorithm with three interchangeable, tested crossover methods
-- [x] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
+- [ ] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
+  - Update (post-Phase 5 review): the plot now exists (`experiments/EXP-E/fitness_curve.svg`) but is FLAT - the GA does not measurably improve fitness under current dynamics. What earlier looked like learning was an evaluation-geometry artifact. See `docs/crossover_results.md`; revisit after the recommended dynamics changes.
 
 ---
 
@@ -395,14 +395,14 @@ artificial-life-sim/
 |---|---|
 | `docs/related_work.md` | Positions the project against Sims (1994), Stanley & Miikkulainen NEAT (2002), and prior artificial-life platforms |
 | `analytics/statistics.py` | `mann_whitney_u()`, `bootstrap_ci()`, `holm_bonferroni()`, `rank_biserial_correlation()` |
-| `analytics/compare_conditions.py` | Orchestrates all pairwise comparisons for an experiment; writes `stats_summary.json` |
+| `analytics/statistics.py` (`compare_conditions` / `compare_conditions_paired`) | Orchestrates all pairwise comparisons for an experiment; writes `stats_summary.json` |
 | `tests/unit/test_statistics.py` | Cross-checks statistical functions against `scipy`/`statsmodels` reference implementations |
 
 **Steps**
 
 1. Draft `docs/related_work.md` (300–500 words): what's precedented (tournament selection, speciation via compatibility distance) vs. this project's own experimental questions (fitness weighting, crossover-method comparison).
 2. Implement `mann_whitney_u()`, `bootstrap_ci()` (resampling with replacement, configurable resample count and alpha), `holm_bonferroni()` (step-down correction across a family of p-values), and `rank_biserial_correlation()` (effect size).
-3. Implement `compare_conditions.py`: given seed-level results per condition, run every pairwise comparison, correct p-values, and write the full record to `stats_summary.json`.
+3. Implement the comparison pipelines in `analytics/statistics.py` (`compare_conditions` unpaired, `compare_conditions_paired` for seed-blocked designs): given seed-level results per condition, run every pairwise comparison, correct p-values, and write the full record to `stats_summary.json`.
 4. Cross-check every statistical function against a reference implementation (e.g., `scipy.stats.mannwhitneyu`) in unit tests — do not trust a from-scratch implementation of a significance test without this.
 5. Dry-run the whole pipeline on Phase 3's smoke-test data to confirm the plumbing works end-to-end before it's trusted with real experimental conclusions.
 
@@ -428,7 +428,7 @@ artificial-life-sim/
 | `configs/generalization_train.json`, `configs/generalization_test.json` | Training layouts A1–A3 / held-out layouts B1–B3 |
 | `configs/fitness_weighting_d1.json` … `d4.json` | The four Experiment D conditions |
 | `experiments/run_generalization.py` | Train on A1–A3, freeze best controllers, evaluate on B1–B3 |
-| `experiments/run_experiment_d.py` | Runs D1–D4, 10 seeds each, through `compare_conditions.py` |
+| `experiments/run_experiment_d.py` | Runs D1–D4, 10 seeds each, through the paired comparison pipeline |
 | `docs/generalization_results.md`, `docs/experiment_d_results.md` | Write-ups including effect sizes, not just significance |
 
 **Steps**
@@ -438,7 +438,7 @@ artificial-life-sim/
 3. Build the four Experiment D configs (equal weights / resource-weighted / exploration-weighted / survival-weighted).
 4. Run the exploratory pass first (3 seeds/condition) to sanity-check before committing to the full confirmatory run.
 5. Run the confirmatory 10-seed pass for both the generalization test and Experiment D.
-6. Feed both result sets through `compare_conditions.py`; write up findings including effect sizes.
+6. Feed both result sets through the paired comparison pipeline; write up findings including effect sizes.
 
 **Exit criterion:** unseen layouts and fitness-weighting sensitivity are both evaluated.
 
@@ -705,7 +705,7 @@ Every file this plan creates, in the order it first appears, for a final pre-sub
 
 **Evolution:** `evolution/genetic_algorithm.py`, `evolution/selection.py`, `evolution/crossover.py`, `evolution/mutation.py`, `evolution/reproduction.py`, `evolution/neat/*.py` (six files)
 
-**Analytics:** `analytics/calibration.py`, `analytics/experiment_logger.py`, `analytics/statistics.py`, `analytics/compare_conditions.py`, `analytics/hall_of_fame.py`, `analytics/reports.py`
+**Analytics:** `analytics/calibration.py`, `analytics/experiment_logger.py`, `analytics/statistics.py`, `analytics/hall_of_fame.py`, `analytics/reports.py`
 
 **Visualization:** `visualization/renderer.py`, `visualization/dashboard_mvp.py`, `visualization/dashboard_advanced.py`, `visualization/best_agent_inspector.py`
 

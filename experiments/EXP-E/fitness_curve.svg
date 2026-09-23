@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400">
+<rect width="640" height="400" fill="white"/>
+<text x="320.0" y="24" font-size="15" text-anchor="middle">Fitness over generations (mean over seeds)</text>
+<line x1="50" y1="350" x2="590" y2="350" stroke="black"/>
+<line x1="50" y1="50" x2="50" y2="350" stroke="black"/>
+<text x="42" y="354.0" font-size="11" text-anchor="end">0.28</text>
+<text x="42" y="54.0" font-size="11" text-anchor="end">0.86</text>
+<text x="590" y="366" font-size="11" text-anchor="middle">generation</text>
+<polyline points="50.0,329.1 99.1,332.6 148.2,332.1 197.3,332.3 246.4,350.0 295.5,326.6 344.5,334.4 393.6,332.1 442.7,332.4 491.8,330.4 540.9,334.3 590.0,330.2" fill="none" stroke="#1f77b4" stroke-width="2"/>
+<polyline points="50.0,141.1 99.1,150.4 148.2,155.0 197.3,165.2 246.4,164.0 295.5,135.5 344.5,120.3 393.6,118.7 442.7,136.5 491.8,143.2 540.9,108.5 590.0,143.2" fill="none" stroke="#1f77b4" stroke-dasharray="6 4" stroke-width="2"/>
+<polyline points="50.0,329.1 99.1,324.9 148.2,323.9 197.3,327.0 246.4,327.4 295.5,328.0 344.5,326.4 393.6,338.0 442.7,329.4 491.8,334.1 540.9,336.6 590.0,339.8" fill="none" stroke="#2ca02c" stroke-width="2"/>
+<polyline points="50.0,141.1 99.1,120.3 148.2,136.0 197.3,150.0 246.4,109.7 295.5,144.5 344.5,72.9 393.6,122.0 442.7,82.3 491.8,134.8 540.9,87.3 590.0,101.8" fill="none" stroke="#2ca02c" stroke-dasharray="6 4" stroke-width="2"/>
+<polyline points="50.0,329.1 99.1,335.7 148.2,334.3 197.3,333.9 246.4,348.1 295.5,337.7 344.5,335.7 393.6,334.5 442.7,330.9 491.8,327.2 540.9,326.9 590.0,335.2" fill="none" stroke="#d62728" stroke-width="2"/>
+<polyline points="50.0,141.1 99.1,130.9 148.2,118.7 197.3,113.6 246.4,117.0 295.5,118.7 344.5,96.2 393.6,83.9 442.7,92.9 491.8,50.0 540.9,71.2 590.0,103.0" fill="none" stroke="#d62728" stroke-dasharray="6 4" stroke-width="2"/>
+<line x1="50" y1="20" x2="74" y2="20" stroke="#1f77b4" stroke-width="3"/>
+<text x="80" y="24" font-size="12">blend</text>
+<line x1="50" y1="36" x2="74" y2="36" stroke="#2ca02c" stroke-width="3"/>
+<text x="80" y="40" font-size="12">uniform</text>
+<line x1="50" y1="52" x2="74" y2="52" stroke="#d62728" stroke-width="3"/>
+<text x="80" y="56" font-size="12">none</text>
+</svg>

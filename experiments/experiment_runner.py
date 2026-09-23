@@ -11,7 +11,7 @@ is identical, the returned mean fitness is that genome's score on the layout
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -20,12 +20,6 @@ from agents.energy import DEFAULT_ENERGY_CONFIG
 from evolution.genetic_algorithm import run_generation
 from neural.genome import genome_size
 from simulation.world_config import BaselineConfig
-
-# Fixed reference scales for fitness normalization. Identical across all
-# conditions/layouts so scores are comparable; only relative comparisons
-# are interpreted, never absolute values.
-CALIBRATION_SCALES = {"survival": 100.0, "food": 10.0,
-                      "exploration": 50.0, "collision": 5.0}
 
 # Balanced evaluation weights used to score frozen genomes in EVERY
 # condition. Experiment D trains under different weightings, but evolved
@@ -37,6 +31,29 @@ BALANCED_WEIGHTS = {"survival": 0.4, "food": 0.3,
 # Spawn margin matching World.boundary_margin so positions drawn here are
 # always inside the configured world, whatever the population size.
 SPAWN_MARGIN = 10.0
+
+CALIBRATION_PATH = "configs/calibration.json"
+
+
+def load_calibration_scales(path: str = CALIBRATION_PATH) -> Dict[str, float]:
+    """
+    Load measured fitness reference scales from the calibration output.
+
+    Phase 3's design: fitness normalization uses the calibration pipeline's
+    measured component scales - never hand-picked constants. The scales
+    must be regenerated (analytics/calibration.py) whenever the evaluation
+    regime (population size, step count, energy parameters) changes.
+
+    Raises:
+        FileNotFoundError: If the calibration file is missing - fail loud
+            rather than silently falling back to invented constants.
+    """
+    with open(path, "r") as f:
+        data = json.load(f)
+    return {"survival": float(data["survival"]),
+            "food": float(data["food"]),
+            "exploration": float(data["exploration"]),
+            "collision": float(data["collision"])}
 
 
 def load_layouts(path: str) -> List[Tuple[str, BaselineConfig]]:
@@ -107,7 +124,9 @@ def _clone_agent(agent_id: int, x: float, y: float,
     return agent
 
 
-def train_best_genome(config: BaselineConfig, run_seed: int) -> Tuple[np.ndarray, List[Dict]]:
+def train_best_genome(config: BaselineConfig, run_seed: int,
+                      calibration_scales: Optional[Dict[str, float]] = None
+                      ) -> Tuple[np.ndarray, List[Dict]]:
     """
     Run a full GA training run and return (best_genome, per-generation metrics).
 
@@ -115,12 +134,22 @@ def train_best_genome(config: BaselineConfig, run_seed: int) -> Tuple[np.ndarray
     assigns elite genomes in fitness order, so index 0 is the best of the
     last evaluated generation).
 
+    Args:
+        config: Validated experiment configuration.
+        run_seed: Seed for population init and GA operations.
+        calibration_scales: Fitness reference scales. Defaults to the
+            measured scales from configs/calibration.json (Phase 3 rule:
+            never hand-picked constants). Pass explicitly only for
+            isolated tests.
+
     Raises:
         ValueError: If elitism_count < 1 - without elites, population[0]
             is an arbitrary offspring and "best genome" is undefined.
     """
     if config.evolution.elitism_count < 1:
         raise ValueError("train_best_genome requires elitism_count >= 1")
+    if calibration_scales is None:
+        calibration_scales = load_calibration_scales()
     population = make_population(config, run_seed)
     rng = np.random.default_rng(run_seed)
     history: List[Dict] = []
@@ -129,7 +158,7 @@ def train_best_genome(config: BaselineConfig, run_seed: int) -> Tuple[np.ndarray
             config=config,
             population=population,
             generation=gen,
-            calibration_scales=CALIBRATION_SCALES,
+            calibration_scales=calibration_scales,
             fitness_weights=config.fitness_weights,
             energy_config=DEFAULT_ENERGY_CONFIG,
             rng=rng,
@@ -139,21 +168,32 @@ def train_best_genome(config: BaselineConfig, run_seed: int) -> Tuple[np.ndarray
 
 
 def evaluate_genome(config: BaselineConfig, genome: np.ndarray,
-                     run_seed: int) -> Dict:
+                    run_seed: int,
+                    calibration_scales: Optional[Dict[str, float]] = None
+                    ) -> Dict:
     """
     Evaluate one frozen genome on the config's layout with the balanced
     evaluation weights.
+
+    Args:
+        config: Validated experiment configuration.
+        genome: Frozen genome to evaluate.
+        run_seed: Seed for clone spawn positions.
+        calibration_scales: Fitness reference scales (defaults to
+            configs/calibration.json, same rule as train_best_genome).
 
     Returns:
         Dict with mean_fitness, mean_food, mean_survival, mean_collisions,
         max_fitness over the clone population.
     """
+    if calibration_scales is None:
+        calibration_scales = load_calibration_scales()
     clones = make_clone_population(config, genome, run_seed)
     _, metrics = run_generation(
         config=config,
         population=clones,
         generation=0,
-        calibration_scales=CALIBRATION_SCALES,
+        calibration_scales=calibration_scales,
         fitness_weights=BALANCED_WEIGHTS,
         energy_config=DEFAULT_ENERGY_CONFIG,
         rng=np.random.default_rng(run_seed),

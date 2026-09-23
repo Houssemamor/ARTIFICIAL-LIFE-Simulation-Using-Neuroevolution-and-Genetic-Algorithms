@@ -6,8 +6,17 @@ Implements the energy equation from PLAN.md Phase 3:
                   - k_accel * accel^2
                   - k_steer * |steering|
                   + eaten_energy_value * eat_event
+                  - collision_penalty
 
 Death condition: energy <= 0 or health <= 0
+
+Documented deviation from the plan equation: energy is clamped to
+[0, max_energy] with max_energy = 100 (the initial energy). Without the
+upper clamp, an agent eating at full energy could bank unbounded reserves
+and the death condition would never bind again; the clamp keeps food
+valuable only when hungry. If the design doc is revised to allow energy
+banking, change max_energy here and the tests in
+tests/unit/test_energy_balance.py.
 """
 
 from __future__ import annotations

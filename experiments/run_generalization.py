@@ -21,10 +21,29 @@ from analytics.statistics import (bootstrap_ci, matched_pairs_rank_biserial,
 from experiments.experiment_runner import (evaluate_genome, load_layouts,
                                            train_best_genome,
                                            write_stats_summary)
+from simulation.determinism import DeterminismConfig, set_deterministic_seeds
 
 TRAIN_CONFIG = "configs/generalization_train.json"
 TEST_CONFIG = "configs/generalization_test.json"
 OUTPUT_DIR = Path("experiments/EXP-GEN")
+
+
+def apply_seed_determinism(run_seed: int) -> None:
+    """
+    Enforce the cpu-deterministic tier for one per-seed run.
+
+    The three seeds are derived from run_seed with fixed offsets so each
+    seed index is a fully deterministic run (torch, numpy, and Python's
+    random are seeded independently - never one combined seed).
+    """
+    set_deterministic_seeds(DeterminismConfig(
+        torch_seed=run_seed,
+        numpy_seed=run_seed + 10_000,
+        random_seed=run_seed + 20_000,
+        device="cpu",
+        reproducibility_tier="cpu-deterministic",
+        num_threads=1,
+    ))
 
 
 def run_generalization(seeds: int) -> Dict:
@@ -45,6 +64,7 @@ def run_generalization(seeds: int) -> Dict:
     per_seed = []
     for seed in range(seeds):
         t0 = time.time()
+        apply_seed_determinism(seed)
         train_scores, unseen_scores = [], []
         for layout_name, train_config in train_layouts:
             genome, _ = train_best_genome(train_config, run_seed=seed)

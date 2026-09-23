@@ -43,25 +43,32 @@ Raw results: `experiments/EXP-D/stats_summary.json`
 
 | Condition | Mean | 95% bootstrap CI |
 |-----------|------|------------------|
-| D1 equal | 0.5449 | [0.520, 0.568] |
-| D2 resource-weighted | 0.5320 | [0.503, 0.560] |
-| D3 exploration-weighted | 0.5294 | [0.487, 0.564] |
-| D4 survival-weighted | 0.5226 | [0.478, 0.563] |
+| D1 equal | 0.3081 | [0.270, 0.343] |
+| D2 resource-weighted | 0.3287 | [0.283, 0.365] |
+| D3 exploration-weighted | 0.3358 | [0.285, 0.385] |
+| D4 survival-weighted | 0.3500 | [0.322, 0.375] |
 
 ### Pairwise comparisons (paired Wilcoxon + Holm-Bonferroni)
 
 | Comparison | Mean diff | p-value | Matched-pairs r | Significant (Holm, a=0.05) |
 |------------|-----------|---------|-----------------|----------------------------|
-| equal vs resource-weighted | +0.013 | 0.432 | +0.309 | No |
-| equal vs exploration-weighted | +0.016 | 0.641 | +0.222 | No |
-| equal vs survival-weighted | +0.022 | 0.820 | +0.111 | No |
-| resource vs exploration-weighted | +0.003 | 0.922 | -0.055 | No |
-| resource vs survival-weighted | +0.009 | 0.922 | -0.055 | No |
-| exploration vs survival-weighted | +0.007 | 1.000 | -0.022 | No |
+| equal vs resource-weighted | -0.021 | 0.625 | -0.200 | No |
+| equal vs exploration-weighted | -0.028 | 0.232 | -0.455 | No |
+| equal vs survival-weighted | -0.042 | 0.131 | -0.564 | No |
+| resource vs exploration-weighted | -0.007 | 0.770 | -0.127 | No |
+| resource vs survival-weighted | -0.021 | 0.557 | -0.236 | No |
+| exploration vs survival-weighted | -0.014 | 0.193 | -0.491 | No |
 
-**No pair is significant**, no pair comes close (all p >= 0.43), and all
-effect sizes are small (|r| <= 0.31). Condition means span 0.023 - about
-4% of the score scale - with heavily overlapping confidence intervals.
+**No pair is significant.** The closest comparison (equal vs
+survival-weighted, p = 0.131, r = -0.564) has a medium point effect size
+but does not survive correction at n = 10.
+
+Note on scales: this revision normalizes against the **measured**
+calibration scales (`configs/calibration.json`) rather than the
+hand-picked constants of the first confirmatory pass. The condition
+ordering also differs from that pass (survival > exploration > resource
+> equal here) - under a degenerate landscape the ordering is noise, which
+is itself informative.
 
 ## Interpretation
 
@@ -71,12 +78,16 @@ indistinguishable genomes on the balanced metric.
 
 **Why the exploratory "trend" vanished.** The earlier 3-seed pass showed
 survival-weighted (0.34) apparently beating equal (0.20). With the
-paired design and uniform spawns, all four conditions sit within 0.02 of
+paired design and uniform spawns, all four conditions sit within 0.04 of
 each other. Two artifacts produced the trend: unpaired testing counted
 between-seed variance as noise against the effect (the paired test
 removes it, *and* shrinks the apparent differences by measuring them
 within-seed), and corner-line spawning made evaluation scores partly a
 function of where obstacles happened to sit relative to the spawn line.
+The condition ordering also changed between the two confirmatory passes
+once measured calibration scales replaced hand-picked constants -
+under a flat landscape the ordering is seed noise, which is itself
+informative.
 
 **The degenerate-landscape caveat remains the dominant explanation.**
 Telemetry from the reruns: food is only occasionally eaten (0-0.12 items

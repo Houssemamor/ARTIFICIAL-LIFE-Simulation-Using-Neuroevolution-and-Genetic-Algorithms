@@ -8,9 +8,9 @@ Supports two agent modes:
 """
 
 import argparse
-import json
 import sys
 import os
+import time
 import numpy as np
 import pygame
 from typing import List
@@ -19,6 +19,7 @@ from typing import List
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation.world_config import load_config
+from simulation.determinism import DeterminismConfig, set_deterministic_seeds
 from simulation.environment import World
 from simulation.engine import step_simulation
 from agents.organism import Organism
@@ -66,6 +67,29 @@ def main():
     # Load configuration
     config = load_config(args.config)
 
+    # Enforce the cpu-deterministic tier before any simulation state is
+    # created. The config's three seed fields are used when set; when they
+    # are null (interactive runs), a time-derived base is used and printed
+    # so an interesting run can in principle be reproduced.
+    base_seed = config.seed.get("numpy")
+    if base_seed is None:
+        base_seed = int(time.time())
+        print(f"Config seeds are null; using time-derived base seed {base_seed}")
+    torch_seed = config.seed.get("torch")
+    if torch_seed is None:
+        torch_seed = base_seed + 1
+    random_seed = config.seed.get("random")
+    if random_seed is None:
+        random_seed = base_seed + 2
+    set_deterministic_seeds(DeterminismConfig(
+        torch_seed=torch_seed,
+        numpy_seed=base_seed,
+        random_seed=random_seed,
+        device="cpu",
+        reproducibility_tier="cpu-deterministic",
+        num_threads=1,
+    ))
+
     print(f"Starting Artificial Life Neuroevolution Simulation")
     print(f"Configuration: {args.config}")
     print(f"Mode: {args.mode}")
@@ -103,7 +127,6 @@ def main():
     physics_accumulator = 0.0
     render_dt = 1.0 / 30.0
 
-    import time
     last_time = time.time()
 
     # Main loop

@@ -84,13 +84,9 @@ def run_calibration_episode(
 
     raycaster = RayCaster()
 
-    total_survival = 0.0
-    total_food = 0.0
-    total_exploration = 0.0
-    total_collisions = 0.0
-
     live_agents = agents
-    initial_positions = np.array([(a.position.x, a.position.y) for a in agents])
+    initial_positions = {a.id: (a.position.x, a.position.y) for a in agents}
+    food_by_agent = {a.id: 0 for a in agents}
 
     for step in range(max_steps):
         if not live_agents:
@@ -117,30 +113,33 @@ def run_calibration_episode(
             eat_signal = float(action_logits[idx, 2])
             agent.apply_action(steering, acceleration, eat_signal, world, dt=1.0)
             if eat_signal > 0.5:
-                agent.consume_food(world)
+                if agent.consume_food(world):
+                    food_by_agent[agent.id] += 1
 
         from simulation.engine import resolve_collisions
-        step_collisions = resolve_collisions(live_agents, world)
-        total_collisions += step_collisions
+        resolve_collisions(live_agents, world)
 
         for agent in agents:
             agent.update_energy()
             agent.increment_age()
 
         live_agents = [a for a in agents if a.is_alive]
-        total_survival += len(live_agents)
 
-        if policy == "random" and live_agents:
-            positions = np.array([(a.position.x, a.position.y) for a in live_agents])
-            distances = np.linalg.norm(positions - initial_positions[:len(live_agents)], axis=1)
-            total_exploration += np.mean(distances)
+    # Per-agent component scales in the SAME units compute_fitness
+    # consumes: survival = steps survived, food = items eaten,
+    # exploration = distance from start, collision = contact events
+    # accumulated over the episode. Averaged over the population.
+    survivals = [float(a.age) for a in agents]
+    foods = [float(food_by_agent[a.id]) for a in agents]
+    explorations = []
+    for a in agents:
+        x0, y0 = initial_positions[a.id]
+        explorations.append(float(np.hypot(a.position.x - x0,
+                                            a.position.y - y0)))
+    collisions = [float(a.collisions) for a in agents]
 
-    avg_survival = total_survival / max_steps if max_steps > 0 else 0.0
-    avg_food = total_food / population_size if population_size > 0 else 0.0
-    avg_exploration = total_exploration / max_steps if max_steps > 0 else 0.0
-    avg_collisions = total_collisions / max_steps if max_steps > 0 else 0.0
-
-    return avg_survival, avg_food, avg_exploration, avg_collisions
+    return (float(np.mean(survivals)), float(np.mean(foods)),
+            float(np.mean(explorations)), float(np.mean(collisions)))
 
 
 def run_calibration(

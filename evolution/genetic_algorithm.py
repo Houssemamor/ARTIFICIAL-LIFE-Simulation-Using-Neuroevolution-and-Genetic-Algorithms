@@ -131,6 +131,10 @@ def run_generation(
 
     # Tracking for fitness computation
     food_eaten = np.zeros(population_size, dtype=int)
+    # ponytail: exploration_distance is never written below, so the
+    # 'exploration' fitness weight is dead (always normalizes 0). Wire it
+    # up (distance from per-agent spawn position) when the dynamics make
+    # the exploration component live; see docs/generalization_results.md.
     exploration_distance = np.zeros(population_size, dtype=float)
     collisions_total = np.zeros(population_size, dtype=int)
 

@@ -102,3 +102,5 @@ skills-lock.json
 .agents/
 .remember
 RTK.md
+# Build artifacts
+*.egg-info/

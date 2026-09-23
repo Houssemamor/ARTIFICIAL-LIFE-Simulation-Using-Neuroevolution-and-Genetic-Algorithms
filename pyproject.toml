@@ -32,12 +32,15 @@ dependencies = [
     "pydantic==2.12.5",
     "pydantic-settings==2.14.2",
     "pydantic-core==2.41.5",
+    "scipy==1.18.1",
 ]
 
 [project.urls]
-Homepage = "https://github.com/example/artificial-life-neuroevolution"
-Documentation = "https://github.com/example/artificial-life-neuroevolution/wiki"
-Repository = "https://github.com/example/artificial-life-neuroevolution"
+# Homepage targets GitHub Pages; it goes live once a gh-pages branch is
+# published (planned with the Phase 8 packaging/report work).
+Homepage = "https://houssemamor.github.io/ARTIFICIAL-LIFE-Simulation-Using-Neuroevolution-and-Genetic-Algorithms/"
+Documentation = "https://github.com/Houssemamor/ARTIFICIAL-LIFE-Simulation-Using-Neuroevolution-and-Genetic-Algorithms/wiki"
+Repository = "https://github.com/Houssemamor/ARTIFICIAL-LIFE-Simulation-Using-Neuroevolution-and-Genetic-Algorithms"
 
 [project.optional-dependencies]
 dev = [
@@ -51,13 +54,13 @@ dev = [
     "mypy-extensions==1.0.0",
     "types-setuptools==69.5.1",
 ]
-debug = [
-    "imgui[pygame]>=2.5.0",
-]
+# Note: the design doc's optional Dear ImGui debug overlay (imgui[pygame])
+# is deliberately NOT declared: imgui fails to build on Python 3.13+ (Cython
+# incompatibility). Revisit when an compatible imgui release exists.
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "agents*", "neural*", "simulation*", "visualization*", "mutation*", "crossover*", "selection*", "evolution*", "analytics*", "metrics*", "config_driven*", "statistical_comparison*", "experiments*"]
+include = ["app*", "agents*", "analytics*", "evolution*", "experiments*", "neural*", "simulation*", "visualization*"]
 
 [tool.black]
 line-length = 100
