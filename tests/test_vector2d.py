@@ -2,7 +2,6 @@
 Unit tests for Vector2D implementation.
 """
 
-import math
 import sys
 import os
 

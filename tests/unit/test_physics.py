@@ -2,7 +2,6 @@
 Unit tests for physics engine implementation.
 """
 
-import math
 import sys
 import os
 

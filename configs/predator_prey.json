@@ -1,0 +1,67 @@
+{
+  "experiment_name": "predator_prey",
+  "mode": "headless",
+  "device": "cpu",
+  "reproducibility_tier": "cpu-deterministic",
+  "seed": {
+    "torch": null,
+    "numpy": null,
+    "random": null
+  },
+  "world": {
+    "width": 600,
+    "height": 400,
+    "food_count": 80,
+    "obstacle_count": 8,
+    "layout_seed": 42,
+    "food_regrowth_per_step": 0.25
+  },
+  "population": {
+    "size": 24,
+    "agent": {
+      "sensors": 7,
+      "brain": {
+        "architecture": [
+          12,
+          32,
+          16,
+          3
+        ]
+      }
+    }
+  },
+  "evolution": {
+    "generations": 10,
+    "mutation_rate": 0.05,
+    "crossover_rate": 0.7,
+    "elitism_count": 2,
+    "evaluation_steps": 150
+  },
+  "experiment": {
+    "seeds": 3,
+    "save_interval": 2
+  },
+  "crossover_method": "blend",
+  "fitness_weights": {
+    "survival": 0.4,
+    "food": 0.3,
+    "exploration": 0.2,
+    "collision": 0.1
+  },
+  "predation": {
+    "predator_count": 3,
+    "capture_radius": 30.0,
+    "capture_energy_transfer": 60.0
+  },
+  "reproduction": {
+    "enabled": true,
+    "min_age": 160,
+    "min_energy": 80,
+    "min_fitness": 0.35,
+    "mutation_rate": 0.05,
+    "mutation_strength": 0.1,
+    "reproduction_cost": 50,
+    "max_population_prey": 40,
+    "max_population_predator": 6
+  }
+}

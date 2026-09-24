@@ -10,8 +10,6 @@ Verifies the energy equation:
 """
 
 from __future__ import annotations
-import numpy as np
-import pytest
 
 from agents.energy import EnergyConfig, update_energy, compute_energy_cost, DEFAULT_ENERGY_CONFIG
 

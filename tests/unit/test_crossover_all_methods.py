@@ -14,7 +14,6 @@ from evolution.crossover import (
     no_crossover,
     crossover,
     crossover_population,
-    CrossoverMethod,
 )
 
 

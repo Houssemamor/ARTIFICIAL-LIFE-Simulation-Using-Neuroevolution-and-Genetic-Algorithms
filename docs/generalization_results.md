@@ -92,6 +92,13 @@ occasionally. Remaining, in order of leverage:
 - Revisit consumption radius / eat-gate threshold so acquisition is
   achievable but non-trivial.
 
+**Status update (Phase 6):** the consumption radius was raised from
+5 px to 12 px (it was required for predator/prey ecosystem stability;
+see `docs/coevolution_notes.md`), and `configs/calibration.json` was
+regenerated to match. The numbers in this document were measured at
+5 px against the previous calibration - they remain internally valid
+comparisons, but a rerun must not be compared against them directly.
+
 Rerun this experiment after those changes; a gap measured on a
 multi-component behavior would be a far stronger claim than the current
 null.

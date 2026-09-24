@@ -20,8 +20,7 @@ from neural.checkpoint import (
     verify_checkpoint,
 )
 from neural.network import FixedController, ARCHITECTURE
-from neural.genome import genome_size, pack_weights, unpack_genome
-from neural.batched_inference import batched_forward
+from neural.genome import genome_size, unpack_genome
 
 
 class TestCheckpointRestore:

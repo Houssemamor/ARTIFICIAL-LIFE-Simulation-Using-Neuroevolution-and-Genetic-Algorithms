@@ -46,6 +46,14 @@ def main() -> None:
     if args.device is not None:
         config.device = args.device
 
+    # A predation config silently degrades here: this runner trains a
+    # solo prey population. Point the user at the Phase 6 driver instead
+    # of letting predators be quietly ignored.
+    if config.predation and config.predation.predator_count > 0:
+        print("Warning: this config specifies predators; this runner "
+              "trains a solo prey population. For co-evolution or "
+              "ecosystem runs use experiments/run_coevolution.py.")
+
     # Enforce the cpu-deterministic tier from the config's seed fields
     # (time-derived fallback, same rule as the GUI)
     import time

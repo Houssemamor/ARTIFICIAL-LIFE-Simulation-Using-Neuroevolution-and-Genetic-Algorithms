@@ -14,7 +14,6 @@ import torch
 
 from neural import genome
 from neural.network import ARCHITECTURE, FixedController, total_params
-from neural.batched_inference import stack_population_weights
 
 
 def _random_genome(rng: np.random.Generator) -> np.ndarray:

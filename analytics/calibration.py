@@ -20,9 +20,7 @@ from agents.energy import EnergyConfig, DEFAULT_ENERGY_CONFIG
 from neural.batched_inference import batched_forward, stack_population_weights
 from neural.genome import genome_size
 from simulation.environment import World
-from simulation.engine import step_simulation
 from simulation.world_config import load_config, BaselineConfig
-from simulation.physics import Vector2D
 
 
 @dataclass

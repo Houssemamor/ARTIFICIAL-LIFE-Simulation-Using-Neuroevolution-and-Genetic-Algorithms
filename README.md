@@ -91,7 +91,7 @@ python -m experiments.run --config configs/baseline.json --mode headless --devic
 ## Running Tests
 
 ```bash
-# Full suite (161 tests)
+# Full suite (192 tests)
 pytest tests/ -q
 
 # Specific test groups
@@ -112,7 +112,7 @@ pytest tests/performance/ -q
 | Phase 4 | Analytics + checkpoints + determinism checklist | Experiments logged, repeatable, tagged by reproducibility tier | ✅ Complete |
 | Phase 4.5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ✅ Complete |
 | Phase 5 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ✅ Complete |
-| Phase 6 | Predator/prey + reproduction + hall-of-fame evaluation | Multi-agent ecosystem stable; co-evolution measured against frozen checkpoints | ❌ Not Started |
+| Phase 6 | Predator/prey + reproduction + hall-of-fame evaluation | Multi-agent ecosystem stable; co-evolution measured against frozen checkpoints | ☑ Complete with caveat² |
 | Phase 7 | NEAT-style extension (Appendix C) | Topology evolution works on an isolated benchmark, matching the Appendix C spec | ❌ Not Started |
 | Phase 8 | Packaging, final report, dashboard polish, presentation | Packaged, tested, installable application + complete presentation package | ❌ Not Started |
 
@@ -123,6 +123,13 @@ the fitness-over-generations plot was produced (`experiments/EXP-E/fitness_curve
 but the curve is flat: the GA does not measurably improve fitness under the current
 degenerate dynamics. The Phase 3 "fitness improves" exit expectation remains open
 until the recommended dynamics changes land.
+
+² The ecosystem is stable on pinned fixture seeds under fully deterministic runs,
+but with fixed (non-evolved) controllers roughly 4 in 10 random seeds collapse
+within 10 days. The stability test pins three verified seeds, a negative test
+proves the fixture can fail, and the full analysis lives in
+`docs/coevolution_notes.md`. The basin is expected to widen once prey have a
+genuine food gradient (the same dynamics fix Phase 5 recommends).
 
 ## Key Design Rules
 
@@ -207,13 +214,23 @@ As of September 2026, the following components have been implemented:
 - ✅ `WorldConfig.layout_seed` + `EvolutionConfig.evaluation_steps` schema extensions
 - ✅ Determinism enforced at every entry point (GUI, headless, all experiment runners) via `set_deterministic_seeds`
 
+### Predator/Prey + Hall-of-Fame (Phase 6 - Complete with caveat)
+- ✅ `Organism.role` (`prey` / `predator`), validated; predators reuse the eat-gate as the capture action, captures score through the existing fitness `food` component
+- ✅ `evolution/reproduction.py` - plan's eligibility rule (age / energy / fitness) + asexual clone+mutate offspring + parent energy cost + per-role carrying capacities
+- ✅ Food regrowth (`WorldConfig.food_regrowth_per_step`, default 0 = legacy) - finite food made any ecosystem impossible; consumption radius raised 5 -> 12 px per the Phase 5 recommendation, `configs/calibration.json` regenerated
+- ✅ `evolution/genetic_algorithm.run_coevolution_generation` - both roles evaluated in one shared world, standard GA machinery per role
+- ✅ `analytics/hall_of_fame.py` - frozen best-per-role archive + duel harness (`run_duel`, `win_rate_against_archive`)
+- ✅ `experiments/run_coevolution.py` - co-evolution mode (GA + HOF snapshots + frozen-opponent evaluations) and ecosystem mode (long-horizon stability harness)
+- ✅ `visualization/dashboard_advanced.py` + F9 GUI toggle - live ecosystem counters + hall-of-fame delta; predators drawn red-family
+- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: ~40% of random seeds collapse within 10 days, fixture seeds pinned deterministically, negative test proves the fixture can fail
+- ✅ `tests/unit/test_predation.py` (9), `tests/unit/test_reproduction.py` (8), `tests/unit/test_hall_of_fame.py` (7), `tests/integration/test_coevolution.py` (4), `tests/integration/test_predator_prey_stability.py` (3, incl. seed-reproducibility regression)
+- ⚠️ Caveat: the stability basin is narrow with fixed (non-evolved) controllers - see `docs/coevolution_notes.md` before interpreting ecosystem metrics; expected to widen once prey have a genuine food gradient
+
 ## Next Steps
 
-Phase 6 begins with predator/prey roles, explicit reproduction, and
-hall-of-fame evaluation. All three Phase 5 result docs (generalization,
-Experiment D, Experiment E) recommend making the fitness components live
-(metabolic cost, consumption radius, exploration computation) and
-rerunning the experiments before drawing conclusions from them. See
-[Plan](PLAN.md) for the detailed plan.
+Phase 7 (NEAT-style extension) or, per the recommendation running through
+all Phase 5/6 result docs: make the fitness components live first
+(metabolic cost, exploration computation) and re-tune the predation
+parameters against evolved controllers. See [Plan](PLAN.md).
 
 Once these components are implemented and integrated, agents will be able to process sensory information through neural networks, convert that to physical actions, and exhibit emergent behaviors guided by evolutionary selection pressures.

@@ -28,10 +28,12 @@ class Organism:
         fitness (float): Current fitness score
         genome (Optional[np.ndarray]): Genetic material encoding neural network weights
         is_alive (bool): Whether the organism is currently alive
+        role (str): Ecosystem role, 'prey' or 'predator' (Phase 6)
+        food_eaten (int): Lifetime food count (prey: plant food; predator: captures)
     """
 
     def __init__(self, organism_id: int, x: float, y: float,
-                 initial_energy: float = 100.0):
+                 initial_energy: float = 100.0, role: str = 'prey'):
         """
         Initialize an organism.
 
@@ -40,7 +42,13 @@ class Organism:
             x (float): Initial x position
             y (float): Initial y position
             initial_energy (float): Starting energy level (default: 100.0)
+            role (str): Ecosystem role, 'prey' or 'predator' (Phase 6).
+                Defaults to 'prey' so all pre-Phase-6 callers are
+                unaffected.
         """
+        if role not in ('prey', 'predator'):
+            raise ValueError(f"role must be 'prey' or 'predator', got {role!r}")
+        self.role = role
         self.id = organism_id
         self.position = Vector2D(x, y)
         self.velocity = Vector2D(0.0, 0.0)
@@ -58,6 +66,16 @@ class Organism:
 
         # Accumulated collision penalty this step, applied in update_energy
         self._collision_penalty_this_step = 0.0
+
+        # Lifetime food count. For prey this is plant food eaten; for
+        # predators it is successful captures (Phase 6). Kept on the
+        # organism so shared-world evaluation can attribute events
+        # without external arrays keyed by agent id.
+        self.food_eaten = 0
+
+        # Set by the engine when a predator's eat-gate fires; consumed
+        # and cleared by resolve_captures in the same step.
+        self._capture_attempt = False
 
         # Food consumed this step (for energy gain)
         self._food_consumed_this_step = False
@@ -155,8 +173,14 @@ class Organism:
         if not self.is_alive:
             return False
 
-        # Check if there's food nearby (simplified consumption radius)
-        consumption_radius = 5.0  # pixels
+        # Consumption radius: 12 px (raised from 5 px in Phase 6).
+        # At 5 px, random controllers almost never encounter food, every
+        # prey population starves, and no predator/prey ecosystem can be
+        # stable (the plan's Phase 6 exit criterion); the change was the
+        # top recommendation in docs/generalization_results.md. This
+        # shifts the food component of fitness upward globally - configs/
+        # calibration.json was regenerated to match.
+        consumption_radius = 12.0  # pixels
 
         for i, food in enumerate(world.food):
             distance = self.position.distance_to(Vector2D(food.x, food.y))
@@ -164,6 +188,7 @@ class Organism:
                 # Consume the food
                 world.food.pop(i)
                 self._food_consumed_this_step = True
+                self.food_eaten += 1
                 return True
 
         return False
@@ -235,7 +260,11 @@ class Organism:
             'fitness': self.fitness,
             'genome': self.genome.tolist() if self.genome is not None else None,
             'is_alive': self.is_alive,
-            'collisions': self.collisions
+            'collisions': self.collisions,
+            # Phase 6 fields: without these, restoring a serialized
+            # predator would silently demote it to prey
+            'role': self.role,
+            'food_eaten': self.food_eaten,
         }
 
     def load_state(self, state: dict) -> None:
@@ -258,4 +287,8 @@ class Organism:
         else:
             self.genome = None
         self.is_alive = state['is_alive']
+        # Phase 6 fields: older serialized states predate roles, so the
+        # defaults keep every such agent prey (the pre-Phase-6 behavior)
+        self.role = state.get('role', 'prey')
+        self.food_eaten = state.get('food_eaten', 0)
         self.collisions = state['collisions']

@@ -5,8 +5,7 @@ Contains the World, Food, and Obstacle classes.
 """
 
 import numpy as np
-from typing import List, Tuple, Optional
-import json
+from typing import List, Optional
 
 
 class Food:
@@ -65,6 +64,13 @@ class World:
         self.obstacles: List[Obstacle] = []
         self.boundary_margin = 10.0  # pixels from edge that agents cannot cross
 
+        # Food regrowth state (Phase 6); target stays None until
+        # load_from_config sets it, so directly-constructed worlds
+        # keep the legacy finite-food behavior
+        self.food_target: Optional[int] = None
+        self.food_regrowth_per_step: float = 0.0
+        self._food_regrowth_pending: float = 0.0
+
     def load_from_config(self, config: dict) -> None:
         """
         Load world configuration from a dictionary.
@@ -80,8 +86,51 @@ class World:
         food_count = world_config.get('food_count', 20)
         obstacle_count = world_config.get('obstacle_count', 10)
 
+        # Regrowth target: regrow_food() replenishes consumed items
+        # back toward this count (Phase 6 ecosystem mode)
+        self.food_target = food_count
+        self.food_regrowth_per_step = world_config.get('food_regrowth_per_step', 0.0)
+        self._food_regrowth_pending = 0.0
+
         self.spawn_food(food_count)
         self.spawn_obstacles(obstacle_count)
+
+    def regrow_food(self, rate: float) -> int:
+        """
+        Replenish consumed food items up to the configured target.
+
+        Called once per simulation step by the engine; `rate` is items
+        per step, accumulated fractionally so slow regrowth (e.g. 0.3)
+        still produces steady growth. New items spawn at uniformly
+        random positions, like the initial layout.
+
+        Args:
+            rate (float): Food items regrown per step.
+
+        Returns:
+            int: Number of items actually spawned this step.
+        """
+        # Legacy worlds (constructed directly, not via load_from_config)
+        # have no target and never regrow
+        target = getattr(self, 'food_target', None)
+        if target is None or rate <= 0.0:
+            return 0
+
+        self._food_regrowth_pending += rate
+        spawned = 0
+        while (self._food_regrowth_pending >= 1.0
+               and len(self.food) < target):
+            self._food_regrowth_pending -= 1.0
+            x = np.random.uniform(self.boundary_margin,
+                                  self.width - self.boundary_margin)
+            y = np.random.uniform(self.boundary_margin,
+                                  self.height - self.boundary_margin)
+            self.food.append(Food(float(x), float(y)))
+            spawned += 1
+        # Do not bank excess accumulation once the target is reached
+        if len(self.food) >= target:
+            self._food_regrowth_pending = 0.0
+        return spawned
 
     def spawn_food(self, count: int) -> None:
         """
@@ -183,7 +232,9 @@ class World:
             'height': self.height,
             'food': [(f.x, f.y) for f in self.food],
             'obstacles': [(o.x, o.y) for o in self.obstacles],
-            'boundary_margin': self.boundary_margin
+            'boundary_margin': self.boundary_margin,
+            'food_target': self.food_target,
+            'food_regrowth_per_step': self.food_regrowth_per_step
         }
 
     def load_state(self, state: dict) -> None:
@@ -198,3 +249,8 @@ class World:
         self.food = [Food(x, y) for x, y in state['food']]
         self.obstacles = [Obstacle(x, y) for x, y in state['obstacles']]
         self.boundary_margin = state['boundary_margin']
+        # Regrowth state round-trips too; older serialized states without
+        # these keys fall back to the legacy no-regrowth behavior
+        self.food_target = state.get('food_target')
+        self.food_regrowth_per_step = state.get('food_regrowth_per_step', 0.0)
+        self._food_regrowth_pending = 0.0

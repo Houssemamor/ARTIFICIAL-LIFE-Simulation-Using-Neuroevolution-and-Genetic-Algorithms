@@ -4,7 +4,7 @@ Provides basic vector operations used throughout the simulation.
 """
 
 import math
-from typing import Tuple, Union
+from typing import Tuple
 
 
 class Vector2D:

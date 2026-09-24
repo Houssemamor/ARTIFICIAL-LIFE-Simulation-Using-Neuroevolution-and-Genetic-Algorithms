@@ -10,7 +10,6 @@ import torch
 
 from agents.sensors import RayCaster
 from neural.batched_inference import batched_forward, stack_population_weights
-from neural.genome import genome_size
 from simulation.physics import AABB, SpatialHash, Vector2D
 
 # Collision body sizes in pixels, matching the renderer's drawn sizes
@@ -70,6 +69,9 @@ def step_simulation(world, agents, agent_raycaster: RayCaster,
 
     # 3. Apply: decode tanh/sigmoid outputs (already activated) into physics.
     #    The eat gate fires an eat event when the signal clears its threshold.
+    #    Phase 6 role branching: prey eat plant food; a predator's eat gate
+    #    instead flags a capture attempt, resolved by resolve_captures after
+    #    positions are final (predators never consume plant food).
     for index, agent in enumerate(live_agents):
         steering = float(action_logits[index, 0])
         acceleration = float(action_logits[index, 1])
@@ -77,7 +79,10 @@ def step_simulation(world, agents, agent_raycaster: RayCaster,
         agent.last_observation = observations[index]
         agent.apply_action(steering, acceleration, eat_signal, world, dt=dt)
         if eat_signal > EAT_SIGNAL_THRESHOLD:
-            agent.consume_food(world)
+            if getattr(agent, 'role', 'prey') == 'predator':
+                agent._capture_attempt = True
+            else:
+                agent.consume_food(world)
 
     # 4. Physics: move all agents first so collisions see final positions
     collisions = resolve_collisions(agents, world)
@@ -86,6 +91,11 @@ def step_simulation(world, agents, agent_raycaster: RayCaster,
     for agent in agents:
         agent.update_energy()
         agent.increment_age()
+
+    # 6. Food regrowth (Phase 6): no-op unless the world was configured
+    #    with a regrowth rate; keeps ecosystems from starving on a
+    #    finite food supply
+    world.regrow_food(getattr(world, 'food_regrowth_per_step', 0.0))
 
     return collisions
 
@@ -155,3 +165,66 @@ def resolve_collisions(agents, world, penalty: float = 2.0) -> int:
             agent.energy = 0.0
 
     return total_contacts
+
+
+def resolve_captures(agents, capture_radius: float = 16.0,
+                     energy_transfer: float = 60.0) -> int:
+    """
+    Phase 6 capture resolution: predators whose eat-gate fired this step
+    capture the nearest live prey within capture_radius.
+
+    One prey dies per attempt, the predator gains energy_transfer energy
+    (clamped at max_energy, preserving the no-energy-banking invariant
+    documented in agents/energy.py), and the predator's food_eaten count
+    increments so the existing fitness pipeline scores captures as the
+    predator's 'food' component unchanged.
+
+    Resolution order is list order, so two predators contesting one prey
+    is deterministic: the first predator in population order wins.
+
+    Args:
+        agents: All agents (both roles); dead agents are ignored.
+        capture_radius: Maximum predator-prey distance for a capture.
+        energy_transfer: Energy gained by the predator per capture.
+
+    Returns:
+        int: Number of prey captured this step.
+    """
+    from agents.energy import DEFAULT_ENERGY_CONFIG
+
+    live_predators = [a for a in agents
+                      if a.is_alive and getattr(a, 'role', 'prey') == 'predator']
+    live_prey = [a for a in agents
+                 if a.is_alive and getattr(a, 'role', 'prey') == 'prey']
+
+    captures = 0
+    for predator in live_predators:
+        attempt = predator._capture_attempt
+        predator._capture_attempt = False
+        if not attempt or not live_prey:
+            continue
+
+        # Nearest live prey within the capture radius; ties resolved by
+        # list order (first encountered wins), keeping determinism
+        nearest = None
+        nearest_distance = capture_radius
+        for prey in live_prey:
+            distance = predator.position.distance_to(prey.position)
+            if distance <= nearest_distance:
+                nearest = prey
+                nearest_distance = distance
+
+        if nearest is None:
+            continue
+
+        nearest.is_alive = False
+        nearest.energy = 0.0
+        # Direct energy add rather than the food path: capture has its own
+        # tuning knob (plan Phase 6 step 5) independent of plant food value
+        predator.energy = min(predator.energy + energy_transfer,
+                               DEFAULT_ENERGY_CONFIG.max_energy)
+        predator.food_eaten += 1
+        live_prey.remove(nearest)
+        captures += 1
+
+    return captures

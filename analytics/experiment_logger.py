@@ -18,14 +18,12 @@ Writes the full `experiments/EXP-XXX/` folder structure:
 from __future__ import annotations
 import csv
 import json
-import os
-import shutil
 import subprocess
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch

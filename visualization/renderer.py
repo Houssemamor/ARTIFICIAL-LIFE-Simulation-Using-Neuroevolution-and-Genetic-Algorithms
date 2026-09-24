@@ -9,7 +9,7 @@ from typing import List
 import pygame
 import numpy as np
 
-from simulation.environment import World, Food, Obstacle
+from simulation.environment import World
 from agents.organism import Organism
 
 
@@ -42,6 +42,9 @@ class Renderer:
         pygame.display.set_caption("Artificial Life Neuroevolution Simulation")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)
+        # Set when the user presses F9; the main loop reads and clears it
+        # (single event pump: this class owns pygame.event.get())
+        self.panel_toggled = False
 
     def draw_world(self, world: World, agents: List[Organism]) -> None:
         """
@@ -99,13 +102,18 @@ class Renderer:
                 (int(rear_right_x), int(rear_right_y))
             ]
 
-            # Color based on energy (green to red)
+            # Color: prey keeps the energy green->red gradient; predators
+            # draw red-tinted with brightness by energy so the two roles
+            # are visually distinct (Phase 6)
             energy_ratio = max(0.0, min(1.0, agent.energy / 100.0))
-            color = (
-                int(255 * (1 - energy_ratio)),  # Red
-                int(255 * energy_ratio),        # Green
-                0                               # Blue
-            )
+            if getattr(agent, 'role', 'prey') == 'predator':
+                color = (200, int(80 * (1 - energy_ratio)), 0)
+            else:
+                color = (
+                    int(255 * (1 - energy_ratio)),  # Red
+                    int(255 * energy_ratio),        # Green
+                    0                               # Blue
+                )
             pygame.draw.polygon(self.screen, color, points)
 
         # Optional: draw agent ID or energy text (for debugging)
@@ -132,9 +140,10 @@ class Renderer:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
-                elif event.key == pygame.K_SPACE:
-                    # Pause/unpause can be handled elsewhere
-                    pass
+                elif event.key == pygame.K_F9:
+                    # Phase 6 dashboard toggle; the main loop consumes
+                    # the flag so this class stays presentation-only
+                    self.panel_toggled = True
         return True
 
     def quit(self) -> None:

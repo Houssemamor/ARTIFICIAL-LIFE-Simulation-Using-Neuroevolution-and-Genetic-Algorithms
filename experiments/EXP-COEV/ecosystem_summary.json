@@ -1,0 +1,85 @@
+{
+  "seed": 8,
+  "days": [
+    {
+      "day": 0,
+      "prey_alive": 24,
+      "predator_alive": 3,
+      "captures": 0,
+      "births": 0,
+      "total_agents": 27
+    },
+    {
+      "day": 1,
+      "prey_alive": 40,
+      "predator_alive": 3,
+      "captures": 0,
+      "births": 29,
+      "total_agents": 56
+    },
+    {
+      "day": 2,
+      "prey_alive": 40,
+      "predator_alive": 3,
+      "captures": 3,
+      "births": 12,
+      "total_agents": 68
+    },
+    {
+      "day": 3,
+      "prey_alive": 39,
+      "predator_alive": 4,
+      "captures": 4,
+      "births": 14,
+      "total_agents": 82
+    },
+    {
+      "day": 4,
+      "prey_alive": 36,
+      "predator_alive": 4,
+      "captures": 2,
+      "births": 19,
+      "total_agents": 101
+    },
+    {
+      "day": 5,
+      "prey_alive": 39,
+      "predator_alive": 3,
+      "captures": 3,
+      "births": 20,
+      "total_agents": 121
+    },
+    {
+      "day": 6,
+      "prey_alive": 40,
+      "predator_alive": 6,
+      "captures": 14,
+      "births": 29,
+      "total_agents": 150
+    },
+    {
+      "day": 7,
+      "prey_alive": 28,
+      "predator_alive": 6,
+      "captures": 14,
+      "births": 13,
+      "total_agents": 163
+    },
+    {
+      "day": 8,
+      "prey_alive": 24,
+      "predator_alive": 6,
+      "captures": 5,
+      "births": 13,
+      "total_agents": 176
+    },
+    {
+      "day": 9,
+      "prey_alive": 23,
+      "predator_alive": 6,
+      "captures": 5,
+      "births": 13,
+      "total_agents": 189
+    }
+  ]
+}

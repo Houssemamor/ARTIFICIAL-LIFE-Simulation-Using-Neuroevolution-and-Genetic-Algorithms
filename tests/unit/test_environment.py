@@ -4,14 +4,11 @@ Unit tests for environment module.
 
 import sys
 import os
-import json
-import tempfile
 
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation.environment import World, Food, Obstacle
-from simulation.world_config import load_config
 
 
 def test_world_creation():

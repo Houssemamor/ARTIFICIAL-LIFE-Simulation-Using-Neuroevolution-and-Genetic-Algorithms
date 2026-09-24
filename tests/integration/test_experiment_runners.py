@@ -8,15 +8,13 @@ statistics) end-to-end in a few seconds.
 
 from __future__ import annotations
 import json
-import tempfile
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from simulation.world_config import BaselineConfig
-from experiments import experiment_runner
-from experiments.experiment_runner import (evaluate_genome, load_layouts,
+from experiments.experiment_runner import (evaluate_genome,
                                            make_clone_population,
                                            make_population,
                                            train_best_genome)

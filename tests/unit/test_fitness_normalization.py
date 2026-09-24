@@ -6,12 +6,9 @@ calibration reference scales and combined with configurable weights.
 """
 
 from __future__ import annotations
-import numpy as np
-import pytest
 
 from evolution.genetic_algorithm import compute_fitness
 from agents.organism import Organism
-from simulation.physics import Vector2D
 
 
 class TestFitnessNormalization:

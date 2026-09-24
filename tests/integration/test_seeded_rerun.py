@@ -17,7 +17,6 @@ import pytest
 from simulation.world_config import load_config
 from simulation.determinism import set_deterministic_seeds, DeterminismConfig
 from agents.organism import Organism
-from agents.sensors import RayCaster
 from agents.energy import DEFAULT_ENERGY_CONFIG
 from evolution.genetic_algorithm import run_generation
 from neural.genome import genome_size

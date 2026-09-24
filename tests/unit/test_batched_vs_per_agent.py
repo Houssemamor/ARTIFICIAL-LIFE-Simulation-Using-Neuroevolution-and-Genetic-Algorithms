@@ -13,12 +13,11 @@ import numpy as np
 import torch
 
 from agents.organism import Organism
-from agents.sensors import RayCaster, OBSERVATION_DIM, MAX_RANGE
+from agents.sensors import RayCaster, OBSERVATION_DIM
 from neural import genome
 from neural.batched_inference import batched_forward, stack_population_weights
 from neural.network import ARCHITECTURE, FixedController
 from simulation.environment import Food, World
-from simulation.physics import Vector2D
 
 
 def _build_population(agent_count: int, rng: np.random.Generator) -> tuple[list[Organism], np.ndarray]:

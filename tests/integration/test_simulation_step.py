@@ -14,7 +14,7 @@ from agents.organism import Organism
 from agents.sensors import RayCaster
 from neural.genome import genome_size
 from simulation.environment import World
-from simulation.engine import EAT_SIGNAL_THRESHOLD, step_simulation
+from simulation.engine import step_simulation
 
 
 def _make_world() -> World:

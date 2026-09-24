@@ -5,7 +5,7 @@ Provides Pydantic models for validating configuration files.
 """
 
 from __future__ import annotations
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field, validator
 
 
@@ -19,6 +19,11 @@ class WorldConfig(BaseModel):
     # layout (A1-A3 train / B1-B3 test in Phase 5) is reproducible and
     # distinct. None = unseeded (legacy behavior).
     layout_seed: Optional[int] = None
+    # Food regrowth rate per simulation step (Phase 6): consumed items
+    # respawn at random positions up to the food_count target. 0.0 =
+    # finite food supply, the legacy Phase 1-5 behavior (stability
+    # comparisons in earlier phases are unaffected).
+    food_regrowth_per_step: float = Field(0.0, ge=0)
 
 
 class BrainConfig(BaseModel):
@@ -56,6 +61,61 @@ class ExperimentConfig(BaseModel):
     save_interval: int = Field(50, gt=0)
 
 
+class PredationConfig(BaseModel):
+    """
+    Predator/prey ecosystem parameters (Phase 6).
+
+    predator_count = 0 means legacy prey-only mode: every existing
+    config without a 'predation' section behaves exactly as before.
+    """
+    predator_count: int = Field(0, ge=0)
+    # Distance in pixels within which a firing eat-gate captures prey.
+    # This and capture_energy_transfer are the Phase 6 step-5 tuning
+    # knobs for ecosystem stability.
+    capture_radius: float = Field(16.0, gt=0)
+    # Energy gained by a predator per successful capture. Deliberately
+    # separate from eaten_energy_value so prey-plant and predator-meat
+    # energy flows can be tuned independently.
+    capture_energy_transfer: float = Field(60.0, gt=0)
+
+
+class ReproductionConfig(BaseModel):
+    """
+    In-episode reproduction parameters (Phase 6).
+
+    Offspring are asexual clone+mutate copies of an eligible parent,
+    during an episode. The parent pays reproduction_cost energy per
+    birth, which throttles the birth rate (a parent that just gave
+    birth falls below min_energy and must recover before breeding
+    again) and couples predator birth rate to capture success. This is
+    separate from generation-level GA replacement in
+    genetic_algorithm.run_generation / run_coevolution_generation.
+
+    Eligibility follows the plan's rule:
+        age >= min_age and energy >= min_energy and fitness >= min_fitness
+    Per-role carrying capacities (max_population_prey /
+    max_population_predator) keep the predator population a small
+    fraction of the prey population, preventing predator overshoot.
+    """
+    enabled: bool = False
+    min_age: int = Field(40, ge=0)
+    min_energy: float = Field(60.0, ge=0)
+    min_fitness: float = Field(0.15, ge=0)
+    # Per-role carrying capacities. Predators must be capped well below
+    # prey: a shared cap (earlier design) let the predator population
+    # overshoot to prey-crushing levels, and ecologically a predator's
+    # carrying capacity is inherently a fraction of its prey's.
+    max_population_prey: int = Field(40, gt=0)
+    max_population_predator: int = Field(8, gt=0)
+    mutation_rate: float = Field(0.05, ge=0, le=1)
+    mutation_strength: float = Field(0.1, gt=0)
+    # Energy the parent pays per birth. Without a cost every eligible
+    # agent breeds every step and the population explodes to the cap
+    # (observed in the first ecosystem smoke run), so the cost is a
+    # stability requirement, not decoration.
+    reproduction_cost: float = Field(50.0, ge=0)
+
+
 class BaselineConfig(BaseModel):
     """Baseline configuration matching the design document's Section 18.2 example."""
     experiment_name: str = "baseline"
@@ -70,6 +130,10 @@ class BaselineConfig(BaseModel):
     fitness_weights: Dict[str, float] = Field(default_factory=lambda: {"survival": 0.4, "food": 0.3, "exploration": 0.2, "collision": 0.1})
     seed: Dict[str, Optional[int]] = Field(default_factory=lambda: {"torch": None, "numpy": None, "random": None})
     reproducibility_tier: str = Field("cpu-deterministic", pattern="^(cpu-deterministic|non-deterministic)$")
+    # Phase 6 sections. None = absent in legacy configs, which keeps
+    # every pre-Phase-6 config valid and prey-only.
+    predation: Optional[PredationConfig] = None
+    reproduction: Optional[ReproductionConfig] = None
 
     @validator('fitness_weights')
     def weights_sum_to_one(cls, v):

@@ -2,7 +2,6 @@
 Unit tests for spatial hash implementation.
 """
 
-import math
 import sys
 import os
 

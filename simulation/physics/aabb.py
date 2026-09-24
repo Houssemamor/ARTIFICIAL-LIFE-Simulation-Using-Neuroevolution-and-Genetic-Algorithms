@@ -3,7 +3,6 @@ Axis-Aligned Bounding Box for spatial partitioning and collision detection.
 """
 
 from __future__ import annotations
-from typing import Union
 from .vector2d import Vector2D
 
 

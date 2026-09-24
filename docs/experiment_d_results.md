@@ -106,3 +106,10 @@ Only then does a null result here become evidence about weighting
 robustness rather than about inert components. If differences still fail
 to reach significance on a live landscape, that would be a meaningful
 robustness finding for the design document's Experiment D.
+
+**Status update (Phase 6):** the consumption radius was raised from
+5 px to 12 px and `configs/calibration.json` was regenerated (ecosystem
+stability required it; see `docs/coevolution_notes.md`). The numbers in
+this document were measured at 5 px against the previous calibration -
+internally valid comparisons, but a rerun must not be compared against
+them directly.

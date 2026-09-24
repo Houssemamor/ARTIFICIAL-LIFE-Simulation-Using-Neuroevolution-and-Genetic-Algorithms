@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 
 from analytics.statistics import compare_conditions_paired
-from experiments.experiment_runner import (evaluate_genome, load_layouts,
+from experiments.experiment_runner import (evaluate_genome,
                                            train_best_genome,
                                            write_stats_summary)
 from simulation.determinism import DeterminismConfig, set_deterministic_seeds
