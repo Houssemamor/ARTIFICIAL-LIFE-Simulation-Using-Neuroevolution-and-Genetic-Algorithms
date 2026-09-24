@@ -91,7 +91,7 @@ python -m experiments.run --config configs/baseline.json --mode headless --devic
 ## Running Tests
 
 ```bash
-# Full suite (192 tests)
+# Full suite (223 tests)
 pytest tests/ -q
 
 # Specific test groups
@@ -113,7 +113,7 @@ pytest tests/performance/ -q
 | Phase 4.5 | Related-work write-up + statistical protocol implementation | Comparison pipeline ready before any headline experiment runs | ✅ Complete |
 | Phase 5 | Generalization experiments + Experiment D (fitness weighting) | Unseen layouts and fitness-weighting sensitivity both evaluated | ✅ Complete |
 | Phase 6 | Predator/prey + reproduction + hall-of-fame evaluation | Multi-agent ecosystem stable; co-evolution measured against frozen checkpoints | ☑ Complete with caveat² |
-| Phase 7 | NEAT-style extension (Appendix C) | Topology evolution works on an isolated benchmark, matching the Appendix C spec | ❌ Not Started |
+| Phase 7 | NEAT-style extension (Appendix C) | Topology evolution works on an isolated benchmark, matching the Appendix C spec | ☑ Complete with caveat³ |
 | Phase 8 | Packaging, final report, dashboard polish, presentation | Packaged, tested, installable application + complete presentation package | ❌ Not Started |
 
 See [Plan](PLAN.md) for the first-steps plan.
@@ -130,6 +130,14 @@ within 10 days. The stability test pins three verified seeds, a negative test
 proves the fixture can fail, and the full analysis lives in
 `docs/coevolution_notes.md`. The basin is expected to widen once prey have a
 genuine food gradient (the same dynamics fix Phase 5 recommends).
+
+³ The NEAT implementation matches the Appendix C operators and formula
+(verified by unit tests), and topology grows on the benchmark (mean complexity
+51 → 108.6 over 30 generations). The evolutionary run keeps a single species:
+the degenerate fitness landscape exerts no divergence pressure, so the
+compatibility threshold is never crossed. Speciation machinery is proven on
+constructed diverse populations; the pressure itself requires the same
+live-fitness-landscape fix. Full analysis in `docs/neat_extension_report.md`.
 
 ## Key Design Rules
 
@@ -226,11 +234,19 @@ As of September 2026, the following components have been implemented:
 - ✅ `tests/unit/test_predation.py` (9), `tests/unit/test_reproduction.py` (8), `tests/unit/test_hall_of_fame.py` (7), `tests/integration/test_coevolution.py` (4), `tests/integration/test_predator_prey_stability.py` (3, incl. seed-reproducibility regression)
 - ⚠️ Caveat: the stability basin is narrow with fixed (non-evolved) controllers - see `docs/coevolution_notes.md` before interpreting ecosystem metrics; expected to widen once prey have a genuine food gradient
 
+### NEAT Topology Evolution (Phase 7 - Complete with caveat)
+- ✅ `evolution/neat/` package - `genome.py` (node + connection genes with innovations), `innovation.py` (global counter with per-generation reuse), `mutation.py` (`add_node` with weight-1.0 split init, `add_connection`, Gaussian weight mutation with re-enable), `crossover.py` (innovation-aligned: matching random from either parent, disjoint/excess from the fitter), `compatibility.py` (δ = c1·E/N + c2·D/N + c3·Ŵ, Appendix C constants), `speciation.py` (assignment, fitness sharing, stagnation removal with champion protection), `algorithm.py` (full generation loop)
+- ✅ `neural/sparse_inference.py` - the batching question resolved: population-wide depth-layered padded/masked batch, **3.1x the per-agent reference** (320 vs 104 steps/s at 100 genomes), verified equivalent to per-agent on minimal, variable-depth, and orphaned-node genomes
+- ✅ `experiments/run_neat.py` + `configs/neat_food_seeking.json` - 30-generation food-seeking benchmark; topology grows (mean complexity 51 → 108.6, max 51 → 124); complexity SVG + summary JSON
+- ✅ `docs/neat_extension_report.md` - batching decision with measured numbers, benchmark results, and the Appendix C provenance caveat
+- ✅ `tests/unit/test_neat_primitives.py` (20), `tests/unit/test_sparse_inference.py` (6), `tests/integration/test_neat_speciation.py` (3)
+- ⚠️ Caveat: the evolutionary run keeps a single species - the mechanism is unit-proven but the degenerate fitness landscape exerts no divergence pressure (same root cause as Phase 3/5/6; see `docs/neat_extension_report.md`)
+
 ## Next Steps
 
-Phase 7 (NEAT-style extension) or, per the recommendation running through
-all Phase 5/6 result docs: make the fitness components live first
-(metabolic cost, exploration computation) and re-tune the predation
-parameters against evolved controllers. See [Plan](PLAN.md).
+Phase 8 (packaging, final report, dashboard polish, presentation), or
+the recommendation running through all Phase 5/6/7 result docs: make
+the fitness components live (metabolic cost, exploration) and re-run
+the experiments under them. See [Plan](PLAN.md).
 
 Once these components are implemented and integrated, agents will be able to process sensory information through neural networks, convert that to physical actions, and exhibit emergent behaviors guided by evolutionary selection pressures.

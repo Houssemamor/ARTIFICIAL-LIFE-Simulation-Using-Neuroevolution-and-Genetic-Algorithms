@@ -1,0 +1,11 @@
+{
+  "population": 100,
+  "mean_nodes_per_genome": 16.5,
+  "steps": 150,
+  "compile_seconds_per_episode": 0.019841099996119736,
+  "batched_population_steps_per_second": 320.2492307502709,
+  "batched_per_species_steps_per_second": 270.97186770361844,
+  "per_agent_steps_per_second": 104.3261407642479,
+  "speedup_population_vs_per_agent": 3.0696930645019975,
+  "speedup_species_vs_per_agent": 2.597353508129377
+}

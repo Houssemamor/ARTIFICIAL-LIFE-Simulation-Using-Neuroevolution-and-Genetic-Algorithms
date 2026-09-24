@@ -116,6 +116,47 @@ class ReproductionConfig(BaseModel):
     reproduction_cost: float = Field(50.0, ge=0)
 
 
+class NeatConfig(BaseModel):
+    """
+    NEAT topology-evolution parameters (Phase 7, Appendix C).
+
+    The compatibility coefficients and threshold are the Appendix C
+    baseline (Stanley & Miikkulainen 2002): c1=1.0 (enabled genes),
+    c2=1.0 (gene-count difference), c3=0.4 (mean weight difference),
+    compatibility threshold 3.0.
+    """
+    # Compatibility distance: delta = (c1*E + c2*D)/N + c3*Wbar
+    c1_enabled_gene_coefficient: float = Field(1.0, ge=0)
+    c2_gene_count_coefficient: float = Field(1.0, ge=0)
+    c3_weight_coefficient: float = Field(0.4, ge=0)
+    compatibility_threshold: float = Field(3.0, gt=0)
+
+    # Structural mutation rates (probability per reproduced offspring)
+    add_node_probability: float = Field(0.05, ge=0, le=1)
+    add_connection_probability: float = Field(0.05, ge=0, le=1)
+    # Per-connection probability of Gaussian weight perturbation
+    weight_mutation_probability: float = Field(0.2, ge=0, le=1)
+    weight_mutation_sigma: float = Field(0.5, gt=0)
+
+    # Speciation dynamics
+    stagnation_generations: int = Field(15, ge=1)
+    min_species_size: int = Field(1, ge=1)
+    # Probability a reproduced offspring is an innovation-aligned
+    # crossover child of two parents from the same species
+    crossover_rate: float = Field(0.5, ge=0, le=1)
+    # Every species with an improved member keeps at least this many
+    # offspring so rare species are not reaped before they can recover
+    min_offspring_per_species: int = Field(1, ge=0)
+
+    # Network shape (matches the engine's controller contract)
+    n_inputs: int = Field(12, gt=0)
+    n_outputs: int = Field(3, gt=0)
+
+    # Initial weight range for new connections
+    initial_weight_min: float = -1.0
+    initial_weight_max: float = 1.0
+
+
 class BaselineConfig(BaseModel):
     """Baseline configuration matching the design document's Section 18.2 example."""
     experiment_name: str = "baseline"
@@ -134,6 +175,8 @@ class BaselineConfig(BaseModel):
     # every pre-Phase-6 config valid and prey-only.
     predation: Optional[PredationConfig] = None
     reproduction: Optional[ReproductionConfig] = None
+    # Phase 7 NEAT extension; None = fixed-topology evolution
+    neat: Optional[NeatConfig] = None
 
     @validator('fitness_weights')
     def weights_sum_to_one(cls, v):
