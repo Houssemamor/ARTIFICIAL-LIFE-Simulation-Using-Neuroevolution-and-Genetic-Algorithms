@@ -346,8 +346,8 @@ artificial-life-sim/
 - [x] Explicit, tested energy-balance model
 - [x] A calibration pipeline producing `configs/calibration.json`, so fitness weights are never chosen blind
 - [x] A working genetic algorithm with three interchangeable, tested crossover methods
-- [ ] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
-  - Update (post-Phase 5 review): the plot now exists (`experiments/EXP-E/fitness_curve.svg`) but is FLAT - the GA does not measurably improve fitness under current dynamics. What earlier looked like learning was an evaluation-geometry artifact. See `docs/crossover_results.md`; revisit after the recommended dynamics changes.
+- [x] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
+  - Satisfied by the Phase 8 freeze re-run under the final dynamics: mean fitness rises +0.28 to +0.50 over 12 generations in all three arms of Experiment E (energy-limited dynamics, Phase 9) (`experiments/EXP-E/fitness_curve.svg`, `docs/crossover_results.md`). The earlier flat curve was measured at the 5 px consumption radius; the earlier steep rise remains a rejected corner-spawn artifact.
 
 ---
 
@@ -479,7 +479,7 @@ artificial-life-sim/
 
 ### Deliverables — Phase 6
 
-- [x] Stable predator/prey ecosystem with explicit reproduction (caveat: stable on pinned fixture seeds under deterministic pipelines; ~40% of random seeds still collapse within 10 days - full analysis in docs/coevolution_notes.md; stability basin expected to widen with evolved controllers)
+- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days, every failure a predator extinction after the newborn-energy fix (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; the ecosystem clock is the robustness lever)
 - [x] A working hall-of-fame evaluation harness and dashboard panel (F9 GUI toggle; frozen-opponent win rates in analytics/hall_of_fame.py)
 - [x] A documented co-evolution caveat protecting later readers from misreading the metrics (docs/coevolution_notes.md)
 
@@ -524,9 +524,9 @@ artificial-life-sim/
 
 ### Deliverables — Phase 7
 
-- [x] A complete, literature-accurate NEAT implementation (innovation tracking, speciation, fitness sharing, complexification) - all primitives unit-tested against the Appendix C formula and operators; the evolutionary run keeps a single species because the degenerate fitness landscape exerts no divergence pressure (mechanism verified, outcome measured - docs/neat_extension_report.md)
+- [x] A complete, literature-accurate NEAT implementation (innovation tracking, speciation, fitness sharing, complexification) - all primitives unit-tested against the Appendix C formula and operators; the evolutionary run keeps a single species because the energy-limited landscape is bimodal, which still yields one compatibility cluster at the threshold (mechanism verified on constructed diverse populations, outcome measured - docs/neat_extension_report.md)
 - [x] A resolved and documented answer to the batched-inference-under-variable-topology question - population-wide depth-layered padded batching, 3.1x the per-agent reference, benchmarked both ways (docs/neat_extension_report.md)
-- [x] A complexity-over-generations plot showing structure is actually evolving, not just weights (mean complexity 51 -> 108.6 over 30 generations; experiments/EXP-NEAT/complexity_over_generations.svg)
+- [x] A complexity-over-generations plot showing structure is actually evolving, not just weights (mean complexity 51 → 102 over 30 generations; experiments/EXP-NEAT/complexity_over_generations.svg)
 
 ---
 
@@ -557,11 +557,48 @@ artificial-life-sim/
 
 ### Deliverables — Phase 8
 
-- [ ] Final technical report (`docs/final_report.md`)
-- [ ] Fully reconciled MVP + Advanced dashboards
-- [ ] Optional web dashboard
-- [ ] Packaged, tested, installable application
-- [ ] Complete presentation package (Section 13)
+- [x] Final technical report (`docs/final_report.md` - assembled from the frozen artifacts; every headline number re-measured under the final dynamics in this phase)
+- [x] Fully reconciled MVP + Advanced dashboards (tier selection via `config.phase_tier`, enforced by tests/unit/test_dashboard_tiers.py; the Section 12 control bar and best-agent inspector are built in Phase 9 - only "Next Gen" (a sandbox has no generations) and true lineage (fixed topology has no breeding history) remain N/A)
+- [x] Optional web dashboard - built in Phase 9 (`webdash/`, FastAPI + Bootstrap/vanilla JS read-only viewer over the committed artifacts; the Phase 8 deferral is closed)
+- [x] Packaged, tested, installable application (editable install verified, both entry points `--help` clean, 237-test suite green, lint gate clean)
+- [x] Complete presentation package (Section 13): `docs/demo_script.md` (rehearsable, written against what actually runs) + `docs/slide_outline.md`; the deck itself and the demo video are presentation-time artifacts for the author
+
+---
+
+## Phase 9 — Dynamics Hardening & Deliverable Closure (post-plan)
+
+**Goal:** address the one caveat every result document carried - the survival-saturated fitness landscape that made the project's nulls unreadable - and close the deliverable gaps the Phase 8 reconciliation documented.
+
+**What changed**
+
+1. **Energy-limited dynamics.** `metabolic_base_cost` is now config-tunable (`EnergySettings`; the equation defaults are untouched, so `configs/baseline.json` keeps the legacy demo pacing). The solo experiments run 0.7/step so starvation bites inside the 150-step evaluation; the ecosystem runs 0.25 because one missed day at 0.7 is instant death for its predators. Food regrowth (0.3/step) and the previously dead exploration component (per-agent final displacement) joined every evaluation loop. `configs/calibration.json` was re-measured against the new dynamics.
+2. **Full re-run of every experiment** through the same pipeline (GEN, D, E, co-evolution GA + ecosystem stability sweep, NEAT), with every result document updated to the new numbers.
+
+**What the fix produced (all in `docs/final_report.md`; Phase 9 review iteration - the first re-run was invalidated by an inert-regrowth bug, see below)**
+
+| Result | Before (survival-saturated) | After (energy-limited, corrected) |
+|---|---|---|
+| GA improvement, 12 generations | +0.033 to +0.044 | **+0.28 to +0.50** |
+| Generalization | null (+0.001, p=0.846) | **consistent-direction penalty (+0.047, p=0.1055, r=+0.60, 7/10 seeds, CI [+0.002, +0.089])** |
+| Fitness weighting (D) | all conditions within 0.015 | **equal weighting leads every specialization by +0.07 to +0.12** (no pair survives Holm at n=10) |
+| Crossover (E) | blend ≈ uniform | **blend = uniform (+0.001, p=0.92)**; both +0.08 over mutation-only |
+| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (all predator extinction, after the newborn-energy fix); captures climb 5→22/day in viable runs |
+| NEAT topology | 51 → 108.6 | 51 → 102 (unchanged growth; 571 innovations, 1 species) |
+
+**Review-driven corrections to the dynamics themselves (the reason the first re-run's numbers were withdrawn):**
+
+- The hand-rolled solo/NEAT/calibration evaluation loops never called `world.regrow_food()` - the configured 0.3/step regrowth was inert outside `step_simulation()`. Every solo result above was re-collected after the fix.
+- `create_offspring` built newborns without the parent's energy config, so every offspring silently ran the 0.1 default instead of the parent's 0.7 (solo) / 0.25 (ecosystem). Fixed via `Organism.energy_config`; the ecosystem collapse rate rose from 3/10 to 7/10 once the subsidy was gone.
+- Newborns had no tracked spawn position in ecosystem mode, so their exploration component was 0 for life. Now registered at birth.
+- The GUI presented the frame before the Phase 9 overlays were drawn (the flip lived in `draw_world`); the flip moved to the end of the main loop.
+
+**Deliverable gaps closed**
+
+- Control bar (Pause / x1 / x10 / Save / Reset) and the best-agent inspector (vitals, seven-ray overlay, controller graph with live output activations) - the Section 12 spec minus "Next Gen" (the GUI is a sandbox, not a generation loop) and true lineage (fixed-topology controllers have no breeding history; a genome fingerprint stands in).
+- Web dashboard: FastAPI + Bootstrap/vanilla JS read-only viewer over `experiments/` (`webdash/`), the plan's Section 12.3 endpoints adapted to the artifacts that exist; packaged into the wheel.
+- `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` with an author-side recording checklist for the demo video.
+
+**Open after Phase 9 (documented, not hidden):** the three best effects sit near but not past Holm at n=10 (larger-n confirmations are the top next action); the ecosystem's predator role is fragile (7/10 collapse; the 0.25/step ecosystem clock is the lever); NEAT speciation still reads one species against the bimodal landscape; the metabolic cost itself deserves a sweep (0.4 / 0.7 / 1.0).
 
 ---
 
@@ -719,3 +756,5 @@ Every file this plan creates, in the order it first appears, for a final pre-sub
 **Tests:** all files under `tests/unit/`, `tests/integration/`, `tests/performance/` listed in Section 0
 
 **Docs:** `docs/related_work.md`, `docs/phase1_5_benchmark_report.md`, `docs/generalization_results.md`, `docs/experiment_d_results.md`, `docs/experiment_e_results.md`, `docs/coevolution_notes.md`, `docs/neat_extension_report.md`, `docs/final_report.md`, `docs/demo_script.md`
+
+**Reality note (Phase 8):** four files listed above were deliberately not built - `visualization/dashboard_mvp.py`, `visualization/best_agent_inspector.py`, `analytics/reports.py` (superseded by `analytics/experiment_logger.py`), and the `webdash/` tree (optional in the plan; new dependencies declined). The live GUI ships `visualization/dashboard_advanced.py` with `config.phase_tier` gating instead. The gap analysis is in `docs/final_report.md` section 6.

@@ -48,6 +48,28 @@ def format_hof_lines(hof_evaluations: Optional[List[dict]] = None) -> List[str]:
     return lines
 
 
+def live_agent_count(agents) -> int:
+    """
+    Count live agents. Deaths only set is_alive = False (the dead stay
+    in the list), so len(agents) is the total population, not the
+    living count - the panel needs the latter.
+    """
+    return sum(1 for agent in agents if agent.is_alive)
+
+
+def format_mvp_lines(alive_count: int) -> List[str]:
+    """
+    MVP-tier panel lines: only metrics that exist in the MVP variant
+    (PLAN.md Section 12). The MVP build must never render Phase 6/7-only
+    metrics (predator/prey, hall-of-fame, species), which is why the
+    tier is selected by config rather than by hiding fields here.
+    """
+    return [
+        f"agents alive: {alive_count}",
+        "MVP tier (F9: advanced panel needs a phase_tier=advanced config)",
+    ]
+
+
 def draw_panel(renderer, lines: List[str]) -> None:
     """
     Blit a list of text lines onto the renderer's screen, top-left.

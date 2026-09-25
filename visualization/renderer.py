@@ -45,6 +45,11 @@ class Renderer:
         # Set when the user presses F9; the main loop reads and clears it
         # (single event pump: this class owns pygame.event.get())
         self.panel_toggled = False
+        # Set on clicks for the main loop to consume and clear:
+        # control_action for the bottom bar, world_click for agent
+        # selection
+        self.control_action = None
+        self.world_click = None
 
     def draw_world(self, world: World, agents: List[Organism]) -> None:
         """
@@ -124,8 +129,9 @@ class Renderer:
         #         )
         #     self.screen.blit(text_surface, (agent.position.x, agent.position.y))
 
-        # Update the display
-        pygame.display.flip()
+        # NOTE: no display.flip() here. The main loop draws overlays
+        # (sensor rays, control bar, inspector) after this call and
+        # presents once, at the end of the frame.
 
     def handle_events(self) -> bool:
         """
@@ -144,6 +150,14 @@ class Renderer:
                     # Phase 6 dashboard toggle; the main loop consumes
                     # the flag so this class stays presentation-only
                     self.panel_toggled = True
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                from visualization.control_bar import action_at_position
+                action = action_at_position(event.pos[0], event.pos[1],
+                                            self.width, self.height)
+                if action is not None:
+                    self.control_action = action
+                else:
+                    self.world_click = event.pos
         return True
 
     def quit(self) -> None:

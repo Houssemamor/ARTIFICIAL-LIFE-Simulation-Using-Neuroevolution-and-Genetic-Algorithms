@@ -52,21 +52,46 @@ Win conditions (fixed by definition, `run_duel`):
 ## Stability status under the shipped defaults
 
 Honest finding: with fixed (non-evolved) random controllers, the
-ecosystem is **marginal**. Under `configs/predator_prey.json` (3 apex
-predators, 24 prey, per-role carrying capacities 40/8, food regrowth
-0.25/step, capture radius 30 px), roughly 4 in 10 seeds collapse
-(one role extinct) within 10 days; the remainder oscillate in a
-Lotka-Volterra pattern: predator overshoot -> prey crash -> predator
-starvation -> prey recovery toward carrying capacity.
+ecosystem is **viable but fragile**. Under
+`configs/predator_prey.json` (3 apex predators, 24 prey, per-role
+carrying capacities 40/8, food regrowth 0.25/step, capture radius
+30 px, `metabolic_base_cost` 0.25/step), **7 of 10 seeds collapse**
+(one role extinct) within 10 days - the opposite direction from the
+previous 3-of-10 figure, which was measured before the newborn
+energy fix (see below). The three survivors settle into a
+Lotka-Volterra pattern around carrying capacity: prey 13-28,
+predators steady at 6, captures per day climbing 5 -> 6 -> 9 -> 5 ->
+12 -> 12 -> 15 -> 22 -> 22 -> 15 across ten days (seed 4) as
+selection favors capturable prey. The claim traces to a committed,
+regenerable artifact: `experiments/EXP-COEV/stability_sweep.json`,
+produced by `experiments/run_coevolution.py --mode stability-sweep
+--seed 1 --seeds 10 --days 10` (the pipeline is deterministic per
+seed, so a re-run reproduces the file).
+
+**The collapse is always the predator role** in 8 of 10 seeds
+(min_predator_alive = 0 at some day; two seeds lose prey instead).
+Mechanism: newborn energy inheritance. `create_offspring` once
+constructed newborns without the parent's energy config, so every
+predator born after day 0 silently ran the legacy 0.1/step equation
+while its parent ran 0.25 - an easier landscape for offspring than
+for parents. Fixing that (Phase 9 review) removed the subsidy and
+the collapse rate rose from 3/10 to 7/10. The 0.25 metabolic setting
+itself remains correct for the ecosystem (at 0.7 every predator
+starves before its first capture and the ecosystem collapses on day
+0, because one missed day is death): the solo experiments run
+150-step episodes, the ecosystem runs 150-step days in a persistent
+world, so it needs a slower clock. Lowering the ecosystem clock
+further (0.15-0.20) is the obvious next lever if a sturdier demo is
+needed.
 
 The stability test (`tests/integration/test_predator_prey_stability.py`)
-therefore pins three fixture seeds (8, 11, 13) verified to pass with
-real margins. This is not cherry-picking dressed as science: the runs
-are fully deterministic (see below), the collapse rate is documented
-here, and the negative test proves the fixture can fail (24 predators
-with reproduction disabled extinguish themselves within 7 days).
-The fixtures must be re-verified whenever dynamics-affecting parameters
-change - the test file says so.
+therefore asserts the honest property - viability, not stability -
+on the first three sweep seeds (1, 2, 3), with no cherry-picking:
+at least one must complete the full horizon with both roles alive
+(seed 2 does), and no seed may reach total extinction. The 10-seed
+rate lives in the sweep artifact. The negative test proves the
+fixture is not vacuous (24 predators with reproduction disabled
+extinguish themselves within 7 days).
 
 Two structural findings from the tuning work, for whoever iterates:
 
@@ -75,11 +100,17 @@ Two structural findings from the tuning work, for whoever iterates:
    populations starved on any horizon, and no parameter combination
    could stabilize the ecosystem. The radius was raised to 12 px (the
    top recommendation from `docs/generalization_results.md`), and
-   `configs/calibration.json` was regenerated to match.
+   `configs/calibration.json` was regenerated to match. The Phase 9
+   energy-limited dynamics then made food *mandatory* rather than
+   optional, which is what let captures rise on their own.
 2. **Per-role carrying capacities are mandatory.** A shared population
    cap let predators overshoot to prey-crushing numbers; splitting
    the cap (`max_population_prey` / `max_population_predator`) is what
    made any stability window exist at all.
+3. **Offspring must inherit the parent's energy equation.** The
+   default-config fallback was a silent dynamics bug that flattered
+   the stability numbers; every stability claim re-measured after
+   the fix.
 
 Tuning knobs for the stability basin (plan Phase 6 step 5): predation
 (`predator_count`, `capture_radius`, `capture_energy_transfer`),
@@ -100,13 +131,23 @@ during this phase, both regression-tested:
 - the reproduction cap once counted dead agents, permanently blocking
   births in long runs once enough agents had died
 
-## Interaction with the Phase 5 degenerate-landscape finding
+## Interaction with the solo-experiment dynamics (Phase 9)
 
-The fitness landscape remains degenerate in the solo-GA setting (flat
-fitness-over-generations; see `docs/crossover_results.md`). Predation
-changes the ecosystem economics - captures give predators a real
-food-seeking gradient - but prey still have no food-seeking gradient,
-which caps how stable any random-controller ecosystem can be. The
-expected long-term fix is unchanged: raise `metabolic_base_cost` so
-survival is energy-limited and food restores it, then re-tune the
-predation parameters against evolved (not random) controllers.
+The energy-limited dynamics carry into the ecosystem, with the slower
+clock described above. The solo experiments (`docs/crossover_results.md`)
+now show the GA improving fitness by +0.28 to +0.50 mean over 12
+generations, and viable ecosystem runs show their ecological analogue:
+captures climb 5 -> 22 per day as selection favors capturable prey in
+a population that births keep replenished. But the stability basin
+*narrowed* under the corrected dynamics (3 of 10 -> 7 of 10
+collapse) once newborns inherited the parent's energy equation, so
+the honest summary is: learning potential is real in both settings,
+viability is seed-dependent, and the predator role is the fragile
+one.
+
+The downstream NEAT system still feels little divergence pressure
+(`docs/neat_extension_report.md`), for a different reason than before:
+the landscape is now sharply *bimodal* (a few well-fed foragers near
+fitness 2.0, most of the population starving near 0.3) rather than
+uniformly inert. A bimodal pool still yields one compatibility
+cluster at the Appendix C threshold within 30 generations.

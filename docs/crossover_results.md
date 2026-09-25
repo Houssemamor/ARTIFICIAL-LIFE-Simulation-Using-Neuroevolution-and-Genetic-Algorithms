@@ -6,10 +6,13 @@ trained and their frozen best genomes compared on one common balanced
 metric. This also produces the Phase 3 "fitness-over-generations"
 smoke-test evidence.
 
-**Status:** confirmatory run complete (10 seeds per condition). No
-significant differences. The fitness-over-generations curve is **flat**
-- the GA does not measurably improve mean fitness under current
-dynamics, for reasons the Phase 5 analyses already identified.
+**Status:** confirmatory run complete (10 seeds per condition) under
+the **energy-limited dynamics** (Phase 9: metabolic cost 0.7/step,
+food regrowth 0.3/step, live exploration). No method separates after
+Holm. The fitness-over-generations curve climbs steeply (+0.28 to
++0.50 over 12 generations), but blend and uniform crossover are
+statistically indistinguishable (p = 0.92, r = +0.06) - the earlier
+blend advantage was an artifact of the inert-regrowth iteration.
 
 ## Method
 
@@ -28,74 +31,60 @@ Raw results: `experiments/EXP-E/stats_summary.json`, plot:
 
 ## Results
 
+**Final run (Phase 9 corrected dynamics).** Full re-run after
+the dynamics fix (`metabolic_base_cost` 0.7/step, food regrowth
+0.3/step actually applied by the evaluation loop, exploration
+component computed, calibration re-measured: survival 133.94, food
+1.0, exploration 77.76, collision 1.20). The 12 px-legacy-metabolic
+numbers (means 0.4474-0.4663) are superseded, as are this
+document's first Phase 9 iteration (blend 0.9363 / uniform 0.8022),
+which was produced before the review found the solo evaluation loop
+never regrew food.
+
 ### Condition scores (balanced evaluation, 10 seeds)
 
 | Condition | Mean |
 |-----------|------|
-| blend | 0.3160 |
-| uniform | 0.3233 |
-| none (mutation-only) | 0.3361 |
+| blend | 0.8917 |
+| uniform | 0.8903 |
+| none (mutation-only) | 0.8094 |
 
 ### Pairwise comparisons (paired Wilcoxon + Holm-Bonferroni)
 
-| Comparison | p-value | Matched-pairs r | Significant |
-|------------|---------|-----------------|-------------|
-| blend vs uniform | 0.770 | +0.127 | No |
-| blend vs none | 0.432 | -0.309 | No |
-| uniform vs none | 0.432 | -0.309 | No |
+| Comparison | Mean diff | p-value | Matched-pairs r | 95% CI | Significant |
+|------------|-----------|---------|-----------------|--------|-------------|
+| uniform vs none | +0.0809 | 0.193 | +0.491 | [-0.049, +0.217] | No |
+| blend vs none | +0.0823 | 0.492 | +0.273 | [-0.082, +0.273] | No |
+| blend vs uniform | +0.0014 | 0.922 | +0.055 | [-0.194, +0.186] | No |
 
-Mutation-only is numerically highest, but nothing separates the three
-methods statistically.
+**Blend and uniform are the same method as far as this experiment
+can tell** (+0.0014, r = +0.06). Both beat mutation-only by ~+0.08,
+consistently in sign, short of significance at n = 10.
 
-### Fitness over generations (Phase 3 smoke-test evidence)
+### Fitness over generations (Phase 3 smoke-test evidence - far exceeded)
 
-The curve (`fitness_curve.svg`, mean over seeds of population mean/max
-fitness per generation) is **flat for every method**: generation-0 mean
-fitness is ~0.325 and generation-11 is ~0.31-0.32, with no upward trend;
-max fitness fluctuates (0.64-0.86) without direction. **The GA does not
-measurably improve fitness under the current dynamics.**
+| Method | gen 0 mean | gen 11 mean | Change |
+|--------|-----------|-------------|--------|
+| blend | 0.489 | 0.983 | **+0.495** |
+| uniform | 0.489 | 0.874 | +0.385 |
+| none | 0.489 | 0.771 | +0.283 |
 
-Why this contradicts the earlier Phase 3 telemetry (which showed
-0.31 -> 0.60 within two generations): that improvement was real but its
-*cause* was removed by the spawn-position fix. Agents previously spawned
-in a corner line that crossed obstacle placements, so random genomes
-collided heavily (mean 14.8 contacts) and selection had something to
-learn (avoid obstacles). With uniform world-wide spawns, random genomes
-rarely collide (calibration measured 3.1 contacts/agent) and already sit
-near the fitness ceiling at generation 0. The learnable skill the GA
-previously demonstrated was an artifact of evaluation geometry, not
-general obstacle avoidance.
-
-## Interpretation
-
-Two findings, both consistent with the Phase 5 degenerate-landscape
-analysis:
-
-1. **Crossover method does not matter here.** With food rarely eaten,
-   survival saturated, and exploration uncomputed, the effective
-   objective is a nearly-flat function of the genome; there is little for
-   any variation operator to exploit or disrupt. The competing-conventions
-   concern that motivated this experiment cannot be evaluated on a flat
-   landscape.
-2. **The Phase 3 exit expectation ("fitness improves over controlled
-   runs") is not met by the current evidence.** What earlier looked like
-   learning was evaluation-geometry artifact + hand-picked calibration
-   constants. This is the strongest argument yet for the recommended
-   dynamics changes (live metabolic cost, achievable food acquisition,
-   computed exploration) before any of the Phase 3/5 conclusions - positive
-   or negative - are treated as final.
+**The GA improves fitness by +0.28 to +0.50 mean over 12
+generations** - a 7-9x stronger learning signal than the 12 px
+regime managed (+0.033-0.044) and far above the 5 px regime's flat
+zero. Every method starts at 0.489 (random controllers) and ends
+with well-fed populations; even mutation-only climbs +0.28, so most
+of the gain is selection+culling rather than recombination. The
+Phase 3 exit expectation is comfortably cleared.
 
 ## Recommendations
 
-Same as `docs/generalization_results.md` and
-`docs/experiment_d_results.md`: make the fitness components live, then
-rerun all three experiments (E included) through the same paired
-pipelines. The infrastructure now exists end-to-end and is cheap to
-re-execute.
-
-**Status update (Phase 6):** the consumption radius was raised from
-5 px to 12 px and `configs/calibration.json` was regenerated (ecosystem
-stability required it; see `docs/coevolution_notes.md`). The numbers in
-this document were measured at 5 px against the previous calibration -
-internally valid comparisons, but a rerun must not be compared against
-them directly.
+- The blend-vs-uniform question is closed at this scale: they are
+  equivalent here. Further method work should target *whether*
+  crossover helps (vs mutation-only, +0.08, r up to +0.49), which is
+  sized for n = 20-30.
+- The metabolic cost (0.7/step) is a load-bearing experimental
+  parameter, not a tuning leftover: it sets how much of each episode
+  is spent surviving versus foraging. Treat it as a factor to sweep
+  (0.4 / 0.7 / 1.0) in a follow-up, since the whole result family
+  moves with it.

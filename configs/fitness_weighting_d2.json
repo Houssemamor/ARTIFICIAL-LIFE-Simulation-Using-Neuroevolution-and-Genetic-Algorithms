@@ -14,7 +14,8 @@
       "height": 700,
       "food_count": 20,
       "obstacle_count": 10,
-      "layout_seed": 101
+      "layout_seed": 101,
+      "food_regrowth_per_step": 0.3
     },
     "population": {
       "size": 40,
@@ -48,6 +49,9 @@
       "exploration": 0.1,
       "collision": 0.1
     },
-    "experiment_name": "experiment_d_d2"
+    "experiment_name": "experiment_d_d2",
+    "energy": {
+      "metabolic_base_cost": 0.7
+    }
   }
 }

@@ -116,6 +116,26 @@ class ReproductionConfig(BaseModel):
     reproduction_cost: float = Field(50.0, ge=0)
 
 
+class EnergySettings(BaseModel):
+    """
+    Per-config energy-equation overrides (Phase 9).
+
+    Every field defaults to None, meaning "use the default in
+    agents.energy.DEFAULT_ENERGY_CONFIG". Overriding only
+    metabolic_base_cost is how the energy-limited experiment dynamics
+    are selected without duplicating the whole EnergyConfig dataclass
+    or changing legacy configs.
+    """
+    metabolic_base_cost: Optional[float] = Field(None, gt=0)
+    k_accel: Optional[float] = Field(None, gt=0)
+    k_steer: Optional[float] = Field(None, gt=0)
+    eaten_energy_value: Optional[float] = Field(None, gt=0)
+    collision_penalty: Optional[float] = Field(None, ge=0)
+    death_energy_threshold: Optional[float] = None
+    death_health_threshold: Optional[float] = None
+    max_energy: Optional[float] = Field(None, gt=0)
+
+
 class NeatConfig(BaseModel):
     """
     NEAT topology-evolution parameters (Phase 7, Appendix C).
@@ -177,6 +197,16 @@ class BaselineConfig(BaseModel):
     reproduction: Optional[ReproductionConfig] = None
     # Phase 7 NEAT extension; None = fixed-topology evolution
     neat: Optional[NeatConfig] = None
+    # Energy-equation overrides; None keeps agents.energy defaults
+    # (the legacy demo dynamics). Experiment configs set
+    # metabolic_base_cost to make survival energy-limited.
+    energy: Optional[EnergySettings] = None
+    # Dashboard tier (PLAN.md Section 12). The MVP tier never renders
+    # Phase 6/7-only metrics (predator/prey, hall-of-fame, species);
+    # the advanced tier does. Selected by config, not by a dashboard
+    # hiding fields, so the MVP build cannot display a metric that does
+    # not exist yet.
+    phase_tier: str = Field("mvp", pattern="^(mvp|advanced)$")
 
     @validator('fitness_weights')
     def weights_sum_to_one(cls, v):

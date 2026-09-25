@@ -14,7 +14,7 @@
     "food_count": 30,
     "obstacle_count": 10,
     "layout_seed": 42,
-    "food_regrowth_per_step": 0.0
+    "food_regrowth_per_step": 0.3
   },
   "population": {
     "size": 100,
@@ -65,5 +65,9 @@
     "n_outputs": 3,
     "initial_weight_min": -1.0,
     "initial_weight_max": 1.0
+  },
+  "phase_tier": "advanced",
+  "energy": {
+    "metabolic_base_cost": 0.7
   }
 }

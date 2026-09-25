@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from agents.organism import Organism
-from agents.energy import DEFAULT_ENERGY_CONFIG
+from agents.energy import EnergyConfig, energy_config_from_settings
 from evolution.genetic_algorithm import run_generation
 from neural.genome import genome_size
 from simulation.world_config import BaselineConfig
@@ -100,9 +100,11 @@ def make_population(config: BaselineConfig, run_seed: int) -> List[Organism]:
     """
     np.random.seed(run_seed)
     positions = _spawn_positions(config, config.population.size)
+    energy_config = energy_config_from_settings(config.energy)
     population = []
     for i, (x, y) in enumerate(positions):
-        agent = Organism(i, x, y, initial_energy=100.0)
+        agent = Organism(i, x, y, initial_energy=100.0,
+                         energy_config=energy_config)
         agent.initialize_genome(genome_size=genome_size())
         population.append(agent)
     return population
@@ -113,13 +115,16 @@ def make_clone_population(config: BaselineConfig, genome: np.ndarray,
     """Create a population of identical-genome agents for frozen evaluation."""
     np.random.seed(run_seed)
     positions = _spawn_positions(config, config.population.size)
-    return [_clone_agent(i, x, y, genome)
+    energy_config = energy_config_from_settings(config.energy)
+    return [_clone_agent(i, x, y, genome, energy_config)
             for i, (x, y) in enumerate(positions)]
 
 
 def _clone_agent(agent_id: int, x: float, y: float,
-                 genome: np.ndarray) -> Organism:
-    agent = Organism(agent_id, x, y, initial_energy=100.0)
+                 genome: np.ndarray,
+                 energy_config: Optional[EnergyConfig] = None) -> Organism:
+    agent = Organism(agent_id, x, y, initial_energy=100.0,
+                     energy_config=energy_config)
     agent.genome = genome.copy()
     return agent
 
@@ -160,7 +165,6 @@ def train_best_genome(config: BaselineConfig, run_seed: int,
             generation=gen,
             calibration_scales=calibration_scales,
             fitness_weights=config.fitness_weights,
-            energy_config=DEFAULT_ENERGY_CONFIG,
             rng=rng,
         )
         history.append(vars(metrics))
@@ -195,7 +199,6 @@ def evaluate_genome(config: BaselineConfig, genome: np.ndarray,
         generation=0,
         calibration_scales=calibration_scales,
         fitness_weights=BALANCED_WEIGHTS,
-        energy_config=DEFAULT_ENERGY_CONFIG,
         rng=np.random.default_rng(run_seed),
     )
     return {

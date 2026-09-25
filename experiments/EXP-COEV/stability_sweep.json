@@ -1,0 +1,97 @@
+{
+  "days": 10,
+  "n_seeds": 10,
+  "collapsed": 7,
+  "per_seed": [
+    {
+      "seed": 1,
+      "min_prey_alive": 2,
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 27,
+      "predator_alive_end": 0
+    },
+    {
+      "seed": 2,
+      "min_prey_alive": 3,
+      "min_predator_alive": 1,
+      "full_horizon": true,
+      "no_extinction": true,
+      "prey_alive_end": 11,
+      "predator_alive_end": 1
+    },
+    {
+      "seed": 3,
+      "min_prey_alive": 0,
+      "min_predator_alive": 3,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 0,
+      "predator_alive_end": 5
+    },
+    {
+      "seed": 4,
+      "min_prey_alive": 13,
+      "min_predator_alive": 3,
+      "full_horizon": true,
+      "no_extinction": true,
+      "prey_alive_end": 13,
+      "predator_alive_end": 6
+    },
+    {
+      "seed": 5,
+      "min_prey_alive": 2,
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 2,
+      "predator_alive_end": 0
+    },
+    {
+      "seed": 6,
+      "min_prey_alive": 19,
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 23,
+      "predator_alive_end": 0
+    },
+    {
+      "seed": 7,
+      "min_prey_alive": 18,
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 20,
+      "predator_alive_end": 0
+    },
+    {
+      "seed": 8,
+      "min_prey_alive": 16,
+      "min_predator_alive": 1,
+      "full_horizon": true,
+      "no_extinction": true,
+      "prey_alive_end": 40,
+      "predator_alive_end": 1
+    },
+    {
+      "seed": 9,
+      "min_prey_alive": 21,
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 25,
+      "predator_alive_end": 0
+    },
+    {
+      "seed": 10,
+      "min_prey_alive": 0,
+      "min_predator_alive": 3,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 0,
+      "predator_alive_end": 6
+    }
+  ]
+}

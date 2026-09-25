@@ -25,12 +25,17 @@ from simulation.determinism import DeterminismConfig, set_deterministic_seeds
 from simulation.environment import World
 from simulation.engine import step_simulation, resolve_captures
 from agents.organism import Organism
+from agents.energy import energy_config_from_settings
 from agents.sensors import RayCaster
 from neural.genome import genome_size
 from visualization.renderer import Renderer
 from visualization.dashboard_advanced import (format_ecosystem_lines,
-                                              format_hof_lines, draw_panel)
+                                              format_hof_lines, draw_panel,
+                                              format_mvp_lines, live_agent_count)
 from evolution.reproduction import reproduction_pass
+from visualization.control_bar import draw_control_bar
+from visualization.best_agent_inspector import (draw_sensor_overlay,
+                                                 draw_inspector)
 
 
 def step_placeholder(world, agents, dt: float = 1.0) -> int:
@@ -120,18 +125,32 @@ def main():
     predation = config.predation
     predator_count = predation.predator_count if predation else 0
     population_size = config.population.size
-    agents: List[Organism] = []
-    for i in range(population_size + predator_count):
-        x = np.random.uniform(world.boundary_margin, world.width - world.boundary_margin)
-        y = np.random.uniform(world.boundary_margin, world.height - world.boundary_margin)
-        role = 'predator' if i < predator_count else 'prey'
-        agent = Organism(i, x, y, initial_energy=100.0, role=role)
-        if args.agent_mode == 'neural':
-            agent.initialize_genome(genome_size=genome_size())
-        else:
-            # Placeholder agents don't need a genome
-            agent.genome = np.zeros(genome_size(), dtype=np.float32)
-        agents.append(agent)
+    energy_config = energy_config_from_settings(config.energy)
+
+    def build_agents() -> List[Organism]:
+        """Fresh population from the active config (initial spawn and Reset)."""
+        built: List[Organism] = []
+        for i in range(population_size + predator_count):
+            x = np.random.uniform(world.boundary_margin,
+                                  world.width - world.boundary_margin)
+            y = np.random.uniform(world.boundary_margin,
+                                  world.height - world.boundary_margin)
+            role = 'predator' if i < predator_count else 'prey'
+            agent = Organism(i, x, y, initial_energy=100.0, role=role,
+                             energy_config=energy_config)
+            if args.agent_mode == 'neural':
+                agent.initialize_genome(genome_size=genome_size())
+            else:
+                # Placeholder agents don't need a genome
+                agent.genome = np.zeros(genome_size(), dtype=np.float32)
+            built.append(agent)
+        return built
+
+    agents: List[Organism] = build_agents()
+    # Spawn positions for the live exploration component (displacement
+    # from where an agent entered the world)
+    spawn_positions = {agent.id: (agent.position.x, agent.position.y)
+                       for agent in agents}
 
     # Phase 6 ecosystem state: reproduction and capture bookkeeping for
     # the live dashboard panel
@@ -140,6 +159,7 @@ def main():
     capture_total = 0
     birth_total = 0
     show_panel = False
+    selected_agent_id = None
 
     # Hall-of-fame panel data: the latest co-evolution run's frozen-
     # opponent evaluations, if one exists on disk
@@ -197,6 +217,60 @@ def main():
             renderer.panel_toggled = False
             show_panel = not show_panel
 
+        # Control bar actions (Pause/x1/x10/Save/Reset)
+        if renderer.control_action is not None:
+            action = renderer.control_action
+            renderer.control_action = None
+            if action == 'pause':
+                simulation_paused = not simulation_paused
+            elif action == 'x1':
+                simulation_speed = 1.0
+            elif action == 'x10':
+                simulation_speed = 10.0
+            elif action == 'save' and agents:
+                from neural.checkpoint import save_checkpoint
+                best = max(agents, key=lambda a: a.fitness)
+                checkpoint_path = Path('experiments/EXP-GUI/checkpoint.npz')
+                checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+                save_checkpoint(str(checkpoint_path), best.genome,
+                               metadata={'agent_id': best.id,
+                                         'fitness': best.fitness,
+                                         'role': best.role})
+                print(f"Saved checkpoint of agent {best.id} "
+                      f"(fitness {best.fitness:.3f}) to {checkpoint_path}")
+            elif action == 'reset':
+                # Reload the world as well as the agents: a reset into a
+                # consumed world (baseline has no regrowth) would start
+                # the new population with no food at all.
+                world.load_from_config(config.model_dump())
+                agents = build_agents()
+                spawn_positions = {agent.id: (agent.position.x,
+                                              agent.position.y)
+                                   for agent in agents}
+                next_agent_id = len(agents)
+                capture_total = 0
+                birth_total = 0
+                physics_step_count = 0
+                physics_accumulator = 0.0
+                selected_agent_id = None
+                print("Population reset from config")
+
+        # World click: select the nearest live agent within 12 px
+        if renderer.world_click is not None:
+            click_x, click_y = renderer.world_click
+            renderer.world_click = None
+            nearest = None
+            nearest_distance = 12.0
+            for agent in agents:
+                if not agent.is_alive:
+                    continue
+                distance = float(np.hypot(agent.position.x - click_x,
+                                          agent.position.y - click_y))
+                if distance <= nearest_distance:
+                    nearest = agent
+                    nearest_distance = distance
+            selected_agent_id = nearest.id if nearest is not None else None
+
         if not simulation_paused:
             physics_accumulator += elapsed * simulation_speed
 
@@ -217,13 +291,22 @@ def main():
                                 # ecosystem mode) so the reproduction
                                 # gate sees real achievement
                                 for agent in agents:
+                                    spawn_x, spawn_y = spawn_positions.get(
+                                        agent.id, (agent.position.x,
+                                                   agent.position.y))
+                                    exploration = float(np.hypot(
+                                        agent.position.x - spawn_x,
+                                        agent.position.y - spawn_y))
                                     agent.fitness = compute_fitness(
                                         agent, agent.age, agent.food_eaten,
-                                        0.0, agent.collisions,
+                                        exploration, agent.collisions,
                                         calibration_scales,
                                         config.fitness_weights)
                             newborns, next_agent_id = reproduction_pass(
                                 agents, world, repro, next_agent_id)
+                            for newborn in newborns:
+                                spawn_positions[newborn.id] = (
+                                    newborn.position.x, newborn.position.y)
                             agents.extend(newborns)
                             birth_total += len(newborns)
                 else:
@@ -231,15 +314,45 @@ def main():
                 physics_accumulator -= physics_dt
 
         renderer.draw_world(world, agents)
+
+        # Sensor overlay for the selected agent, then the inspector
+        selected = next((a for a in agents
+                         if a.id == selected_agent_id and a.is_alive), None)
+        if selected is not None:
+            draw_sensor_overlay(renderer.screen, selected)
+
         if show_panel:
-            prey_alive = sum(1 for a in agents if a.is_alive and a.role == 'prey')
-            predator_alive = sum(1 for a in agents
-                                 if a.is_alive and a.role == 'predator')
-            draw_panel(renderer,
-                       format_ecosystem_lines(prey_alive, predator_alive,
-                                              capture_total, birth_total,
-                                              len(agents)) +
-                       format_hof_lines(hof_evaluations))
+            if config.phase_tier == 'advanced':
+                prey_alive = sum(1 for a in agents
+                                 if a.is_alive and a.role == 'prey')
+                predator_alive = sum(1 for a in agents
+                                     if a.is_alive and a.role == 'predator')
+                draw_panel(renderer,
+                           format_ecosystem_lines(prey_alive, predator_alive,
+                                                  capture_total, birth_total,
+                                                  len(agents)) +
+                           format_hof_lines(hof_evaluations))
+            else:
+                # MVP tier: Phase 6/7-only metrics are never rendered
+                # (PLAN.md Section 12 - the two variants are selected by
+                # config, not by one dashboard hiding fields)
+                draw_panel(renderer,
+                           format_mvp_lines(live_agent_count(agents)))
+
+        draw_control_bar(renderer.screen, renderer.font, {
+            'pause': 'Resume' if simulation_paused else 'Pause',
+            'x1': 'x1' + ('*' if simulation_speed == 1.0 else ''),
+            'x10': 'x10' + ('*' if simulation_speed == 10.0 else ''),
+        })
+
+        if selected is not None:
+            draw_inspector(renderer.screen, renderer.font, selected,
+                           last_action=[selected.last_steering,
+                                        selected.last_acceleration,
+                                        selected.last_eat_signal])
+        # Present only after every overlay is drawn; an earlier flip
+        # would be erased by the next frame's background fill.
+        pygame.display.flip()
         renderer.clock.tick(60)
 
     renderer.quit()

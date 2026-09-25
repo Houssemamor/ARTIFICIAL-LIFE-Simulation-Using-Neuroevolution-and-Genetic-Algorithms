@@ -20,7 +20,7 @@ tests/unit/test_energy_balance.py.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional
 
 
@@ -43,6 +43,28 @@ class EnergyConfig:
 
 
 DEFAULT_ENERGY_CONFIG = EnergyConfig()
+
+
+def energy_config_from_settings(settings) -> EnergyConfig:
+    """
+    Build an EnergyConfig from a config's optional energy overrides.
+
+    None means "keep the default", so a config that only sets
+    metabolic_base_cost gets exactly that change and nothing else.
+
+    Args:
+        settings: An EnergySettings model (or None).
+
+    Returns:
+        The resolved EnergyConfig.
+    """
+    if settings is None:
+        return DEFAULT_ENERGY_CONFIG
+    # exclude_none keeps the "None means keep the default" contract in
+    # one expression; model_dump avoids the deprecated instance access
+    # of model_fields.
+    overrides = settings.model_dump(exclude_none=True)
+    return replace(DEFAULT_ENERGY_CONFIG, **overrides)
 
 
 def update_energy(

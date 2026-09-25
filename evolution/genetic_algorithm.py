@@ -13,7 +13,7 @@ import torch
 
 from agents.organism import Organism
 from agents.sensors import RayCaster
-from agents.energy import EnergyConfig, DEFAULT_ENERGY_CONFIG
+from agents.energy import EnergyConfig, energy_config_from_settings
 from neural.batched_inference import batched_forward, stack_population_weights
 from simulation.environment import World
 from simulation.engine import resolve_collisions, step_simulation, resolve_captures
@@ -193,7 +193,7 @@ def run_generation(
         rng = np.random.default_rng()
 
     if energy_config is None:
-        energy_config = DEFAULT_ENERGY_CONFIG
+        energy_config = energy_config_from_settings(config.energy)
 
     # Layout seed: fixed food/obstacle placement for this generation's
     # world so evaluation conditions are identical across the population
@@ -210,11 +210,10 @@ def run_generation(
 
     # Tracking for fitness computation
     food_eaten = np.zeros(population_size, dtype=int)
-    # ponytail: exploration_distance is never written below, so the
-    # 'exploration' fitness weight is dead (always normalizes 0). Wire it
-    # up (distance from per-agent spawn position) when the dynamics make
-    # the exploration component live; see docs/generalization_results.md.
-    exploration_distance = np.zeros(population_size, dtype=float)
+    # Exploration = final displacement from the agent's own spawn
+    # position (the units configs/calibration.json measures)
+    spawn_positions = {agent.id: (agent.position.x, agent.position.y)
+                       for agent in population}
     collisions_total = np.zeros(population_size, dtype=int)
 
     # Evaluation phase
@@ -247,6 +246,11 @@ def run_generation(
             collisions_total[agent.id] += agent.collisions
             agent.collisions = 0
 
+        # Food regrowth keeps the energy-limited landscape replenished;
+        # step_simulation() does this for GUI/ecosystem paths, but the
+        # hand-rolled evaluation loop here owns its own stepping.
+        world.regrow_food(getattr(world, 'food_regrowth_per_step', 0.0))
+
         for agent in population:
             agent.update_energy(energy_config)
             agent.increment_age()
@@ -256,12 +260,15 @@ def run_generation(
     # skipping them gave every death an identical fitness of 0, erasing the
     # difference between dying at step 1 and step evaluation_steps-1.
     fitnesses = np.zeros(population_size, dtype=float)
+    exploration_distance = np.zeros(population_size, dtype=float)
     for agent in population:
         agent_id = agent.id
         steps = agent.age
         food = food_eaten[agent_id]
-        expl = (exploration_distance[agent_id]
-                if agent_id < len(exploration_distance) else 0.0)
+        spawn_x, spawn_y = spawn_positions[agent_id]
+        expl = float(np.hypot(agent.position.x - spawn_x,
+                              agent.position.y - spawn_y))
+        exploration_distance[agent_id] = expl
         cols = collisions_total[agent_id]
         fitnesses[agent_id] = compute_fitness(
             agent, steps, food, expl, cols, calibration_scales, fitness_weights
@@ -281,7 +288,8 @@ def run_generation(
         y = rng.uniform(
             world.boundary_margin, world.height - world.boundary_margin
         )
-        agent = Organism(i, x, y, initial_energy=100.0)
+        agent = Organism(i, x, y, initial_energy=100.0,
+                         energy_config=energy_config)
         agent.genome = next_genomes[i]
         new_population.append(agent)
 
@@ -316,7 +324,9 @@ class CoevolutionMetrics:
 
 def _spawn_role_agents(genomes: List[np.ndarray], world: World, role: str,
                        start_id: int,
-                       rng: np.random.Generator) -> tuple[list, int]:
+                       rng: np.random.Generator,
+                       energy_config: Optional[EnergyConfig] = None
+                       ) -> tuple[list, int]:
     """
     Build fresh evaluation agents for one role, one per genome, at
     uniformly random in-bounds positions (the fix from the Phase 5
@@ -329,7 +339,8 @@ def _spawn_role_agents(genomes: List[np.ndarray], world: World, role: str,
     for genome in genomes:
         x = rng.uniform(world.boundary_margin, world.width - world.boundary_margin)
         y = rng.uniform(world.boundary_margin, world.height - world.boundary_margin)
-        agent = Organism(next_id, x, y, initial_energy=100.0, role=role)
+        agent = Organism(next_id, x, y, initial_energy=100.0, role=role,
+                         energy_config=energy_config)
         agent.genome = genome.copy()
         spawned.append(agent)
         next_id += 1
@@ -392,11 +403,15 @@ def run_coevolution_generation(
     world.load_from_config(config.model_dump())
     raycaster = RayCaster()
 
+    energy_config = energy_config_from_settings(config.energy)
     prey_agents, next_id = _spawn_role_agents(
-        [a.genome for a in prey], world, 'prey', 0, rng)
+        [a.genome for a in prey], world, 'prey', 0, rng, energy_config)
     predator_agents, _ = _spawn_role_agents(
-        [a.genome for a in predators], world, 'predator', next_id, rng)
+        [a.genome for a in predators], world, 'predator', next_id, rng,
+        energy_config)
     agents = prey_agents + predator_agents
+    spawn_positions = {agent.id: (agent.position.x, agent.position.y)
+                       for agent in agents}
 
     captures_total = 0
     for _ in range(config.evolution.evaluation_steps):
@@ -410,10 +425,14 @@ def run_coevolution_generation(
         )
 
     # Fitness per agent; dead agents keep their pre-death achievements,
-    # matching run_generation's dead-agent scoring policy
+    # matching run_generation's dead-agent scoring policy. Exploration
+    # is the final displacement from the agent's spawn.
     for agent in agents:
+        spawn_x, spawn_y = spawn_positions[agent.id]
+        exploration = float(np.hypot(agent.position.x - spawn_x,
+                                     agent.position.y - spawn_y))
         agent.fitness = compute_fitness(
-            agent, agent.age, agent.food_eaten, 0.0, agent.collisions,
+            agent, agent.age, agent.food_eaten, exploration, agent.collisions,
             calibration_scales, fitness_weights)
 
     prey_fitnesses = np.array([a.fitness for a in prey_agents])
@@ -426,9 +445,9 @@ def run_coevolution_generation(
         [a.genome for a in predator_agents], predator_fitnesses, config, rng)
 
     new_predators, next_id = _spawn_role_agents(
-        new_predator_genomes, world, 'predator', 0, rng)
+        new_predator_genomes, world, 'predator', 0, rng, energy_config)
     new_prey, _ = _spawn_role_agents(
-        new_prey_genomes, world, 'prey', next_id, rng)
+        new_prey_genomes, world, 'prey', next_id, rng, energy_config)
 
     metrics = CoevolutionMetrics(
         generation=generation,

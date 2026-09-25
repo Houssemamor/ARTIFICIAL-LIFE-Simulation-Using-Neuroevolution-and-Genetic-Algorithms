@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neuroevolution Experiment Viewer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Okabe-Ito color-blind-safe palette */
+    :root {
+      --ok-orange: #E69F00; --ok-sky: #56B4E9; --ok-green: #009E73;
+      --ok-vermillion: #D55E00;
+    }
+    body { background: #14141c; color: #e8e8ef; }
+    .card { background: #1d1d28; border-color: #2c2c3a; }
+    .table { color: #e8e8ef; }
+    .table th { color: #b8b8c8; }
+    .sig { color: var(--ok-green); font-weight: 600; }
+    .ns { color: #b8b8c8; }
+    .warn { color: var(--ok-orange); font-weight: 600; }
+    code { color: var(--ok-sky); }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark px-4">
+  <span class="navbar-brand">Neuroevolution Experiment Viewer</span>
+  <span class="text-secondary small">read-only view over experiments/EXP-*</span>
+</nav>
+
+<div class="container-fluid py-4">
+  <ul class="nav nav-tabs mb-3" id="tabs">
+    <li class="nav-item"><a class="nav-link active" data-view="list">Experiments</a></li>
+    <li class="nav-item"><a class="nav-link" data-view="detail">Detail</a></li>
+    <li class="nav-item"><a class="nav-link" data-view="compare">Compare Conditions</a></li>
+  </ul>
+
+  <div id="view-list">
+    <table class="table table-sm table-hover">
+      <thead><tr><th>Run</th><th>Family</th><th>Seeds</th><th>Plots</th><th></th></tr></thead>
+      <tbody id="experiment-rows"></tbody>
+    </table>
+  </div>
+
+  <div id="view-detail" class="d-none">
+    <div class="mb-3">
+      <label class="me-2">Run</label>
+      <select id="detail-run" class="form-select d-inline-block w-auto"></select>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+
+  <div id="view-compare" class="d-none">
+    <div class="mb-3">
+      <label class="me-2">Run</label>
+      <select id="compare-run" class="form-select d-inline-block w-auto"></select>
+    </div>
+    <p class="text-secondary small">Every comparison shows its p-value, effect size and
+      bootstrap interval together - a p-value is never shown alone.</p>
+    <div id="compare-body"></div>
+  </div>
+</div>
+
+<script>
+let runs = [];
+
+async function loadRuns() {
+  const response = await fetch('/experiments');
+  ({experiments: runs} = await response.json());
+  const rows = document.getElementById('experiment-rows');
+  rows.innerHTML = '';
+  for (const run of runs) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><code>${run.id}</code></td><td>${run.family}</td>` +
+      `<td>${run.n_seeds ?? '-'}</td><td>${run.plots.join(', ') || '-'}</td>` +
+      `<td><button class="btn btn-sm btn-outline-light" data-detail="${run.id}">open</button></td>`;
+    rows.appendChild(tr);
+  }
+  for (const select of ['detail-run', 'compare-run']) {
+    const el = document.getElementById(select);
+    el.innerHTML = '';
+    for (const run of runs) {
+      const option = document.createElement('option');
+      option.value = run.id; option.textContent = run.id;
+      el.appendChild(option);
+    }
+  }
+}
+
+async function showDetail(runId) {
+  document.getElementById('detail-body').innerHTML = '<p class="text-secondary">loading…</p>';
+  const [summary, metrics] = await Promise.all([
+    fetch(`/experiments/${runId}/stats_summary`).then(r => r.json()),
+    fetch(`/experiments/${runId}/metrics`).then(r => r.json()),
+  ]);
+  let html = '';
+  const run = runs.find(r => r.id === runId);
+  for (const plot of (run?.plots ?? [])) {
+    html += `<div class="card card-body mb-3"><img src="/experiments/${runId}/plot/${plot}" style="max-width:100%"></div>`;
+  }
+  if (metrics.fitness_curves && Object.keys(metrics.fitness_curves).length) {
+    html += '<h5>Fitness over generations</h5><table class="table table-sm"><thead><tr><th>Method</th><th>Gen 0</th><th>Final</th><th>Change</th></tr></thead><tbody>';
+    for (const [method, curve] of Object.entries(metrics.fitness_curves)) {
+      const first = curve.mean_fitness[0], last = curve.mean_fitness.at(-1);
+      const delta = last - first;
+      const color = delta > 0 ? 'var(--ok-green)' : 'var(--ok-vermillion)';
+      html += `<tr><td>${method}</td><td>${first.toFixed(3)}</td><td>${last.toFixed(3)}</td>` +
+        `<td style="color:${color}">${delta >= 0 ? '+' : ''}${delta.toFixed(3)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  if (summary.per_condition_scores) {
+    html += '<h5>Condition means</h5><table class="table table-sm"><tbody>';
+    for (const [condition, scores] of Object.entries(summary.per_condition_scores)) {
+      const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+      html += `<tr><td>${condition}</td><td>${mean.toFixed(4)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  if (summary.gap_mean !== undefined) {
+    html += `<p class="mb-1">Generalization gap (train - unseen): <b>${summary.gap_mean.toFixed(4)}</b>` +
+      ` &nbsp; CI [${summary.gap_ci95.map(x => x.toFixed(4)).join(', ')}]</p>`;
+  }
+  document.getElementById('detail-body').innerHTML = html || '<p class="text-secondary">no renderable data</p>';
+}
+
+async function showCompare(runId) {
+  const summary = await fetch(`/experiments/${runId}/stats_summary`).then(r => r.json());
+  const comparison = summary.comparison?.pairwise;
+  if (!comparison || !comparison.length) {
+    document.getElementById('compare-body').innerHTML =
+      '<p class="text-secondary">no pairwise comparisons in this run</p>';
+    return;
+  }
+  // The verdict comes from the run's Holm-Bonferroni rejections, never
+  // from the raw p-value: a p<0.05 pair can still fail the correction.
+  const significant = new Set(summary.comparison?.significant_pairs || []);
+  const alpha = summary.comparison?.alpha ?? 0.05;
+  let html = '<table class="table table-sm"><thead><tr><th>Comparison</th><th>Mean diff</th>' +
+    '<th>95% CI</th><th>p (paired)</th><th>Effect size r</th>' +
+    `<th>Verdict (Holm, alpha=${alpha})</th></tr></thead><tbody>`;
+  for (const row of comparison) {
+    const label = `${row.condition_a}_vs_${row.condition_b}`;
+    const ci = (row.diff_ci95 || []).map(x => x.toFixed(3)).join(', ');
+    let verdict, cls;
+    if (significant.has(label)) {
+      verdict = 'significant';
+      cls = 'sig';
+    } else if (row.p_value < alpha) {
+      verdict = 'raw p < alpha, not significant after Holm';
+      cls = 'warn';
+    } else {
+      verdict = 'not significant; effect shown for context only';
+      cls = 'ns';
+    }
+    html += `<tr><td>${row.condition_a} vs ${row.condition_b}</td>` +
+      `<td>${(row.mean_diff ?? 0).toFixed(4)}</td>` +
+      `<td>[${ci}]</td>` +
+      `<td>${row.p_value.toFixed(4)}</td>` +
+      `<td>${(row.matched_pairs_rank_biserial ?? 0).toFixed(3)}</td>` +
+      `<td class="${cls}">${verdict}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += '<p class="text-secondary small">Effect size r is the matched-pairs rank-biserial; ' +
+    'CI is the percentile bootstrap interval of the paired mean difference. ' +
+    'Verdicts are the run\'s Holm-Bonferroni rejections.</p>';
+  document.getElementById('compare-body').innerHTML = html;
+}
+
+document.querySelectorAll('#tabs .nav-link').forEach(link => {
+  link.addEventListener('click', event => {
+    event.preventDefault();
+    document.querySelectorAll('#tabs .nav-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    const view = link.dataset.view;
+    for (const name of ['list', 'detail', 'compare']) {
+      document.getElementById(`view-${name}`).classList.toggle('d-none', name !== view);
+    }
+    if (view === 'detail') showDetail(document.getElementById('detail-run').value);
+    if (view === 'compare') showCompare(document.getElementById('compare-run').value);
+  });
+});
+
+document.addEventListener('click', event => {
+  const runId = event.target.dataset?.detail;
+  if (runId) {
+    document.getElementById('detail-run').value = runId;
+    document.querySelector('#tabs .nav-link[data-view="detail"]').click();
+  }
+});
+
+for (const select of ['detail-run', 'compare-run']) {
+  document.getElementById(select).addEventListener('change', event => {
+    if (select === 'detail-run') showDetail(event.target.value);
+    else showCompare(event.target.value);
+  });
+}
+
+loadRuns();
+</script>
+</body>
+</html>

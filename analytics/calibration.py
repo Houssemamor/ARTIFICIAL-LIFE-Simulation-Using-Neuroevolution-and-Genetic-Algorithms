@@ -16,7 +16,7 @@ import torch
 
 from agents.organism import Organism
 from agents.sensors import RayCaster
-from agents.energy import EnergyConfig, DEFAULT_ENERGY_CONFIG
+from agents.energy import EnergyConfig, energy_config_from_settings
 from neural.batched_inference import batched_forward, stack_population_weights
 from neural.genome import genome_size
 from simulation.environment import World
@@ -63,7 +63,7 @@ def run_calibration_episode(
         Tuple of (survival_time, food_eaten, exploration, collisions).
     """
     if energy_config is None:
-        energy_config = DEFAULT_ENERGY_CONFIG
+        energy_config = energy_config_from_settings(config.energy)
 
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -76,7 +76,8 @@ def run_calibration_episode(
     for i in range(population_size):
         x = np.random.uniform(world.boundary_margin, world.width - world.boundary_margin)
         y = np.random.uniform(world.boundary_margin, world.height - world.boundary_margin)
-        agent = Organism(i, x, y, initial_energy=100.0)
+        agent = Organism(i, x, y, initial_energy=100.0,
+                         energy_config=energy_config)
         agent.initialize_genome(genome_size=genome_size())
         agents.append(agent)
 
@@ -120,6 +121,10 @@ def run_calibration_episode(
         for agent in agents:
             agent.update_energy()
             agent.increment_age()
+
+        # This loop steps the world itself, so it owns regrowth the
+        # way the other evaluation paths get it from step_simulation().
+        world.regrow_food(getattr(world, 'food_regrowth_per_step', 0.0))
 
         live_agents = [a for a in agents if a.is_alive]
 

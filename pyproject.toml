@@ -33,6 +33,8 @@ dependencies = [
     "pydantic-settings==2.14.2",
     "pydantic-core==2.41.5",
     "scipy==1.18.1",
+    "fastapi==0.141.1",
+    "uvicorn[standard]==0.53.0",
 ]
 
 [project.urls]
@@ -60,7 +62,12 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "agents*", "analytics*", "evolution*", "experiments*", "neural*", "simulation*", "visualization*"]
+include = ["app*", "agents*", "analytics*", "evolution*", "experiments*", "neural*", "simulation*", "visualization*", "webdash*"]
+
+[tool.setuptools.package-data]
+# The dashboard's index.html must ship inside the wheel: StaticFiles
+# mounts it from the package directory, not from the source checkout.
+webdash = ["frontend/*.html"]
 
 [tool.black]
 line-length = 100

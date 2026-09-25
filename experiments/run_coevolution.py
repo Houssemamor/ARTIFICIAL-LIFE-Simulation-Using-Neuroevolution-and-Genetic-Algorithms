@@ -23,7 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -32,6 +32,7 @@ from simulation.environment import World
 from simulation.engine import step_simulation, resolve_captures
 from simulation.world_config import load_config, BaselineConfig, ReproductionConfig
 from agents.organism import Organism
+from agents.energy import energy_config_from_settings
 from agents.sensors import RayCaster
 from neural.genome import genome_size
 from evolution.reproduction import reproduction_pass
@@ -77,14 +78,16 @@ def make_mixed_population(config: BaselineConfig, world: World,
     size = genome_size()
     positions = _spawn_positions(
         world, config.population.size + config.predation.predator_count, rng)
+    energy_config = energy_config_from_settings(config.energy)
     agents: List[Organism] = []
     for i in range(config.population.size):
-        agent = Organism(i, *positions[i], role='prey')
+        agent = Organism(i, *positions[i], role='prey',
+                         energy_config=energy_config)
         agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
         agents.append(agent)
     for j in range(config.predation.predator_count):
         agent = Organism(len(agents), *positions[config.population.size + j],
-                         role='predator')
+                         role='predator', energy_config=energy_config)
         agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
         agents.append(agent)
     return agents
@@ -126,6 +129,10 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
     agents = make_mixed_population(config, world, rng)
     raycaster = RayCaster()
     next_id = len(agents)
+    # Exploration = displacement from spawn, tracked per agent across the
+    # whole run (an agent's spawn is its original position)
+    spawn_positions = {agent.id: (agent.position.x, agent.position.y)
+                       for agent in agents}
     # Reproduction eligibility gates on agent.fitness, which the GA
     # normally sets at generation end. Ecosystem mode has no GA, so
     # fitness is recomputed at every day boundary from the same
@@ -148,15 +155,24 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
             )
             newborns, next_id = reproduction_pass(
                 agents, world, repro, next_id, rng)
+            # A newborn's spawn position is its birth site: without this
+            # its exploration stays 0 for life, biasing both fitness and
+            # the reproduction gate toward sedentary newborns.
+            for newborn in newborns:
+                spawn_positions[newborn.id] = (newborn.position.x,
+                                               newborn.position.y)
             agents.extend(newborns)
             births_day += len(newborns)
 
         # Day boundary: refresh fitness so the reproduction gate sees
         # real achievement, then record the day's counts
         for agent in agents:
+            spawn_x, spawn_y = spawn_positions[agent.id]
+            exploration = float(np.hypot(agent.position.x - spawn_x,
+                                         agent.position.y - spawn_y))
             agent.fitness = compute_fitness(
-                agent, agent.age, agent.food_eaten, 0.0, agent.collisions,
-                calibration_scales, config.fitness_weights)
+                agent, agent.age, agent.food_eaten, exploration,
+                agent.collisions, calibration_scales, config.fitness_weights)
 
         prey_alive = sum(1 for a in agents if a.is_alive and a.role == 'prey')
         predator_alive = sum(1 for a in agents
@@ -277,13 +293,52 @@ def run_coevolution(config: BaselineConfig, seed: int = 1) -> dict:
     }
 
 
+def run_stability_sweep(config: BaselineConfig, seeds: List[int],
+                        days: int = 10) -> Dict:
+    """
+    Run the ecosystem stability harness across seeds; writes
+    experiments/EXP-COEV/stability_sweep.json (see coevolution_notes).
+    """
+    per_seed: List[Dict] = []
+    for seed in seeds:
+        day_rows = run_ecosystem_days(config, days=days, seed=seed)
+        min_prey = min((row["prey_alive"] for row in day_rows), default=0)
+        min_predators = min((row["predator_alive"] for row in day_rows),
+                            default=0)
+        full_horizon = len(day_rows) == days
+        survived = full_horizon and min_prey > 0 and min_predators > 0
+        per_seed.append({
+            "seed": seed,
+            "min_prey_alive": min_prey,
+            "min_predator_alive": min_predators,
+            "full_horizon": full_horizon,
+            "no_extinction": survived,
+            "prey_alive_end": day_rows[-1]["prey_alive"] if day_rows else 0,
+            "predator_alive_end": (day_rows[-1]["predator_alive"]
+                                   if day_rows else 0),
+        })
+        print(f"seed {seed}: days={len(day_rows)} "
+              f"min=({min_prey},{min_predators}) "
+              f"{'PASS' if survived else 'FAIL'}")
+    return {
+        "days": days,
+        "n_seeds": len(seeds),
+        "collapsed": sum(1 for row in per_seed if not row["no_extinction"]),
+        "per_seed": per_seed,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Phase 6 co-evolution / ecosystem driver")
     parser.add_argument('--config', type=str, required=True)
-    parser.add_argument('--mode', type=str, choices=['coevolution', 'ecosystem'],
+    parser.add_argument('--mode', type=str,
+                        choices=['coevolution', 'ecosystem', 'stability-sweep'],
                         default='coevolution')
     parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--seeds', type=int, default=10,
+                        help='stability-sweep: number of consecutive seeds '
+                             'starting at --seed')
     parser.add_argument('--days', type=int, default=10,
                         help='ecosystem mode: consecutive days to run')
     args = parser.parse_args()
@@ -291,7 +346,15 @@ def main():
     config = load_config(args.config)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    if args.mode == 'ecosystem':
+    if args.mode == 'stability-sweep':
+        seeds = list(range(args.seed, args.seed + args.seeds))
+        summary = run_stability_sweep(config, seeds, days=args.days)
+        out = OUTPUT_DIR / "stability_sweep.json"
+        with open(out, 'w') as f:
+            json.dump(summary, f, indent=2)
+        print(f"Stability sweep: {summary['collapsed']} of "
+              f"{summary['n_seeds']} seeds collapse -> {out}")
+    elif args.mode == 'ecosystem':
         stats = run_ecosystem_days(config, args.days, seed=args.seed)
         out = OUTPUT_DIR / "ecosystem_summary.json"
         with open(out, 'w') as f:

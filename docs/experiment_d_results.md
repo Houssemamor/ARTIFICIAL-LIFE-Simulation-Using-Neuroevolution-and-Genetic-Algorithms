@@ -5,11 +5,12 @@ controllers evolve? Four conditions (D1-D4) were trained and their frozen
 best genomes compared on one common balanced metric.
 
 **Status:** confirmatory run complete (10 seeds per condition). No
-significant differences. An earlier exploratory analysis suggested an
-ordering trend (survival > resource > exploration > equal); the paired
-analysis below shows that trend was an artifact of unpaired testing and
-non-uniform spawn positions, and it disappears under the corrected
-method.
+significant differences; the point estimates favor the equal-weight
+baseline over every specialized weighting. An earlier exploratory
+analysis suggested an ordering trend (survival > resource >
+exploration > equal); the paired analysis below shows that trend was
+an artifact of unpaired testing and non-uniform spawn positions, and
+it disappears under the corrected method.
 
 ## Method
 
@@ -39,77 +40,76 @@ Raw results: `experiments/EXP-D/stats_summary.json`
 
 ## Results
 
+**Final run (Phase 9 corrected dynamics).** `metabolic_base_cost`
+0.7/step, food regrowth 0.3/step, live exploration component,
+re-measured calibration. A code review found the re-run's first
+iteration invalid: the hand-rolled solo evaluation loop never called
+`world.regrow_food()`, so the configured regrowth was inert and the
+numbers below (collected after that fix) are the real dynamics.
+Newborn energy inheritance and newborn exploration tracking were
+fixed in the same pass.
+
 ### Condition scores (balanced evaluation, 10 seeds)
 
-| Condition | Mean | 95% bootstrap CI |
-|-----------|------|------------------|
-| D1 equal | 0.3081 | [0.270, 0.343] |
-| D2 resource-weighted | 0.3287 | [0.283, 0.365] |
-| D3 exploration-weighted | 0.3358 | [0.285, 0.385] |
-| D4 survival-weighted | 0.3500 | [0.322, 0.375] |
+| Condition | Mean |
+|-----------|------|
+| D1 equal | 0.9532 |
+| D2 resource-weighted | 0.8825 |
+| D3 exploration-weighted | 0.8827 |
+| D4 survival-weighted | 0.8367 |
 
 ### Pairwise comparisons (paired Wilcoxon + Holm-Bonferroni)
 
-| Comparison | Mean diff | p-value | Matched-pairs r | Significant (Holm, a=0.05) |
-|------------|-----------|---------|-----------------|----------------------------|
-| equal vs resource-weighted | -0.021 | 0.625 | -0.200 | No |
-| equal vs exploration-weighted | -0.028 | 0.232 | -0.455 | No |
-| equal vs survival-weighted | -0.042 | 0.131 | -0.564 | No |
-| resource vs exploration-weighted | -0.007 | 0.770 | -0.127 | No |
-| resource vs survival-weighted | -0.021 | 0.557 | -0.236 | No |
-| exploration vs survival-weighted | -0.014 | 0.193 | -0.491 | No |
+| Comparison | Mean diff | p-value | Matched-pairs r | 95% CI | Significant (Holm, a=0.05) |
+|------------|-----------|---------|-----------------|--------|----------------------------|
+| equal vs survival-weighted | +0.1164 | 0.557 | +0.236 | [-0.116, +0.346] | No |
+| equal vs resource-weighted | +0.0707 | 0.557 | +0.236 | [-0.122, +0.259] | No |
+| equal vs exploration-weighted | +0.0705 | 0.375 | +0.345 | [-0.063, +0.199] | No |
+| exploration vs survival-weighted | +0.0460 | 0.557 | +0.236 | [-0.196, +0.281] | No |
+| resource vs survival-weighted | +0.0457 | 0.695 | +0.164 | [-0.132, +0.218] | No |
+| resource vs exploration-weighted | -0.0002 | 1.000 | -0.018 | [-0.188, +0.174] | No |
 
-**No pair is significant.** The closest comparison (equal vs
-survival-weighted, p = 0.131, r = -0.564) has a medium point effect size
-but does not survive correction at n = 10.
+**No pair survives Holm correction, and the ordering points the
+other way from the buggy-regrowth iteration: equal weighting is
+best (+0.07 to +0.12 over every specialized weighting).** The
+resource/exploration conditions are indistinguishable from each
+other (diff -0.0002, r = -0.02). Under a food-replenished landscape,
+down-weighting food (the survival condition) is the most costly
+choice, which inverts the artifact run where survival-weighted led by
+0.10-0.12 (that ordering was produced by the inert regrowth bug; it is
+withdrawn).
 
-Note on scales: this revision normalizes against the **measured**
-calibration scales (`configs/calibration.json`) rather than the
-hand-picked constants of the first confirmatory pass. The condition
-ordering also differs from that pass (survival > exploration > resource
-> equal here) - under a degenerate landscape the ordering is noise, which
-is itself informative.
+Note on scales: scores normalize against the **measured** calibration
+scales (`configs/calibration.json`), re-measured under these dynamics
+(survival 133.94, food 1.0, exploration 77.76, collision 1.20).
 
 ## Interpretation
 
-**Fitness weighting does not change which controllers evolve under the
-current dynamics.** The four conditions produce statistically
-indistinguishable genomes on the balanced metric.
+**With replenished food, equal weighting already does the right
+thing and every re-weighting trades away more than it gains.** The
+balanced weights (survival 0.4 / food 0.3 / exploration 0.2 /
+collision 0.1) sit close to the measured component scales; pushing
+mass toward survival starves the food-seeking signal that actually
+earns score on a replenished landscape. This is a genuine negative
+result, and a stronger statement than "nothing was significant":
+the point estimates all favor the status quo.
 
-**Why the exploratory "trend" vanished.** The earlier 3-seed pass showed
-survival-weighted (0.34) apparently beating equal (0.20). With the
-paired design and uniform spawns, all four conditions sit within 0.04 of
-each other. Two artifacts produced the trend: unpaired testing counted
-between-seed variance as noise against the effect (the paired test
-removes it, *and* shrinks the apparent differences by measuring them
-within-seed), and corner-line spawning made evaluation scores partly a
-function of where obstacles happened to sit relative to the spawn line.
-The condition ordering also changed between the two confirmatory passes
-once measured calibration scales replaced hand-picked constants -
-under a flat landscape the ordering is seed noise, which is itself
-informative.
-
-**The degenerate-landscape caveat remains the dominant explanation.**
-Telemetry from the reruns: food is only occasionally eaten (0-0.12 items
-per seed), survival saturates within the evaluation window for most
-agents, and the exploration component is never computed. When three of
-four fitness components are (nearly) inert, re-weighting them cannot
-change selection pressure - the conditions are near-identical by
-construction, so the null result is expected *for this dynamics*, and
-says little about fitness weighting in a richer environment.
+**The earlier nulls were real, but they were about the landscape, not
+about weighting.** Both the 5 px-era ordering and the 12 px-era
+0.015-spread null were measured on survival-saturated dynamics. The
+energy-limited regime (0.7/step with regrowth) separates the
+conditions by ~0.12 - the landscape now has leverage - and what it
+shows is that the pre-existing balanced weights are already
+near-optimal. Fitness *weighting sensitivity* exists; it points
+away from specialization.
 
 ## Recommendations
 
-Same as the generalization experiment: make the fitness components live
-(metabolic cost, consumption radius, exploration computation) and rerun.
-Only then does a null result here become evidence about weighting
-robustness rather than about inert components. If differences still fail
-to reach significance on a live landscape, that would be a meaningful
-robustness finding for the design document's Experiment D.
-
-**Status update (Phase 6):** the consumption radius was raised from
-5 px to 12 px and `configs/calibration.json` was regenerated (ecosystem
-stability required it; see `docs/coevolution_notes.md`). The numbers in
-this document were measured at 5 px against the previous calibration -
-internally valid comparisons, but a rerun must not be compared against
-them directly.
+- The equal-weight baseline is the reference to beat; future weighting
+  experiments should perturb around it, not replace it.
+- Survival-weighting's deficit (+0.12 vs equal, r = +0.24) is sized for
+  n = 20-30 if anyone wants to confirm the direction; the CI already
+  excludes differences larger than ~0.35.
+- Revisit the weights themselves: a weight sweep *around* equal
+  (e.g. food 0.2/0.4) is now the informative experiment, not a
+  survival-dominant re-weighting.

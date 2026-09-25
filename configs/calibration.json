@@ -1,10 +1,10 @@
 {
-  "survival": 146.61066666666667,
+  "survival": 133.9416666666667,
   "food": 1.0,
-  "exploration": 83.87326810329854,
-  "collision": 15.347999999999999,
+  "exploration": 77.76096532614652,
+  "collision": 1.2,
   "episodes_run": 3,
   "steps_per_episode": 150,
   "policy": "random",
-  "timestamp": 1790210908.7120461
+  "timestamp": 1790300041.2151396
 }

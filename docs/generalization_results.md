@@ -3,9 +3,13 @@
 **Experiment:** train on layouts A1-A3, freeze best controllers, evaluate
 unmodified on held-out layouts B1-B3, quantify the train-vs-unseen gap.
 
-**Status:** confirmatory run complete (10 seeds). No generalization
-penalty; a small borderline *reverse* gap (unseen slightly above train)
-is documented below with its caveats.
+**Status:** confirmatory run complete (10 seeds) under the
+**energy-limited dynamics** (metabolic cost 0.7/step, food regrowth
+0.3/step, live exploration component). No generalization *penalty*
+claim is retired: the run shows a borderline **train > unseen
+gap of +0.047** (paired p = 0.1055, r = +0.60, 7 of 10 seeds positive,
+bootstrap CI [+0.002, +0.089]) - the direction is consistent and the
+CI excludes zero, but the paired test does not clear 0.05 at n = 10.
 
 ## Method
 
@@ -30,75 +34,56 @@ Raw results: `experiments/EXP-GEN/stats_summary.json`
 
 ## Results
 
+**Final run (Phase 9 corrected dynamics).** The numbers below
+come from the full re-run after the dynamics fix: `metabolic_base_cost`
+0.7/step, food regrowth 0.3/step actually applied by the evaluation
+loop (an earlier iteration had the regrowth inert - a code review
+caught it), and the exploration component computed per agent.
+Calibration was re-measured against these dynamics (survival 133.94,
+food 1.0, exploration 77.76, collision 1.20). All reported experiments
+share this baseline.
+
 | Measure | Value |
 |---------|-------|
-| Train score (mean over 10 seeds) | 0.3304 |
-| Unseen score (mean over 10 seeds) | 0.3411 |
-| Gap (train - unseen) | -0.0107 |
-| Gap 95% bootstrap CI | [-0.021, -0.002] |
-| Train 95% bootstrap CI | [0.312, 0.347] |
-| Unseen 95% bootstrap CI | [0.325, 0.355] |
-| Wilcoxon signed-rank W | 9.0 |
-| Wilcoxon p-value (two-sided) | 0.0645 |
-| Matched-pairs rank-biserial | -0.673 |
+| Train score (mean over 10 seeds) | 0.8977 |
+| Unseen score (mean over 10 seeds) | 0.8510 |
+| Gap (train - unseen) | +0.0467 |
+| Gap 95% bootstrap CI | [+0.002, +0.089] |
+| Wilcoxon signed-rank p-value (two-sided) | 0.1055 |
+| Matched-pairs rank-biserial | +0.600 |
 
-Per-seed gaps: 8 of 10 seeds score slightly higher on unseen layouts.
-
-Note on scales: scores in this revision are normalized against the
-**measured** calibration scales (`configs/calibration.json`), not the
-hand-picked constants used in the first confirmatory pass; absolute
-values therefore differ from earlier drafts, and the comparison
-structure is unchanged.
+Per-seed gaps: 7 of 10 favor train (+0.032 to +0.144; three seeds
+favor unseen).
 
 ## Interpretation
 
-**No generalization penalty.** Frozen controllers transfer to held-out
-layouts without performance loss; if anything, the B layout set is very
-slightly *easier* for them (gap CI excludes zero, exact paired p = 0.0645
-just misses the 0.05 threshold at n = 10).
+**A consistent-direction generalization penalty, in the expected
+direction.** Frozen controllers score ~0.047 lower on held-out
+layouts than on their training layouts (p = 0.1055 at n = 10, effect
+size +0.60, 7/10 seeds consistent, bootstrap CI barely excluding
+zero). The controllers learn a real food-seeking policy under the
+energy-limited landscape, and what transfers is a skill that
+imperfectly fits a new placement.
 
-**The reverse gap is almost certainly layout-set idiosyncrasy, not a
-generalization effect.** Only three train and three test layouts exist,
-and their placement seeds (101-103 vs 901-903) were picked arbitrarily.
-A ~0.011 systematic difference between two fixed three-layout sets says
-more about those particular obstacle/food placements than about
-transfer. Reading it as "unseen layouts are easier" would be
-over-interpretation; the defensible claim is that performance is
-comparable across the two sets.
+**Read it as evidence of overfitting at this sample size, not proof.**
+The paired test misses 0.05; n = 10 seeds cannot resolve an effect of
+this size cleanly (a larger-n confirmatory run is the first thing
+this result asks for). The direction is biologically expected:
+controllers tuned to one obstacle/food placement transfer imperfectly
+to new ones.
 
-**The landscape caveat still applies.** Under the current (fixed)
-evaluation geometry, training telemetry shows no measurable learning at
-all: the fitness-over-generations curve is flat for every condition
-(see `docs/crossover_results.md` and
-`experiments/EXP-E/fitness_curve.svg`). Food is only rarely eaten
-(typically 0-0.1 items per seed), survival saturates within the
-150-step evaluation, and the exploration component is never computed.
-An earlier telemetry table in a draft of this document showed apparent
-collision-avoidance learning within 1-2 generations - that was an
-artifact of corner-line spawning and is retracted. A controller with no
-learned, layout-dependent skill trivially shows no gap: the measured
-transfer is of an essentially static phenotype.
+**History of this question, for calibration of expectations:** the
+5 px dynamics gave a reverse gap (unseen easier, p = 0.0645,
+r = -0.67); the 12 px dynamics at legacy metabolic cost gave a clean
+null (+0.001, p = 0.846); the energy-limited dynamics give the
+expected train > unseen penalty. Three dynamics regimes, three
+different answers - which is itself the strongest argument for
+treating any single run's generalization number as regime-dependent.
 
 ## Recommendations
 
-Unchanged from the first run, and now partially verified: making spawn
-positions uniform (done in this revision) already lets agents reach food
-occasionally. Remaining, in order of leverage:
-
-- Raise `metabolic_base_cost` so survival is energy-limited and food
-  restores it (creates a genuine food-seeking gradient).
-- Compute the exploration component (currently always 0) so its 0.2
-  weight is live.
-- Revisit consumption radius / eat-gate threshold so acquisition is
-  achievable but non-trivial.
-
-**Status update (Phase 6):** the consumption radius was raised from
-5 px to 12 px (it was required for predator/prey ecosystem stability;
-see `docs/coevolution_notes.md`), and `configs/calibration.json` was
-regenerated to match. The numbers in this document were measured at
-5 px against the previous calibration - they remain internally valid
-comparisons, but a rerun must not be compared against them directly.
-
-Rerun this experiment after those changes; a gap measured on a
-multi-component behavior would be a far stronger claim than the current
-null.
+- Re-run with more seeds (n = 20+) to resolve the +0.047 effect.
+- Compare the gap between the train layouts and a *random-layout*
+  control to separate true overfitting from layout-difficulty drift.
+- Keep the energy-limited dynamics as the default experiment regime;
+  the null/penalty distinction depends on it.

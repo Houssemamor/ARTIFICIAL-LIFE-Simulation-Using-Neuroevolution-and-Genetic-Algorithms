@@ -29,6 +29,7 @@ import torch
 
 from agents.organism import Organism
 from agents.sensors import RayCaster
+from agents.energy import energy_config_from_settings
 from evolution.neat.crossover import crossover
 from evolution.neat.genome import NeatGenome, minimal_genome
 from evolution.neat.innovation import InnovationTracker
@@ -100,11 +101,15 @@ def evaluate_population(
     population_size = len(genomes)
     agents: List[Organism] = []
     margin = world.boundary_margin
+    energy_config = energy_config_from_settings(config.energy)
     for index in range(population_size):
         x = rng.uniform(margin, world.width - margin)
         y = rng.uniform(margin, world.height - margin)
-        agent = Organism(index, x, y, initial_energy=100.0)
+        agent = Organism(index, x, y, initial_energy=100.0,
+                         energy_config=energy_config)
         agents.append(agent)
+    spawn_positions = {agent.id: (agent.position.x, agent.position.y)
+                       for agent in agents}
 
     # Topologies are fixed for the whole episode: compile the padded
     # depth-layer blocks once, then run them per step over the live rows
@@ -134,11 +139,19 @@ def evaluate_population(
             agent.update_energy()
             agent.increment_age()
 
+        # Match the energy-limited dynamics of the other evaluation
+        # paths: this loop steps the world itself, so it must regrow
+        # food exactly as step_simulation() does.
+        world.regrow_food(getattr(world, 'food_regrowth_per_step', 0.0))
+
     from evolution.genetic_algorithm import compute_fitness
     fitnesses = np.zeros(population_size, dtype=float)
     for index, agent in enumerate(agents):
+        spawn_x, spawn_y = spawn_positions[agent.id]
+        exploration = float(np.hypot(agent.position.x - spawn_x,
+                                     agent.position.y - spawn_y))
         agent.fitness = compute_fitness(
-            agent, agent.age, agent.food_eaten, 0.0, agent.collisions,
+            agent, agent.age, agent.food_eaten, exploration, agent.collisions,
             calibration_scales, fitness_weights)
         fitnesses[index] = agent.fitness
     return fitnesses, agents

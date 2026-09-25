@@ -33,7 +33,8 @@ class Organism:
     """
 
     def __init__(self, organism_id: int, x: float, y: float,
-                 initial_energy: float = 100.0, role: str = 'prey'):
+                 initial_energy: float = 100.0, role: str = 'prey',
+                 energy_config: Optional[EnergyConfig] = None):
         """
         Initialize an organism.
 
@@ -45,6 +46,10 @@ class Organism:
             role (str): Ecosystem role, 'prey' or 'predator' (Phase 6).
                 Defaults to 'prey' so all pre-Phase-6 callers are
                 unaffected.
+            energy_config (Optional[EnergyConfig]): Per-agent energy
+                parameters; defaults to the module default. Spawn sites
+                pass energy_config_from_settings(config.energy) so the
+                energy equation follows the active config.
         """
         if role not in ('prey', 'predator'):
             raise ValueError(f"role must be 'prey' or 'predator', got {role!r}")
@@ -81,7 +86,8 @@ class Organism:
         self._food_consumed_this_step = False
 
         # Energy configuration (allows per-agent override for testing)
-        self._energy_config = DEFAULT_ENERGY_CONFIG
+        self._energy_config = (energy_config if energy_config is not None
+                               else DEFAULT_ENERGY_CONFIG)
 
         # Neural network controller wiring (Phase 2)
         self.brain = None
@@ -96,6 +102,12 @@ class Organism:
         self.last_steering = 0.0  # -1 to 1, from network output
         self.last_acceleration = 0.0  # 0 to 1, from network output
         self.last_eat_signal = 0.0  # 0 to 1, from network output
+
+    @property
+    def energy_config(self) -> EnergyConfig:
+        # Read-only accessor: offspring must inherit the parent's energy
+        # equation, not silently fall back to the module default.
+        return self._energy_config
 
     def initialize_genome(self, genome_size: int) -> None:
         """

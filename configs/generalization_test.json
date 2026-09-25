@@ -13,7 +13,8 @@
       "width": 1200,
       "height": 700,
       "food_count": 20,
-      "obstacle_count": 10
+      "obstacle_count": 10,
+      "food_regrowth_per_step": 0.3
     },
     "population": {
       "size": 40,
@@ -47,7 +48,10 @@
       "exploration": 0.2,
       "collision": 0.1
     },
-    "experiment_name": "generalization_test"
+    "experiment_name": "generalization_test",
+    "energy": {
+      "metabolic_base_cost": 0.7
+    }
   },
   "layouts": [
     {

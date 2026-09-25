@@ -11,6 +11,10 @@ pydantic-core==2.41.5
 # Statistics (Phase 4.5 pipeline: scipy.stats for Mann-Whitney/Wilcoxon)
 scipy==1.18.1
 
+# Read-only web dashboard (Phase 9, PLAN.md Section 12.3)
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+
 # Testing
 pytest==8.4.0
 pytest-asyncio==1.4.0
@@ -26,6 +30,3 @@ mypy==1.8.0
 # imgui[pygame]>=2.5.0  # Dear ImGui bindings for pygame (debugging tools)
 # pyimgui>=2.5.0        # Alternative ImGui binding
 
-# Optional dependencies for web dashboard (mentioned in README as optional)
-# fastapi>=0.100.0
-# react>=18.0.0  # Note: This is a JS dependency, not Python

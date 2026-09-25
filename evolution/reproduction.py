@@ -80,8 +80,12 @@ def create_offspring(parent: Organism, offspring_id: int, world: World,
     y = float(np.clip(parent.position.y + offset[1],
                       margin, world.height - margin))
 
+    # energy_config is inherited from the parent: a newborn that fell
+    # back to the module default would run a different energy equation
+    # than its parent and silently change the ecosystem's dynamics.
     offspring = Organism(offspring_id, x, y, initial_energy=100.0,
-                         role=parent.role)
+                         role=parent.role,
+                         energy_config=parent.energy_config)
     offspring.genome = genome.astype(np.float32)
 
     # Parent pays the energy cost after a successful birth. Floored at
