@@ -64,8 +64,9 @@ weighting result says the balanced weights are already near-optimal
 The oscillating arms race chart, explained, not hidden
 (`docs/coevolution_notes.md`): within-generation fitness is
 relative; the frozen-archive win rate is the absolute measure.
-Stability: 7 of 10 seeds collapse (predator extinction) after the
-newborn-energy fix; viable runs climb 5 -> 22 captures/day.
+Stability: 7 of 10 seeds collapse (5 predator extinctions,
+2 prey) after the newborn-energy fix; viable runs climb
+5 -> 22 captures/day.
 
 ## 12. Results: NEAT extension
 Complexity-over-generations plot (51 -> 102 mean, max 117); the

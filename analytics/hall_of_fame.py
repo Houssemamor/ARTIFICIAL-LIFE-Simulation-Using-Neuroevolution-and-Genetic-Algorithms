@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 
+from agents.energy import energy_config_from_settings
 from agents.organism import Organism
 from agents.sensors import RayCaster
 from simulation.environment import World
@@ -123,11 +124,13 @@ def run_duel(predator_genome: np.ndarray, prey_genome: np.ndarray,
     world = World(config.world.width, config.world.height)
     world.load_from_config(config.model_dump())
     raycaster = RayCaster()
+    energy_config = energy_config_from_settings(config.energy)
 
     def _spawn(genome: np.ndarray, role: str, agent_id: int) -> Organism:
         x = rng.uniform(world.boundary_margin, world.width - world.boundary_margin)
         y = rng.uniform(world.boundary_margin, world.height - world.boundary_margin)
-        agent = Organism(agent_id, x, y, initial_energy=100.0, role=role)
+        agent = Organism(agent_id, x, y, initial_energy=100.0, role=role,
+                         energy_config=energy_config)
         agent.genome = np.asarray(genome, dtype=np.float32).copy()
         return agent
 

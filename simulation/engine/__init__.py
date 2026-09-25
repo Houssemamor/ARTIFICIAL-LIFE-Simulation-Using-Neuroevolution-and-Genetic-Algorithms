@@ -100,7 +100,7 @@ def step_simulation(world, agents, agent_raycaster: RayCaster,
     return collisions
 
 
-def resolve_collisions(agents, world, penalty: float = 2.0) -> int:
+def resolve_collisions(agents, world) -> int:
     """
     Detect contacts between live agents and obstacles/other agents, and apply
     the plan's collision penalty: an energy cost per contact with no velocity
@@ -111,10 +111,13 @@ def resolve_collisions(agents, world, penalty: float = 2.0) -> int:
     positions incrementally: with ~260 objects at 60 Hz the rebuild is cheap,
     and it avoids the fragile incremental-update path in SpatialHash.
 
+    Each agent pays its OWN configured collision cost (EnergySettings.
+    collision_penalty), so a config's value reaches the engine instead of
+    being shadowed by a default parameter.
+
     Args:
         agents: List of Organism instances
         world: World instance providing obstacle positions
-        penalty (float): Energy cost per contact (default: 2.0)
 
     Returns:
         int: Total contact events this step (a mutual agent-agent contact is
@@ -153,7 +156,7 @@ def resolve_collisions(agents, world, penalty: float = 2.0) -> int:
                 continue
             # Penalty on contact: energy cost, tracked per agent to feed the
             # 'collision' fitness weight (configs/baseline.json) in later phases
-            agent.add_collision_penalty(penalty)
+            agent.add_collision_penalty(agent.energy_config.collision_penalty)
             agent.collisions += 1
             total_contacts += 1
 
@@ -190,8 +193,6 @@ def resolve_captures(agents, capture_radius: float = 16.0,
     Returns:
         int: Number of prey captured this step.
     """
-    from agents.energy import DEFAULT_ENERGY_CONFIG
-
     live_predators = [a for a in agents
                       if a.is_alive and getattr(a, 'role', 'prey') == 'predator']
     live_prey = [a for a in agents
@@ -220,9 +221,10 @@ def resolve_captures(agents, capture_radius: float = 16.0,
         nearest.is_alive = False
         nearest.energy = 0.0
         # Direct energy add rather than the food path: capture has its own
-        # tuning knob (plan Phase 6 step 5) independent of plant food value
+        # tuning knob (plan Phase 6 step 5) independent of plant food value.
+        # Clamp to the PREDATOR's configured cap, not the module default.
         predator.energy = min(predator.energy + energy_transfer,
-                               DEFAULT_ENERGY_CONFIG.max_energy)
+                               predator.energy_config.max_energy)
         predator.food_eaten += 1
         live_prey.remove(nearest)
         captures += 1

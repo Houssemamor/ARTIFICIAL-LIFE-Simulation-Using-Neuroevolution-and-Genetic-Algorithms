@@ -63,6 +63,14 @@
 <script>
 let runs = [];
 
+// Artifact values reach innerHTML below; escape them so a crafted
+// condition or method string cannot inject markup into the viewer.
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
 async function loadRuns() {
   const response = await fetch('/experiments');
   ({experiments: runs} = await response.json());
@@ -70,9 +78,9 @@ async function loadRuns() {
   rows.innerHTML = '';
   for (const run of runs) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><code>${run.id}</code></td><td>${run.family}</td>` +
-      `<td>${run.n_seeds ?? '-'}</td><td>${run.plots.join(', ') || '-'}</td>` +
-      `<td><button class="btn btn-sm btn-outline-light" data-detail="${run.id}">open</button></td>`;
+    tr.innerHTML = `<td><code>${esc(run.id)}</code></td><td>${esc(run.family)}</td>` +
+      `<td>${run.n_seeds ?? '-'}</td><td>${esc(run.plots.join(', ')) || '-'}</td>` +
+      `<td><button class="btn btn-sm btn-outline-light" data-detail="${esc(run.id)}">open</button></td>`;
     rows.appendChild(tr);
   }
   for (const select of ['detail-run', 'compare-run']) {
@@ -103,8 +111,30 @@ async function showDetail(runId) {
       const first = curve.mean_fitness[0], last = curve.mean_fitness.at(-1);
       const delta = last - first;
       const color = delta > 0 ? 'var(--ok-green)' : 'var(--ok-vermillion)';
-      html += `<tr><td>${method}</td><td>${first.toFixed(3)}</td><td>${last.toFixed(3)}</td>` +
+      html += `<tr><td>${esc(method)}</td><td>${first.toFixed(3)}</td><td>${last.toFixed(3)}</td>` +
         `<td style="color:${color}">${delta >= 0 ? '+' : ''}${delta.toFixed(3)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  if (metrics.generations && metrics.generations.length) {
+    // NEAT and co-evolution key per-generation rows here; without this
+    // their detail views render as "no renderable data".
+    const rows = metrics.generations;
+    const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
+    html += '<h5>Per-generation rows</h5><table class="table table-sm"><thead><tr>' +
+      columns.map(c => `<th>${esc(c)}</th>`).join('') +
+      '</tr></thead><tbody>';
+    for (const row of rows) {
+      html += '<tr>' + columns.map(c => {
+        const value = row[c];
+        if (typeof value === 'number') {
+          return `<td>${value.toFixed(4)}</td>`;
+        }
+        if (value && typeof value === 'object') {
+          return `<td>${esc(JSON.stringify(value))}</td>`;
+        }
+        return `<td>${esc(value ?? '-')}</td>`;
+      }).join('') + '</tr>';
     }
     html += '</tbody></table>';
   }
@@ -112,7 +142,7 @@ async function showDetail(runId) {
     html += '<h5>Condition means</h5><table class="table table-sm"><tbody>';
     for (const [condition, scores] of Object.entries(summary.per_condition_scores)) {
       const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-      html += `<tr><td>${condition}</td><td>${mean.toFixed(4)}</td></tr>`;
+      html += `<tr><td>${esc(condition)}</td><td>${mean.toFixed(4)}</td></tr>`;
     }
     html += '</tbody></table>';
   }
@@ -152,7 +182,7 @@ async function showCompare(runId) {
       verdict = 'not significant; effect shown for context only';
       cls = 'ns';
     }
-    html += `<tr><td>${row.condition_a} vs ${row.condition_b}</td>` +
+    html += `<tr><td>${esc(row.condition_a)} vs ${esc(row.condition_b)}</td>` +
       `<td>${(row.mean_diff ?? 0).toFixed(4)}</td>` +
       `<td>[${ci}]</td>` +
       `<td>${row.p_value.toFixed(4)}</td>` +

@@ -479,7 +479,7 @@ artificial-life-sim/
 
 ### Deliverables — Phase 6
 
-- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days, every failure a predator extinction after the newborn-energy fix (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; the ecosystem clock is the robustness lever)
+- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days (5 predator extinctions, 2 prey) after the newborn-energy fix (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; the ecosystem clock is the robustness lever)
 - [x] A working hall-of-fame evaluation harness and dashboard panel (F9 GUI toggle; frozen-opponent win rates in analytics/hall_of_fame.py)
 - [x] A documented co-evolution caveat protecting later readers from misreading the metrics (docs/coevolution_notes.md)
 
@@ -582,7 +582,7 @@ artificial-life-sim/
 | Generalization | null (+0.001, p=0.846) | **consistent-direction penalty (+0.047, p=0.1055, r=+0.60, 7/10 seeds, CI [+0.002, +0.089])** |
 | Fitness weighting (D) | all conditions within 0.015 | **equal weighting leads every specialization by +0.07 to +0.12** (no pair survives Holm at n=10) |
 | Crossover (E) | blend ≈ uniform | **blend = uniform (+0.001, p=0.92)**; both +0.08 over mutation-only |
-| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (all predator extinction, after the newborn-energy fix); captures climb 5→22/day in viable runs |
+| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (5 predator extinctions, 2 prey, after the newborn-energy fix); captures climb 5→22/day in viable runs |
 | NEAT topology | 51 → 108.6 | 51 → 102 (unchanged growth; 571 innovations, 1 species) |
 
 **Review-driven corrections to the dynamics themselves (the reason the first re-run's numbers were withdrawn):**

@@ -213,7 +213,7 @@ function footer(slide, n) {
     { x: 0.8, y: 2.2, w: 7.9, h: 4.4, fontFace: FONT_B, valign: "top", margin: 0 });
   s.addShape(pres.ShapeType.roundRect, { x: 9.1, y: 2.4, w: 3.4, h: 3.4,
     fill: { color: PANEL }, line: { color: CYAN, width: 1.5 }, rectRadius: 0.08 });
-  s.addText("F9\nclick agent\nF for frame", { x: 9.1, y: 3.3, w: 3.4, h: 1.8,
+  s.addText("SPACE pause\nF9 panel\nclick agent", { x: 9.1, y: 3.3, w: 3.4, h: 1.8,
     fontFace: FONT_B, fontSize: 17, color: CYAN, align: "center", margin: 0 });
   s.addNotes("Demo order per docs/demo_script.md; the plan's unavailable steps (checkpoint load into the GUI, video fallback) are honestly scripted in the doc.");
   footer(s, 8);
@@ -309,7 +309,7 @@ function footer(slide, n) {
   s.addText("Artifacts, all reproducible", { x: 0.8, y: 1.4, w: 11.7, h: 0.9,
     fontFace: FONT_H, fontSize: 40, bold: true, color: TEXT, margin: 0 });
   s.addText([
-    { text: "248 tests green (3 Python versions x 3 OS in CI)   ", options: { color: GREEN, fontSize: 15 } },
+    { text: "251 tests green (3 Python versions on Ubuntu in CI)   ", options: { color: GREEN, fontSize: 15 } },
     { text: "every number on these slides traces to a committed JSON or SVG", options: { color: MUTED, fontSize: 15 } },
   ], { x: 0.8, y: 2.4, w: 11.7, h: 0.5, fontFace: FONT_B, margin: 0 });
   s.addText([

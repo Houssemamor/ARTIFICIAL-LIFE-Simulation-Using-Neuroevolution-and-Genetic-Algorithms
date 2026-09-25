@@ -36,9 +36,9 @@ specialization: equal weighting leads every specialized condition by
 +0.07 to +0.12 (no pair survives Holm at n = 10). Crossover method
 does not matter at this scale (blend vs uniform +0.001, p = 0.92),
 though both beat mutation-only by ~+0.08. The ecosystem is viable
-but fragile (7 of 10 random seeds collapse, always via predator
-extinction; captures climb 5 -> 22/day in survivors), and NEAT
-topology grows (mean complexity 51 -> 102) with the batching
+but fragile (7 of 10 random seeds collapse - five via predator
+extinction, two via prey; captures climb 5 -> 22/day in survivors),
+and NEAT topology grows (mean complexity 51 -> 102) with the batching
 question resolved by measurement (2.9x the per-agent reference).
 
 ## 2. System
@@ -131,16 +131,18 @@ generations - 7-9x the strongest previous signal, and the Phase 3
 
 Capture-collision resolution plus in-episode reproduction produce a
 viable-but-fragile ecosystem: 7 of 10 random seeds collapse within 10
-days - every failure a predator extinction, a consequence of the
+days - a consequence of the
 newborn-energy fix (offspring now run the parent's 0.25/step
 equation instead of a silent 0.1 subsidy) - while the survivors
 settle at carrying capacity with captures per day climbing 5 -> 22 as
-selection favors capturable prey. The stability test asserts
+selection favors capturable prey. Five of the seven failures are
+predator extinctions; two are prey. The stability test asserts
 viability on the first three sweep seeds (no cherry-picking) and a
 negative test proves the fixture can fail. The co-evolution run's
-hall-of-fame evaluation still shows prey win rates near 1.00 against
-archived opponents (unevolved predators rarely catch anything inside
-150-step duels)
+hall-of-fame evaluation shows prey winning nearly every duel
+against archived opponents (unevolved predators rarely catch
+anything inside 150-step duels, and the duel harness now uses the
+same 0.25/step energy equation as the generation metrics)
 (`docs/coevolution_notes.md`).
 
 ### 4.4 NEAT extension (Phase 7)
@@ -243,7 +245,7 @@ were documented in place rather than quietly overwritten.
 .venv\Scripts\python.exe -m pip install -e . --no-deps
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# tests (248)
+# tests (251)
 .venv\Scripts\python.exe -m pytest tests/ -q
 
 # experiments (each writes JSON + SVG under experiments/)

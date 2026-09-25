@@ -220,12 +220,14 @@ def run_coevolution(config: BaselineConfig, seed: int = 1) -> dict:
 
     # Initial random populations, one organism per role genome
     size = genome_size()
+    energy_config = energy_config_from_settings(config.energy)
 
     def _random_population(count: int, role: str) -> List[Organism]:
         pop = []
         positions = _spawn_positions(world, count, rng)
         for i in range(count):
-            agent = Organism(i, *positions[i], role=role)
+            agent = Organism(i, *positions[i], role=role,
+                             energy_config=energy_config)
             agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
             pop.append(agent)
         return pop

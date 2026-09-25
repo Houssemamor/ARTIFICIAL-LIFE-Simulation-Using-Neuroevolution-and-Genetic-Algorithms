@@ -118,7 +118,7 @@
     },
     {
       "generation": 8,
-      "predator_win_rate_vs_archive": 0.25,
+      "predator_win_rate_vs_archive": 0.0,
       "prey_win_rate_vs_archive": 1.0,
       "archive_size": 4
     },

@@ -68,21 +68,26 @@ produced by `experiments/run_coevolution.py --mode stability-sweep
 --seed 1 --seeds 10 --days 10` (the pipeline is deterministic per
 seed, so a re-run reproduces the file).
 
-**The collapse is always the predator role** in 8 of 10 seeds
-(min_predator_alive = 0 at some day; two seeds lose prey instead).
-Mechanism: newborn energy inheritance. `create_offspring` once
-constructed newborns without the parent's energy config, so every
-predator born after day 0 silently ran the legacy 0.1/step equation
-while its parent ran 0.25 - an easier landscape for offspring than
-for parents. Fixing that (Phase 9 review) removed the subsidy and
-the collapse rate rose from 3/10 to 7/10. The 0.25 metabolic setting
+**The collapse is predator-led but not predator-only**: 5 of the
+7 failing seeds lose the predator role (min_predator_alive = 0 at
+some day), 2 lose prey instead (seeds 3 and 10, where predators
+survive on a depleted prey population). The dominant mechanism is
+newborn energy inheritance. `create_offspring` once constructed
+newborns without the parent's energy config, so every predator born
+after day 0 silently ran the legacy 0.1/step equation while its
+parent ran 0.25 - an easier landscape for offspring than for
+parents. Fixing that (Phase 9 review) removed the subsidy and the
+collapse rate rose from 3/10 to 7/10. The 0.25 metabolic setting
 itself remains correct for the ecosystem (at 0.7 every predator
 starves before its first capture and the ecosystem collapses on day
 0, because one missed day is death): the solo experiments run
 150-step episodes, the ecosystem runs 150-step days in a persistent
 world, so it needs a slower clock. Lowering the ecosystem clock
 further (0.15-0.20) is the obvious next lever if a sturdier demo is
-needed.
+needed. The hall-of-fame duels were fixed the same way: `run_duel`
+now builds its duelists with the configured energy equation, so
+frozen-checkpoint win rates are measured under the same dynamics as
+the generation metrics they are compared against.
 
 The stability test (`tests/integration/test_predator_prey_stability.py`)
 therefore asserts the honest property - viability, not stability -

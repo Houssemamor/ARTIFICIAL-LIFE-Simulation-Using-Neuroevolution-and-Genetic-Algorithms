@@ -15,7 +15,7 @@ Run: .venv\Scripts\python.exe -m uvicorn webdash.backend.main:app
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -45,12 +45,15 @@ SUMMARY_PREFERENCE = ("stats_summary.json", "neat_summary.json",
                       "coevolution_summary.json")
 
 
-def scan_experiments(root: Path = EXPERIMENTS_ROOT) -> List[Dict]:
+def scan_experiments(root: Optional[Path] = None) -> List[Dict]:
     """
     Discover experiment runs and their summaries. Pure function over
     the filesystem - the endpoint layer is a thin wrapper, so this is
-    what the tests exercise.
+    what the tests exercise. `root` defaults to the module's
+    EXPERIMENTS_ROOT resolved at call time.
     """
+    if root is None:
+        root = EXPERIMENTS_ROOT
     runs: List[Dict] = []
     if not root.is_dir():
         return runs
@@ -78,8 +81,16 @@ def scan_experiments(root: Path = EXPERIMENTS_ROOT) -> List[Dict]:
     return runs
 
 
-def load_summary(run_id: str, root: Path = EXPERIMENTS_ROOT) -> Dict:
-    """Load a run's primary summary (404 when absent)."""
+def load_summary(run_id: str, root: Optional[Path] = None) -> Dict:
+    """Load a run's primary summary (404 for unknown or malformed ids)."""
+    if root is None:
+        root = EXPERIMENTS_ROOT
+    # A run_id reaches the filesystem, so it must resolve to a discovered
+    # run directory: "..\\configs" and absolute paths are rejected here
+    # instead of being sanitized piecemeal.
+    if run_id not in {run["id"] for run in scan_experiments(root)}:
+        raise HTTPException(status_code=404,
+                            detail=f"no summary for {run_id}")
     for name in SUMMARY_PREFERENCE:
         path = root / run_id / name
         if path.is_file():
@@ -108,24 +119,26 @@ def stats_summary(run_id: str) -> Dict:
 def metrics(run_id: str) -> Dict:
     """
     Per-generation metrics. The solo runners embed their generation
-    curves in stats_summary.json (fitness_curves); the co-evolution
-    and NEAT runs key theirs the same way.
+    curves in stats_summary.json (fitness_curves); NEAT and
+    co-evolution key their per-generation rows as `generations`.
     """
     summary = load_summary(run_id)
     return {
         "run_id": run_id,
         "fitness_curves": summary.get("fitness_curves", {}),
+        "generations": summary.get("generations", []),
     }
 
 
 @app.get("/experiments/{run_id}/plot/{name}")
 def plot(run_id: str, name: str) -> FileResponse:
     """Serve a committed SVG plot (fitness curves, complexity growth)."""
-    path = (EXPERIMENTS_ROOT / run_id / name).resolve()
-    if not path.is_file() or not path.is_relative_to(
-            EXPERIMENTS_ROOT.resolve()):
+    entry = next((r for r in scan_experiments()
+                  if r["id"] == run_id), None)
+    if entry is None or name not in entry["plots"]:
         raise HTTPException(status_code=404, detail="plot not found")
-    return FileResponse(path, media_type="image/svg+xml")
+    return FileResponse(EXPERIMENTS_ROOT / run_id / name,
+                        media_type="image/svg+xml")
 
 
 @app.get("/experiments/{run_id}/best_genome")

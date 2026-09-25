@@ -91,7 +91,7 @@ python -m experiments.run --config configs/baseline.json --mode headless --devic
 ## Running Tests
 
 ```bash
-# Full suite (248 tests)
+# Full suite (251 tests)
 pytest tests/ -q
 
 # Specific test groups
@@ -128,9 +128,10 @@ crossover methods themselves remain statistically indistinguishable
 
 ² The ecosystem is viable on an unselected three-seed sample under fully
 deterministic runs, but with fixed (non-evolved) controllers 7 of 10
-random seeds collapse within 10 days - every failure a predator
-extinction, after the newborn-energy fix removed an inherited-dynamics
-subsidy (single-regime 10-seed measurement under the final dynamics).
+random seeds collapse within 10 days - five of the seven failures are
+predator extinctions, two are prey - after the newborn-energy fix
+removed an inherited-dynamics subsidy (single-regime 10-seed
+measurement under the final dynamics).
 The stability test asserts viability on seeds 1-3, a negative test
 proves the fixture can fail, and the full analysis lives in
 `docs/coevolution_notes.md`.
@@ -234,7 +235,7 @@ As of September 2026, the following components have been implemented:
 - ✅ `analytics/hall_of_fame.py` - frozen best-per-role archive + duel harness (`run_duel`, `win_rate_against_archive`)
 - ✅ `experiments/run_coevolution.py` - co-evolution mode (GA + HOF snapshots + frozen-opponent evaluations) and ecosystem mode (long-horizon stability harness)
 - ✅ `visualization/dashboard_advanced.py` + F9 GUI toggle - live ecosystem counters + hall-of-fame delta; predators drawn red-family
-- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: 7 of 10 random seeds collapse within 10 days (predator extinction, after the newborn-energy fix), the test asserts viability on unselected seeds 1-3, and a negative test proves the fixture can fail
+- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: 7 of 10 random seeds collapse within 10 days (5 predator extinctions, 2 prey, after the newborn-energy fix), the test asserts viability on unselected seeds 1-3, and a negative test proves the fixture can fail
 - ✅ `tests/unit/test_predation.py` (9), `tests/unit/test_reproduction.py` (8), `tests/unit/test_hall_of_fame.py` (7), `tests/integration/test_coevolution.py` (4), `tests/integration/test_predator_prey_stability.py` (3, incl. seed-reproducibility regression)
 - ⚠️ Caveat: the ecosystem is viable but fragile with fixed (non-evolved) controllers - see `docs/coevolution_notes.md` before interpreting ecosystem metrics; the ecosystem metabolic clock (0.25/step) is the first lever if robustness matters
 
@@ -251,7 +252,7 @@ As of September 2026, the following components have been implemented:
 - ✅ Dashboard reconciliation - `config.phase_tier` selects MVP vs. Advanced (the MVP build can never render a Phase 6/7-only metric); `tests/unit/test_dashboard_tiers.py` enforces it
 - ✅ Section 12 build-out (Phase 9): control bar (Pause/x1/x10/Save/Reset) + best-agent inspector (vitals, seven-ray overlay, controller graph with live activations) - `visualization/control_bar.py`, `visualization/best_agent_inspector.py`
 - ✅ Web dashboard - FastAPI + Bootstrap/vanilla JS read-only viewer over the committed artifacts (`webdash/`; run `uvicorn webdash.backend.main:app`)
-- ✅ Packaging verified - editable install, both entry points, 248-test suite, lint gate clean
+- ✅ Packaging verified - editable install, both entry points, 251-test suite, lint gate clean
 - ✅ `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` (rehearsable, with the author-side video checklist) + `docs/slide_outline.md`
 - ✅ Energy-limited dynamics (Phase 9): `metabolic_base_cost` config-tunable (0.7/step in experiments, legacy pacing in the GUI), food regrowth applied in every evaluation loop, live exploration component, newborn energy inheritance; every experiment re-run - +0.28 to +0.50 fitness gain, consistent-direction generalization penalty, equal-weighting leads its specializations
 
@@ -266,11 +267,7 @@ weighting +0.12, crossover-vs-mutation-only +0.08), and sweep
 survival-vs-forging split every result depends on. The ecosystem's
 7/10 collapse rate points at its own clock (0.25/step) as the next
 robustness lever, and a graded food landscape is what NEAT speciation
-needs.
-(non-bimodal) landscape for observable NEAT speciation. See
-[Plan](PLAN.md) and `docs/final_report.md`.
-the optional web dashboard. See [Plan](PLAN.md) and
-`docs/final_report.md`.
+needs. See [Plan](PLAN.md) and `docs/final_report.md`.
 
 Agents process sensory information through neural networks, convert
 that to physical actions, and exhibit emergent behaviors guided by

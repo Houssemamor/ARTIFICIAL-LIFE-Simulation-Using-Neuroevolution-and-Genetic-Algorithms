@@ -81,7 +81,7 @@ Open `experiments/EXP-NEAT/complexity_over_generations.svg`.
   toward divergence to cross the compatibility threshold; the
   speciation machinery is unit-proven on constructed diverse
   populations (`docs/neat_extension_report.md`).
-- Optional: `experiments/run_neat.py --benchmark-only` reprints the
+- Optional: `experiments/run_neat.py --config configs/neat_food_seeking.json --benchmark-only` reprints the
   batching decision numbers (249 vs 85 steps/s, 2.9x).
 
 ## 6. Back to the deck
