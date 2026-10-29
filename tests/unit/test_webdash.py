@@ -54,6 +54,7 @@ def test_app_exposes_the_documented_endpoints():
     from webdash.backend.main import app
     routes = {route.path for route in app.routes}
     assert "/experiments" in routes
+    assert "/showcase" in routes
     assert "/experiments/{run_id}/stats_summary" in routes
     assert "/experiments/{run_id}/metrics" in routes
     assert "/experiments/{run_id}/best_genome" in routes

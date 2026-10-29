@@ -251,7 +251,7 @@ As of September 2026, the following components have been implemented:
 - ✅ `docs/final_report.md` - the capstone, assembled from the frozen artifacts; every Phase 5-7 experiment re-run under the final dynamics in this phase
 - ✅ Dashboard reconciliation - `config.phase_tier` selects MVP vs. Advanced (the MVP build can never render a Phase 6/7-only metric); `tests/unit/test_dashboard_tiers.py` enforces it
 - ✅ Section 12 build-out (Phase 9): control bar (Pause/x1/x10/Save/Reset) + best-agent inspector (vitals, seven-ray overlay, controller graph with live activations) - `visualization/control_bar.py`, `visualization/best_agent_inspector.py`
-- ✅ Web dashboard - FastAPI + Bootstrap/vanilla JS read-only viewer over the committed artifacts (`webdash/`; run `uvicorn webdash.backend.main:app`)
+- ✅ Web dashboard - FastAPI + Bootstrap/vanilla JS read-only viewer over the committed artifacts (`webdash/`; low-resource machines: `python webdash/build_static.py` writes one offline `dashboard.html`; live mode: `uvicorn webdash.backend.main:app`)
 - ✅ Packaging verified - editable install, both entry points, 251-test suite, lint gate clean
 - ✅ `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` (rehearsable, with the author-side video checklist) + `docs/slide_outline.md`
 - ✅ Energy-limited dynamics (Phase 9): `metabolic_base_cost` config-tunable (0.7/step in experiments, legacy pacing in the GUI), food regrowth applied in every evaluation loop, live exploration component, newborn energy inheritance; every experiment re-run - +0.28 to +0.50 fitness gain, consistent-direction generalization penalty, equal-weighting leads its specializations

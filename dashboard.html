@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neuroevolution Experiment Viewer</title>
+  <style>
+    /* Self-contained: no CDN, so the exported file works offline.
+       Okabe-Ito color-blind-safe palette. */
+    :root {
+      --ok-orange: #E69F00; --ok-sky: #56B4E9; --ok-green: #009E73;
+      --ok-vermillion: #D55E00; --muted: #b8b8c8;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #14141c; color: #e8e8ef;
+           font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    nav.top { display: flex; gap: 16px; align-items: baseline;
+              padding: 12px 24px; background: #212129; }
+    nav.top .brand { font-size: 18px; font-weight: 600; }
+    .text-secondary { color: var(--muted); }
+    .small { font-size: 13px; }
+    main { padding: 24px; }
+    .tabs { display: flex; gap: 4px; margin: 0 0 16px; padding: 0;
+            list-style: none; border-bottom: 1px solid #2c2c3a; }
+    .nav-link { display: block; padding: 8px 16px; color: var(--muted);
+                cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-link.active { color: #fff; border-bottom-color: var(--ok-sky); }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #2c2c3a; }
+    th { color: var(--muted); }
+    tbody tr:hover { background: #1d1d28; }
+    .card { background: #1d1d28; border: 1px solid #2c2c3a; border-radius: 6px;
+            padding: 12px; margin-bottom: 16px; }
+    .card img { max-width: 100%; }
+    button, select { background: #14141c; color: #e8e8ef; border: 1px solid #555;
+                     border-radius: 4px; padding: 3px 10px; font: inherit; }
+    button { cursor: pointer; }
+    label { margin-right: 8px; }
+    .picker { margin-bottom: 16px; }
+    .d-none { display: none; }
+    .sig { color: var(--ok-green); font-weight: 600; }
+    .ns { color: var(--muted); }
+    .warn { color: var(--ok-orange); font-weight: 600; }
+    code { color: var(--ok-sky); }
+  </style>
+</head>
+<body>
+<nav class="top">
+  <span class="brand">Neuroevolution Experiment Viewer</span>
+  <span class="text-secondary small">read-only view over experiments/EXP-*</span>
+</nav>
+
+<main>
+  <ul class="tabs" id="tabs">
+    <li><a class="nav-link active" data-view="list">Experiments</a></li>
+    <li><a class="nav-link" data-view="detail">Detail</a></li>
+    <li><a class="nav-link" data-view="compare">Compare Conditions</a></li>
+  </ul>
+
+  <div id="view-list">
+    <table>
+      <thead><tr><th>Run</th><th>Family</th><th>Seeds</th><th>Plots</th><th></th></tr></thead>
+      <tbody id="experiment-rows"></tbody>
+    </table>
+  </div>
+
+  <div id="view-detail" class="d-none">
+    <div class="picker">
+      <label for="detail-run">Run</label>
+      <select id="detail-run"></select>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+
+  <div id="view-compare" class="d-none">
+    <div class="picker">
+      <label for="compare-run">Run</label>
+      <select id="compare-run"></select>
+    </div>
+    <p class="text-secondary small">Every comparison shows its p-value, effect size and
+      bootstrap interval together - a p-value is never shown alone.</p>
+    <div id="compare-body"></div>
+  </div>
+</main>
+
+<script>
+// Static export replaces the marker below with the bundled data; when it
+// stays null the page runs in live mode against the FastAPI backend.
+const EMBEDDED = {"experiments":[{"id":"EXP-COEV","family":"Predator/prey co-evolution","primary_summary":"coevolution_summary.json","summaries":["coevolution_summary.json"],"n_seeds":null,"plots":[]},{"id":"EXP-D","family":"D (fitness weighting)","primary_summary":"stats_summary.json","summaries":["stats_summary.json"],"n_seeds":10,"plots":[]},{"id":"EXP-E","family":"E (crossover)","primary_summary":"stats_summary.json","summaries":["stats_summary.json"],"n_seeds":10,"plots":["fitness_curve.svg"]},{"id":"EXP-GEN","family":"A/B (generalization)","primary_summary":"stats_summary.json","summaries":["stats_summary.json"],"n_seeds":10,"plots":[]},{"id":"EXP-NEAT","family":"NEAT extension","primary_summary":"neat_summary.json","summaries":["neat_summary.json"],"n_seeds":null,"plots":["complexity_over_generations.svg"]}],"summaries":{"EXP-COEV":{"config":"predator_prey","seed":1,"generations":[{"generation":1,"prey_fitness_mean":0.7681761524645193,"prey_fitness_max":2.346811853313979,"predator_fitness_mean":1.0419803655318958,"predator_fitness_max":1.3498547531234628,"captures":5,"prey_alive_end":17,"predator_alive_end":3},{"generation":2,"prey_fitness_mean":0.6176242056679703,"prey_fitness_max":2.7899315607698574,"predator_fitness_mean":0.8863366503144133,"predator_fitness_max":1.1268040834731514,"captures":4,"prey_alive_end":19,"predator_alive_end":3},{"generation":3,"prey_fitness_mean":1.0916644020035626,"prey_fitness_max":2.540698671171132,"predator_fitness_mean":0.8089853491916127,"predator_fitness_max":1.1458549464511119,"captures":4,"prey_alive_end":20,"predator_alive_end":3},{"generation":4,"prey_fitness_mean":1.1574658202441732,"prey_fitness_max":3.2044414377828625,"predator_fitness_mean":0.5108185630051142,"predator_fitness_max":0.7784791771028249,"captures":6,"prey_alive_end":18,"predator_alive_end":3},{"generation":5,"prey_fitness_mean":1.3917255557512496,"prey_fitness_max":3.239589308070115,"predator_fitness_mean":1.0053970282391587,"predator_fitness_max":1.6180068402390737,"captures":5,"prey_alive_end":19,"predator_alive_end":3},{"generation":6,"prey_fitness_mean":1.3725414998047232,"prey_fitness_max":3.0665174642652526,"predator_fitness_mean":0.9161623839916099,"predator_fitness_max":1.074026220927717,"captures":4,"prey_alive_end":20,"predator_alive_end":3},{"generation":7,"prey_fitness_mean":1.1317369379285884,"prey_fitness_max":2.863894631683784,"predator_fitness_mean":0.6764223253691828,"predator_fitness_max":1.0777065745676135,"captures":4,"prey_alive_end":20,"predator_alive_end":3},{"generation":8,"prey_fitness_mean":1.1515325252533326,"prey_fitness_max":2.160342626604405,"predator_fitness_mean":0.8105837922112692,"predator_fitness_max":1.1541441117543103,"captures":5,"prey_alive_end":19,"predator_alive_end":3},{"generation":9,"prey_fitness_mean":1.032650607055387,"prey_fitness_max":2.935374583776346,"predator_fitness_mean":1.0662496843323181,"predator_fitness_max":1.4603376474124412,"captures":5,"prey_alive_end":19,"predator_alive_end":3},{"generation":10,"prey_fitness_mean":1.1034061021276302,"prey_fitness_max":2.6186305813626602,"predator_fitness_mean":0.988587581511272,"predator_fitness_max":1.2361162988958787,"captures":6,"prey_alive_end":18,"predator_alive_end":3}],"hof_evaluations":[{"generation":4,"predator_win_rate_vs_archive":0.0,"prey_win_rate_vs_archive":1.0,"archive_size":2},{"generation":6,"predator_win_rate_vs_archive":0.0,"prey_win_rate_vs_archive":1.0,"archive_size":3},{"generation":8,"predator_win_rate_vs_archive":0.0,"prey_win_rate_vs_archive":1.0,"archive_size":4},{"generation":10,"predator_win_rate_vs_archive":0.0,"prey_win_rate_vs_archive":0.8,"archive_size":5}]},"EXP-D":{"experiment":"experiment_d_fitness_weighting","n_seeds":10,"per_condition_scores":{"equal":[0.8150524920548424,0.7432648059778504,1.4204308929502745,0.9677369362462762,1.2169495890147268,1.1867530211724335,1.186386827074548,0.6706965922661476,0.8541735917750873,0.47007223482530947],"resource-weighted":[1.0676615958217281,1.1664992443652007,1.1058663991952895,0.7550848057538696,0.6069994039960112,0.8942918144727372,0.8969692859131093,0.682515672069169,0.9289525267618437,0.7196764072775442],"exploration-weighted":[1.0981543212832299,0.6663648993671599,1.0561832463657368,0.868932942570925,1.249012927512794,0.7811177277566088,1.0654255838739235,0.7647535428157963,0.6220877287176302,0.6549453415473344],"survival-weighted":[1.2667727394815043,0.6654497283999123,0.9752701258127402,0.6191327906921273,0.5837255572316695,1.405923115526339,0.4765506243386831,0.6768582145690465,1.1108756343067825,0.5866182982933917]},"comparison":{"metric":"balanced_evaluation_fitness","alpha":0.05,"pairwise":[{"condition_a":"equal","condition_b":"resource-weighted","mean_diff":0.07069998277309937,"p_value":0.556640625,"matched_pairs_rank_biserial":0.23636363636363636,"diff_ci95":[-0.12156251361585423,0.25895903081186955]},{"condition_a":"equal","condition_b":"exploration-weighted","mean_diff":0.07045387215463575,"p_value":0.375,"matched_pairs_rank_biserial":0.34545454545454546,"diff_ci95":[-0.0626971997603322,0.1992610030818292]},{"condition_a":"equal","condition_b":"survival-weighted","mean_diff":0.11643401547052994,"p_value":0.556640625,"matched_pairs_rank_biserial":0.23636363636363636,"diff_ci95":[-0.1164269333263971,0.34555475115989637]},{"condition_a":"resource-weighted","condition_b":"exploration-weighted","mean_diff":-0.00024611061846362413,"p_value":1.0,"matched_pairs_rank_biserial":-0.01818181818181818,"diff_ci95":[-0.1883017390279603,0.1741966038095542]},{"condition_a":"resource-weighted","condition_b":"survival-weighted","mean_diff":0.04573403269743061,"p_value":0.6953125,"matched_pairs_rank_biserial":0.16363636363636364,"diff_ci95":[-0.13241876735792096,0.21841664913299622]},{"condition_a":"exploration-weighted","condition_b":"survival-weighted","mean_diff":0.04598014331589423,"p_value":0.556640625,"matched_pairs_rank_biserial":0.23636363636363636,"diff_ci95":[-0.19583806504370746,0.2813859882071814]}],"significant_pairs":[],"bootstrap_cis":{"equal":[0.780517755773404,1.127987045198943],"resource-weighted":[0.7707146534713278,0.9949252203281052],"exploration-weighted":[0.758016424743112,1.0153806958843008],"survival-weighted":[0.6533630236127654,1.0393221179634369]},"n_seeds":10}},"EXP-E":{"experiment":"experiment_e_crossover_method","n_seeds":10,"per_condition_scores":{"blend":[1.0073594241530182,0.6615093609735794,1.436533896294457,0.9023279503033544,1.2928926231488465,0.706806129450189,0.8649835553081395,0.48002324391167817,0.8928436696871545,0.671692378318539],"uniform":[0.7209206359420536,1.0698998669431936,0.9475720369898756,0.62514744404466,1.284908766648283,0.8702992272862865,0.9312654033986665,1.0429932980160657,0.7475912898287718,0.6621393318874172],"none":[0.6884570017173403,0.6012430638289106,0.655231115359015,0.9447952439753553,1.2833620758389248,0.9967984378693929,0.9090695804339731,0.7187694617350224,0.6720988675847821,0.6241753492507289]},"comparison":{"metric":"balanced_evaluation_fitness","alpha":0.05,"pairwise":[{"condition_a":"blend","condition_b":"uniform","mean_diff":0.0014234930563681969,"p_value":0.921875,"matched_pairs_rank_biserial":0.05454545454545454,"diff_ci95":[-0.19387341346179493,0.18630605035806916]},{"condition_a":"blend","condition_b":"none","mean_diff":0.08229720339555101,"p_value":0.4921875,"matched_pairs_rank_biserial":0.2727272727272727,"diff_ci95":[-0.0822178033454107,0.2725712200369682]},{"condition_a":"uniform","condition_b":"none","mean_diff":0.08087371033918281,"p_value":0.193359375,"matched_pairs_rank_biserial":0.4909090909090909,"diff_ci95":[-0.04941440609752569,0.21650035822525546]}],"significant_pairs":[],"bootstrap_cis":{"blend":[0.7274963866033142,1.0728916560269006],"uniform":[0.7723107441204278,1.0102977397863424],"none":[0.6925859932681896,0.9438791358365962]},"n_seeds":10},"fitness_curves":{"blend":{"generation":[0,1,2,3,4,5,6,7,8,9,10,11],"mean_fitness":[0.48851106424346497,0.5955574105687397,0.6865399953942514,0.8119986058399886,0.849247444981471,0.8639720962569475,0.8853595303406513,0.8857029633883948,0.8707438245473135,0.8687059442628836,0.8739668997636099,0.983076712760122],"max_fitness":[1.4814826922864281,1.5647263308696187,1.8417118000934376,1.9861030955559542,1.8163357608676365,1.9879834385002102,2.1414553315561644,2.156671493327687,2.132025115924466,2.1893829240586897,2.115813897544501,2.1418918367352378]},"uniform":{"generation":[0,1,2,3,4,5,6,7,8,9,10,11],"mean_fitness":[0.48851106424346497,0.5865947686073598,0.5828952557398934,0.7311183252823106,0.7925011976862207,0.7531774187247327,0.8410314593262107,0.8113849263329771,0.8781061527411478,0.889459172416494,0.9063596963068387,0.8739600827106733],"max_fitness":[1.4814826922864281,1.6344483813205877,1.6018855933691047,1.9654146315824774,2.0640869289814527,2.1217422468682354,2.0275290438538898,2.089815005262534,2.191193328954778,2.0800406326493883,2.189899199880653,2.158901211519022]},"none":{"generation":[0,1,2,3,4,5,6,7,8,9,10,11],"mean_fitness":[0.48851106424346497,0.667362747460569,0.7042037259876535,0.7886244181320358,0.7234720815462642,0.7539424493601399,0.8020152140764611,0.7986111283669148,0.7352661257290883,0.7774188585896368,0.7701653236154681,0.7711762121303043],"max_fitness":[1.4814826922864281,1.7433370613366865,1.7474928719503253,2.070695269497966,1.8025999023861943,1.9515574857810756,1.9690952540515343,1.926209234785111,1.9275359885321575,2.0045286803950377,2.0437077312473937,1.938157361388192]}}},"EXP-GEN":{"experiment":"generalization","n_seeds":10,"train_layouts":["A1","A2","A3"],"test_layouts":["B1","B2","B3"],"per_seed":[{"seed":0,"train_score":1.0730558912881796,"unseen_score":0.9291433456445309,"train_scores_per_layout":[1.0073594241530182,1.0235856377173662,1.1882226119941541],"unseen_scores_per_layout":[0.951500125238519,1.0597927545485966,1.0134591718949668,0.885248947592331,0.7916367573534279,1.0637150891474398,0.7508197102238924,0.9079514237917332,0.938166131009871]},{"seed":1,"train_score":0.6622644025545706,"unseen_score":0.6758721981488746,"train_scores_per_layout":[0.6615093609735794,0.6951937310625835,0.630090115627549],"unseen_scores_per_layout":[0.6902750333840417,0.9415964752910693,1.0163034103487707,0.5123824449597583,0.5098433642427452,0.5032344410647015,0.691672496229254,0.6425856367603744,0.5749564810591556]},{"seed":2,"train_score":0.98324744462089,"unseen_score":0.8514997009669423,"train_scores_per_layout":[1.436533896294457,0.6234819421293164,0.8897264954388966],"unseen_scores_per_layout":[1.089717832875476,1.1458296188049424,1.3074145743837093,0.7785484623880704,0.6194211603927199,0.6440842555173951,0.6507380759849631,0.7086720933157019,0.7190712350395032]},{"seed":3,"train_score":0.947843844903869,"unseen_score":0.8622966407625624,"train_scores_per_layout":[0.9023279503033544,1.0510797183688063,0.8901238660394464],"unseen_scores_per_layout":[0.962712567184742,0.7786593402196826,0.8306088188828173,0.6654257605020691,0.7875464958771833,0.7288879114122762,0.9499166548641366,1.202901582197366,0.8540106357227888]},{"seed":4,"train_score":1.0174169375664663,"unseen_score":0.9131444033406518,"train_scores_per_layout":[1.2928926231488465,0.5040777810441265,1.2552804085064264],"unseen_scores_per_layout":[1.2053786020683002,1.1522333640575404,1.1843277025058057,0.35735548569146197,0.464135934985581,0.4524541737475416,1.1192635295242914,1.2195038973320333,1.0636469401533106]},{"seed":5,"train_score":0.7553048950044176,"unseen_score":0.7946560730679798,"train_scores_per_layout":[0.706806129450189,0.8606713313129358,0.6984372242501282],"unseen_scores_per_layout":[0.7997168282519778,1.0179710301913114,0.6125188894999587,0.6084759993938217,0.825223334398091,0.8875449785443056,0.982472772732299,0.7298259404408918,0.6881548841591619]},{"seed":6,"train_score":0.8568740141130998,"unseen_score":0.8218847875721838,"train_scores_per_layout":[0.8649835553081395,0.9091873413504896,0.7964511456806702],"unseen_scores_per_layout":[0.8553015382202294,0.9085758447505279,0.7248424625379208,1.0267111498874946,0.9067983464031263,0.8188984941279379,0.7512670535389407,0.7985591067000625,0.6060090919834129]},{"seed":7,"train_score":0.8405485717154599,"unseen_score":0.9172255988319225,"train_scores_per_layout":[0.48002324391167817,1.1823871281041551,0.8592353431305468],"unseen_scores_per_layout":[0.5746125199392967,0.40242554015662285,0.5088990400395842,1.0843614192900497,1.1188628527963296,1.1526168810341368,1.1520234826154905,1.3064371217747888,0.9547915318410034]},{"seed":8,"train_score":0.9597204713811784,"unseen_score":0.895313532619226,"train_scores_per_layout":[0.8928436696871545,1.0092919509309233,0.9770257935254575],"unseen_scores_per_layout":[0.7394238067922896,0.7765210625915095,0.8257974467818372,0.905585470346557,0.7597316126898647,1.0186786133401171,0.9450326452105123,1.073391243081818,1.0136598927385276]},{"seed":9,"train_score":0.8808683570371644,"unseen_score":0.8490645283719425,"train_scores_per_layout":[0.671692378318539,1.0603627928385622,0.9105498999543922],"unseen_scores_per_layout":[0.5950292514474661,0.761186984899987,0.6211417334581695,1.0236983747465884,1.1133689136493161,1.1271919125705172,0.8797966850244668,0.6716686210368848,0.8484982785140854]}],"train_mean":0.8977144830185295,"unseen_mean":0.8510100809326817,"gap_mean":0.04670440208584792,"train_ci95":[0.8224946615103546,0.967852897522669],"unseen_ci95":[0.802708673507073,0.8896763099953978],"gap_ci95":[0.0015453710997966486,0.08862081959876422],"wilcoxon_w":11.0,"p_value":0.10546875,"matched_pairs_rank_biserial":0.6},"EXP-NEAT":{"config":"neat_food_seeking","seed":1,"population_size":100,"generations":[{"generation":1,"population_size":100,"species_count":1,"mean_fitness":0.4806003581628188,"max_fitness":2.2086889192427157,"champion_fitness":2.2086889192427157,"mean_complexity":51.0,"max_complexity":51,"mean_food_eaten":0.26,"num_alive_end":17,"champion_complexity":51,"innovation_counter":40},{"generation":2,"population_size":100,"species_count":1,"mean_fitness":0.3533037224468661,"max_fitness":1.5771219346912009,"champion_fitness":1.5771219346912009,"mean_complexity":51.02,"max_complexity":53,"mean_food_eaten":0.1,"num_alive_end":5,"champion_complexity":51,"innovation_counter":47},{"generation":3,"population_size":100,"species_count":1,"mean_fitness":0.40850372531625845,"max_fitness":1.6116116315863198,"champion_fitness":1.6116116315863198,"mean_complexity":51.08,"max_complexity":53,"mean_food_eaten":0.14,"num_alive_end":9,"champion_complexity":51,"innovation_counter":56},{"generation":4,"population_size":100,"species_count":1,"mean_fitness":0.3448132539227929,"max_fitness":1.9489732651336247,"champion_fitness":1.9489732651336247,"mean_complexity":51.28,"max_complexity":55,"mean_food_eaten":0.13,"num_alive_end":10,"champion_complexity":51,"innovation_counter":67},{"generation":5,"population_size":100,"species_count":1,"mean_fitness":0.43559631263393583,"max_fitness":1.6142100400430666,"champion_fitness":1.6142100400430666,"mean_complexity":51.38,"max_complexity":55,"mean_food_eaten":0.15,"num_alive_end":8,"champion_complexity":51,"innovation_counter":83},{"generation":6,"population_size":100,"species_count":1,"mean_fitness":0.4156562615780789,"max_fitness":1.8124566540471596,"champion_fitness":1.8124566540471596,"mean_complexity":51.66,"max_complexity":55,"mean_food_eaten":0.12,"num_alive_end":7,"champion_complexity":51,"innovation_counter":90},{"generation":7,"population_size":100,"species_count":1,"mean_fitness":0.37942619081398726,"max_fitness":1.5629207199421833,"champion_fitness":1.5629207199421833,"mean_complexity":51.8,"max_complexity":55,"mean_food_eaten":0.1,"num_alive_end":7,"champion_complexity":51,"innovation_counter":111},{"generation":8,"population_size":100,"species_count":1,"mean_fitness":0.4388454182760607,"max_fitness":1.699612266747989,"champion_fitness":1.699612266747989,"mean_complexity":52.29,"max_complexity":56,"mean_food_eaten":0.13,"num_alive_end":8,"champion_complexity":51,"innovation_counter":123},{"generation":9,"population_size":100,"species_count":1,"mean_fitness":0.43472369674540867,"max_fitness":1.7732486284759317,"champion_fitness":1.7732486284759317,"mean_complexity":52.85,"max_complexity":56,"mean_food_eaten":0.2,"num_alive_end":11,"champion_complexity":51,"innovation_counter":133},{"generation":10,"population_size":100,"species_count":1,"mean_fitness":0.35135155680862334,"max_fitness":1.2081412726428222,"champion_fitness":1.2081412726428222,"mean_complexity":53.94,"max_complexity":60,"mean_food_eaten":0.07,"num_alive_end":5,"champion_complexity":51,"innovation_counter":155},{"generation":11,"population_size":100,"species_count":1,"mean_fitness":0.4532522392213897,"max_fitness":1.7915002740053674,"champion_fitness":1.7915002740053674,"mean_complexity":55.25,"max_complexity":61,"mean_food_eaten":0.18,"num_alive_end":11,"champion_complexity":51,"innovation_counter":173},{"generation":12,"population_size":100,"species_count":1,"mean_fitness":0.39710273225949555,"max_fitness":2.345428243034781,"champion_fitness":2.345428243034781,"mean_complexity":56.71,"max_complexity":64,"mean_food_eaten":0.14,"num_alive_end":7,"champion_complexity":58,"innovation_counter":193},{"generation":13,"population_size":100,"species_count":1,"mean_fitness":0.3597731666023132,"max_fitness":1.4609853171322724,"champion_fitness":1.4609853171322724,"mean_complexity":58.06,"max_complexity":67,"mean_food_eaten":0.18,"num_alive_end":5,"champion_complexity":58,"innovation_counter":208},{"generation":14,"population_size":100,"species_count":1,"mean_fitness":0.3809485066960643,"max_fitness":1.3892272545094497,"champion_fitness":1.3892272545094497,"mean_complexity":60.0,"max_complexity":69,"mean_food_eaten":0.14,"num_alive_end":7,"champion_complexity":58,"innovation_counter":224},{"generation":15,"population_size":100,"species_count":1,"mean_fitness":0.39802328244300794,"max_fitness":1.6639530812043866,"champion_fitness":1.6639530812043866,"mean_complexity":62.31,"max_complexity":74,"mean_food_eaten":0.16,"num_alive_end":9,"champion_complexity":58,"innovation_counter":241},{"generation":16,"population_size":100,"species_count":1,"mean_fitness":0.3873005861472211,"max_fitness":1.2434566084032523,"champion_fitness":1.2434566084032523,"mean_complexity":65.54,"max_complexity":76,"mean_food_eaten":0.08,"num_alive_end":4,"champion_complexity":58,"innovation_counter":266},{"generation":17,"population_size":100,"species_count":1,"mean_fitness":0.38817624652378835,"max_fitness":1.327212778554245,"champion_fitness":1.327212778554245,"mean_complexity":68.3,"max_complexity":83,"mean_food_eaten":0.18,"num_alive_end":9,"champion_complexity":58,"innovation_counter":281},{"generation":18,"population_size":100,"species_count":1,"mean_fitness":0.3636594943468794,"max_fitness":1.3079757902468856,"champion_fitness":1.3079757902468856,"mean_complexity":70.42,"max_complexity":86,"mean_food_eaten":0.16,"num_alive_end":7,"champion_complexity":58,"innovation_counter":292},{"generation":19,"population_size":100,"species_count":1,"mean_fitness":0.43832205437891214,"max_fitness":1.719116784993443,"champion_fitness":1.719116784993443,"mean_complexity":72.64,"max_complexity":84,"mean_food_eaten":0.18,"num_alive_end":13,"champion_complexity":58,"innovation_counter":312},{"generation":20,"population_size":100,"species_count":1,"mean_fitness":0.5014812487781006,"max_fitness":1.844760317949881,"champion_fitness":1.844760317949881,"mean_complexity":75.71,"max_complexity":87,"mean_food_eaten":0.19,"num_alive_end":12,"champion_complexity":58,"innovation_counter":338},{"generation":21,"population_size":100,"species_count":1,"mean_fitness":0.4558290248447384,"max_fitness":1.7366952557132114,"champion_fitness":1.7366952557132114,"mean_complexity":78.94,"max_complexity":89,"mean_food_eaten":0.19,"num_alive_end":12,"champion_complexity":58,"innovation_counter":375},{"generation":22,"population_size":100,"species_count":1,"mean_fitness":0.3685798252496663,"max_fitness":1.3548911745750005,"champion_fitness":1.3548911745750005,"mean_complexity":82.12,"max_complexity":93,"mean_food_eaten":0.1,"num_alive_end":6,"champion_complexity":58,"innovation_counter":391},{"generation":23,"population_size":100,"species_count":1,"mean_fitness":0.38720987431225073,"max_fitness":1.4094347660637674,"champion_fitness":1.4094347660637674,"mean_complexity":84.47,"max_complexity":99,"mean_food_eaten":0.1,"num_alive_end":6,"champion_complexity":58,"innovation_counter":410},{"generation":24,"population_size":100,"species_count":1,"mean_fitness":0.3892130498928894,"max_fitness":1.7751021413412573,"champion_fitness":1.7751021413412573,"mean_complexity":86.57,"max_complexity":98,"mean_food_eaten":0.13,"num_alive_end":7,"champion_complexity":58,"innovation_counter":433},{"generation":25,"population_size":100,"species_count":1,"mean_fitness":0.4849521579851585,"max_fitness":2.148371549960374,"champion_fitness":2.148371549960374,"mean_complexity":87.79,"max_complexity":100,"mean_food_eaten":0.17,"num_alive_end":10,"champion_complexity":58,"innovation_counter":455},{"generation":26,"population_size":100,"species_count":1,"mean_fitness":0.40431021331298106,"max_fitness":1.312720857166028,"champion_fitness":1.312720857166028,"mean_complexity":91.38,"max_complexity":102,"mean_food_eaten":0.14,"num_alive_end":8,"champion_complexity":58,"innovation_counter":471},{"generation":27,"population_size":100,"species_count":1,"mean_fitness":0.3825637638684476,"max_fitness":1.3877759277610615,"champion_fitness":1.3877759277610615,"mean_complexity":93.62,"max_complexity":106,"mean_food_eaten":0.21,"num_alive_end":13,"champion_complexity":58,"innovation_counter":497},{"generation":28,"population_size":100,"species_count":1,"mean_fitness":0.4048168690404246,"max_fitness":1.5244509901533605,"champion_fitness":1.5244509901533605,"mean_complexity":95.58,"max_complexity":112,"mean_food_eaten":0.15,"num_alive_end":10,"champion_complexity":58,"innovation_counter":513},{"generation":29,"population_size":100,"species_count":1,"mean_fitness":0.3490913972819504,"max_fitness":0.9784226704750166,"champion_fitness":0.9784226704750166,"mean_complexity":98.47,"max_complexity":116,"mean_food_eaten":0.06,"num_alive_end":3,"champion_complexity":58,"innovation_counter":534},{"generation":30,"population_size":100,"species_count":1,"mean_fitness":0.42874120297506535,"max_fitness":1.5892654852745167,"champion_fitness":1.5892654852745167,"mean_complexity":101.97,"max_complexity":117,"mean_food_eaten":0.12,"num_alive_end":5,"champion_complexity":58,"innovation_counter":572}],"final_champion_complexity":58,"final_species_count":1,"total_innovations":571,"batching_benchmark":{"population":100,"mean_nodes_per_genome":16.5,"steps":150,"compile_seconds_per_episode":0.027062399999704213,"batched_population_steps_per_second":249.07770675916984,"batched_per_species_steps_per_second":220.91427878738793,"per_agent_steps_per_second":84.72968800539243,"speedup_population_vs_per_agent":2.9396745417417076,"speedup_species_vs_per_agent":2.607283043144551}}},"plots":{"EXP-COEV":{},"EXP-D":{},"EXP-E":{"fitness_curve.svg":"\u003csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"400\">\n\u003crect width=\"640\" height=\"400\" fill=\"white\"/>\n\u003ctext x=\"320.0\" y=\"24\" font-size=\"15\" text-anchor=\"middle\">Fitness over generations (mean over seeds)\u003c/text>\n\u003cline x1=\"50\" y1=\"350\" x2=\"590\" y2=\"350\" stroke=\"black\"/>\n\u003cline x1=\"50\" y1=\"50\" x2=\"50\" y2=\"350\" stroke=\"black\"/>\n\u003ctext x=\"42\" y=\"354.0\" font-size=\"11\" text-anchor=\"end\">0.49\u003c/text>\n\u003ctext x=\"42\" y=\"54.0\" font-size=\"11\" text-anchor=\"end\">2.19\u003c/text>\n\u003ctext x=\"590\" y=\"366\" font-size=\"11\" text-anchor=\"middle\">generation\u003c/text>\n\u003cpolyline points=\"50.0,350.0 99.1,331.1 148.2,315.1 197.3,293.0 246.4,286.4 295.5,283.8 344.5,280.1 393.6,280.0 442.7,282.7 491.8,283.0 540.9,282.1 590.0,262.9\" fill=\"none\" stroke=\"#1f77b4\" stroke-width=\"2\"/>\n\u003cpolyline points=\"50.0,175.0 99.1,160.4 148.2,111.6 197.3,86.1 246.4,116.0 295.5,85.8 344.5,58.8 393.6,56.1 442.7,60.4 491.8,50.3 540.9,63.3 590.0,58.7\" fill=\"none\" stroke=\"#1f77b4\" stroke-dasharray=\"6 4\" stroke-width=\"2\"/>\n\u003cpolyline points=\"50.0,350.0 99.1,332.7 148.2,333.4 197.3,307.3 246.4,296.4 295.5,303.4 344.5,287.9 393.6,293.1 442.7,281.4 491.8,279.4 540.9,276.4 590.0,282.1\" fill=\"none\" stroke=\"#2ca02c\" stroke-width=\"2\"/>\n\u003cpolyline points=\"50.0,175.0 99.1,148.1 148.2,153.8 197.3,89.8 246.4,72.4 295.5,62.2 344.5,78.8 393.6,67.9 442.7,50.0 491.8,69.6 540.9,50.2 590.0,55.7\" fill=\"none\" stroke=\"#2ca02c\" stroke-dasharray=\"6 4\" stroke-width=\"2\"/>\n\u003cpolyline points=\"50.0,350.0 99.1,318.5 148.2,312.0 197.3,297.1 246.4,308.6 295.5,303.2 344.5,294.8 393.6,295.4 442.7,306.5 491.8,299.1 540.9,300.4 590.0,300.2\" fill=\"none\" stroke=\"#d62728\" stroke-width=\"2\"/>\n\u003cpolyline points=\"50.0,175.0 99.1,128.9 148.2,128.2 197.3,71.2 246.4,118.5 295.5,92.2 344.5,89.1 393.6,96.7 442.7,96.5 491.8,82.9 540.9,76.0 590.0,94.6\" fill=\"none\" stroke=\"#d62728\" stroke-dasharray=\"6 4\" stroke-width=\"2\"/>\n\u003cline x1=\"50\" y1=\"20\" x2=\"74\" y2=\"20\" stroke=\"#1f77b4\" stroke-width=\"3\"/>\n\u003ctext x=\"80\" y=\"24\" font-size=\"12\">blend\u003c/text>\n\u003cline x1=\"50\" y1=\"36\" x2=\"74\" y2=\"36\" stroke=\"#2ca02c\" stroke-width=\"3\"/>\n\u003ctext x=\"80\" y=\"40\" font-size=\"12\">uniform\u003c/text>\n\u003cline x1=\"50\" y1=\"52\" x2=\"74\" y2=\"52\" stroke=\"#d62728\" stroke-width=\"3\"/>\n\u003ctext x=\"80\" y=\"56\" font-size=\"12\">none\u003c/text>\n\u003c/svg>"},"EXP-GEN":{},"EXP-NEAT":{"complexity_over_generations.svg":"\u003csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"400\">\n\u003crect width=\"640\" height=\"400\" fill=\"white\"/>\n\u003ctext x=\"320.0\" y=\"24\" font-size=\"15\" text-anchor=\"middle\">NEAT complexity over generations\u003c/text>\n\u003cline x1=\"50\" y1=\"350\" x2=\"590\" y2=\"350\" stroke=\"black\"/>\n\u003cline x1=\"50\" y1=\"50\" x2=\"50\" y2=\"350\" stroke=\"black\"/>\n\u003ctext x=\"42\" y=\"354.0\" font-size=\"11\" text-anchor=\"end\">51\u003c/text>\n\u003ctext x=\"42\" y=\"54.0\" font-size=\"11\" text-anchor=\"end\">117\u003c/text>\n\u003ctext x=\"590\" y=\"366\" font-size=\"11\" text-anchor=\"middle\">generation\u003c/text>\n\u003ctext x=\"14\" y=\"200.0\" font-size=\"11\" text-anchor=\"middle\" transform=\"rotate(-90 14 200.0)\">complexity\u003c/text>\n\u003cpolyline points=\"50.0,350.0 68.6,349.9 87.2,349.6 105.9,348.7 124.5,348.3 143.1,347.0 161.7,346.4 180.3,344.1 199.0,341.6 217.6,336.6 236.2,330.7 254.8,324.0 273.4,317.9 292.1,309.1 310.7,298.6 329.3,283.9 347.9,271.4 366.6,261.7 385.2,251.6 403.8,237.7 422.4,223.0 441.0,208.5 459.7,197.9 478.3,188.3 496.9,182.8 515.5,166.5 534.1,156.3 552.8,147.4 571.4,134.2 590.0,118.3\" fill=\"none\" stroke=\"#1f77b4\" stroke-width=\"2\"/>\n\u003cpolyline points=\"50.0,350.0 68.6,340.9 87.2,340.9 105.9,331.8 124.5,331.8 143.1,331.8 161.7,331.8 180.3,327.3 199.0,327.3 217.6,309.1 236.2,304.5 254.8,290.9 273.4,277.3 292.1,268.2 310.7,245.5 329.3,236.4 347.9,204.5 366.6,190.9 385.2,200.0 403.8,186.4 422.4,177.3 441.0,159.1 459.7,131.8 478.3,136.4 496.9,127.3 515.5,118.2 534.1,100.0 552.8,72.7 571.4,54.5 590.0,50.0\" fill=\"none\" stroke=\"#d62728\" stroke-dasharray=\"6 4\" stroke-width=\"2\"/>\n\u003cline x1=\"50\" y1=\"20\" x2=\"74\" y2=\"20\" stroke=\"#1f77b4\" stroke-width=\"3\"/>\n\u003ctext x=\"80\" y=\"24\" font-size=\"12\">mean complexity\u003c/text>\n\u003cline x1=\"50\" y1=\"36\" x2=\"74\" y2=\"36\" stroke=\"#d62728\" stroke-dasharray=\"6 4\" stroke-width=\"3\"/>\n\u003ctext x=\"80\" y=\"40\" font-size=\"12\">max complexity\u003c/text>\n\u003c/svg>"}}};
+
+let runs = [];
+
+// Artifact values reach innerHTML below; escape them so a crafted
+// condition or method string cannot inject markup into the viewer.
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+// Data layer: the only place that knows whether we are static or live.
+async function getRuns() {
+  if (EMBEDDED) return EMBEDDED.experiments;
+  const response = await fetch('/experiments');
+  return (await response.json()).experiments;
+}
+
+async function getSummary(runId) {
+  if (EMBEDDED) return EMBEDDED.summaries[runId] ?? {};
+  const response = await fetch(`/experiments/${encodeURIComponent(runId)}/stats_summary`);
+  return response.json();
+}
+
+function plotUrl(runId, name) {
+  if (EMBEDDED) {
+    // An <img> never runs scripts inside an SVG, so embedding as a data
+    // URI is safe even for an unexpected plot file.
+    return 'data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(EMBEDDED.plots[runId][name]);
+  }
+  return `/experiments/${encodeURIComponent(runId)}/plot/${encodeURIComponent(name)}`;
+}
+
+async function loadRuns() {
+  runs = await getRuns();
+  const rows = document.getElementById('experiment-rows');
+  rows.innerHTML = '';
+  for (const run of runs) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><code>${esc(run.id)}</code></td><td>${esc(run.family)}</td>` +
+      `<td>${run.n_seeds ?? '-'}</td><td>${esc(run.plots.join(', ')) || '-'}</td>` +
+      `<td><button data-detail="${esc(run.id)}">open</button></td>`;
+    rows.appendChild(tr);
+  }
+  for (const select of ['detail-run', 'compare-run']) {
+    const el = document.getElementById(select);
+    el.innerHTML = '';
+    for (const run of runs) {
+      const option = document.createElement('option');
+      option.value = run.id; option.textContent = run.id;
+      el.appendChild(option);
+    }
+  }
+}
+
+async function showDetail(runId) {
+  document.getElementById('detail-body').innerHTML = '<p class="text-secondary">loading...</p>';
+  const summary = await getSummary(runId);
+  // Per-generation data is part of the summary itself, so no separate
+  // metrics request is needed in either mode.
+  const fitnessCurves = summary.fitness_curves ?? {};
+  const generations = summary.generations ?? [];
+  let html = '';
+  const run = runs.find(r => r.id === runId);
+  for (const plot of (run?.plots ?? [])) {
+    html += `<div class="card"><img alt="${esc(plot)}" src="${esc(plotUrl(runId, plot))}"></div>`;
+  }
+  if (Object.keys(fitnessCurves).length) {
+    html += '<h5>Fitness over generations</h5><table><thead><tr><th>Method</th><th>Gen 0</th><th>Final</th><th>Change</th></tr></thead><tbody>';
+    for (const [method, curve] of Object.entries(fitnessCurves)) {
+      const first = curve.mean_fitness[0], last = curve.mean_fitness.at(-1);
+      const delta = last - first;
+      const color = delta > 0 ? 'var(--ok-green)' : 'var(--ok-vermillion)';
+      html += `<tr><td>${esc(method)}</td><td>${first.toFixed(3)}</td><td>${last.toFixed(3)}</td>` +
+        `<td style="color:${color}">${delta >= 0 ? '+' : ''}${delta.toFixed(3)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  if (generations.length) {
+    // NEAT and co-evolution key per-generation rows here; without this
+    // their detail views render as "no renderable data".
+    const columns = [...new Set(generations.flatMap(row => Object.keys(row)))];
+    html += '<h5>Per-generation rows</h5><table><thead><tr>' +
+      columns.map(c => `<th>${esc(c)}</th>`).join('') +
+      '</tr></thead><tbody>';
+    for (const row of generations) {
+      html += '<tr>' + columns.map(c => {
+        const value = row[c];
+        if (typeof value === 'number') {
+          return `<td>${value.toFixed(4)}</td>`;
+        }
+        if (value && typeof value === 'object') {
+          return `<td>${esc(JSON.stringify(value))}</td>`;
+        }
+        return `<td>${esc(value ?? '-')}</td>`;
+      }).join('') + '</tr>';
+    }
+    html += '</tbody></table>';
+  }
+  if (summary.per_condition_scores) {
+    html += '<h5>Condition means</h5><table><tbody>';
+    for (const [condition, scores] of Object.entries(summary.per_condition_scores)) {
+      const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+      html += `<tr><td>${esc(condition)}</td><td>${mean.toFixed(4)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  if (summary.gap_mean !== undefined) {
+    html += `<p>Generalization gap (train - unseen): <b>${summary.gap_mean.toFixed(4)}</b>` +
+      ` &nbsp; CI [${summary.gap_ci95.map(x => x.toFixed(4)).join(', ')}]</p>`;
+  }
+  document.getElementById('detail-body').innerHTML = html || '<p class="text-secondary">no renderable data</p>';
+}
+
+async function showCompare(runId) {
+  const summary = await getSummary(runId);
+  const comparison = summary.comparison?.pairwise;
+  if (!comparison || !comparison.length) {
+    document.getElementById('compare-body').innerHTML =
+      '<p class="text-secondary">no pairwise comparisons in this run</p>';
+    return;
+  }
+  // The verdict comes from the run's Holm-Bonferroni rejections, never
+  // from the raw p-value: a p<0.05 pair can still fail the correction.
+  const significant = new Set(summary.comparison?.significant_pairs || []);
+  const alpha = summary.comparison?.alpha ?? 0.05;
+  let html = '<table><thead><tr><th>Comparison</th><th>Mean diff</th>' +
+    '<th>95% CI</th><th>p (paired)</th><th>Effect size r</th>' +
+    `<th>Verdict (Holm, alpha=${alpha})</th></tr></thead><tbody>`;
+  for (const row of comparison) {
+    const label = `${row.condition_a}_vs_${row.condition_b}`;
+    const ci = (row.diff_ci95 || []).map(x => x.toFixed(3)).join(', ');
+    let verdict, cls;
+    if (significant.has(label)) {
+      verdict = 'significant';
+      cls = 'sig';
+    } else if (row.p_value < alpha) {
+      verdict = 'raw p < alpha, not significant after Holm';
+      cls = 'warn';
+    } else {
+      verdict = 'not significant; effect shown for context only';
+      cls = 'ns';
+    }
+    html += `<tr><td>${esc(row.condition_a)} vs ${esc(row.condition_b)}</td>` +
+      `<td>${(row.mean_diff ?? 0).toFixed(4)}</td>` +
+      `<td>[${ci}]</td>` +
+      `<td>${row.p_value.toFixed(4)}</td>` +
+      `<td>${(row.matched_pairs_rank_biserial ?? 0).toFixed(3)}</td>` +
+      `<td class="${cls}">${verdict}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += '<p class="text-secondary small">Effect size r is the matched-pairs rank-biserial; ' +
+    'CI is the percentile bootstrap interval of the paired mean difference. ' +
+    'Verdicts are the run\'s Holm-Bonferroni rejections.</p>';
+  document.getElementById('compare-body').innerHTML = html;
+}
+
+document.querySelectorAll('#tabs .nav-link').forEach(link => {
+  link.addEventListener('click', event => {
+    event.preventDefault();
+    document.querySelectorAll('#tabs .nav-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    const view = link.dataset.view;
+    for (const name of ['list', 'detail', 'compare']) {
+      document.getElementById(`view-${name}`).classList.toggle('d-none', name !== view);
+    }
+    if (view === 'detail') showDetail(document.getElementById('detail-run').value);
+    if (view === 'compare') showCompare(document.getElementById('compare-run').value);
+  });
+});
+
+document.addEventListener('click', event => {
+  const runId = event.target.dataset?.detail;
+  if (runId) {
+    document.getElementById('detail-run').value = runId;
+    document.querySelector('#tabs .nav-link[data-view="detail"]').click();
+  }
+});
+
+for (const select of ['detail-run', 'compare-run']) {
+  document.getElementById(select).addEventListener('change', event => {
+    if (select === 'detail-run') showDetail(event.target.value);
+    else showCompare(event.target.value);
+  });
+}
+
+loadRuns();
+</script>
+</body>
+</html>

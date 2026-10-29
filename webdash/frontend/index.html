@@ -3,84 +3,775 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Neuroevolution Experiment Viewer</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Neuroevolution Showcase</title>
   <style>
-    /* Okabe-Ito color-blind-safe palette */
+    /* Self-contained: no CDN, so the exported file works offline.
+       Okabe-Ito color-blind-safe palette. */
     :root {
       --ok-orange: #E69F00; --ok-sky: #56B4E9; --ok-green: #009E73;
-      --ok-vermillion: #D55E00;
+      --ok-vermillion: #D55E00; --ok-yellow: #F0E442; --muted: #b8b8c8;
+      --panel: #1d1d28; --line: #2c2c3a;
     }
-    body { background: #14141c; color: #e8e8ef; }
-    .card { background: #1d1d28; border-color: #2c2c3a; }
-    .table { color: #e8e8ef; }
-    .table th { color: #b8b8c8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #14141c; color: #e8e8ef;
+           font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    header.top { padding: 28px 24px 8px; max-width: 1200px; margin: 0 auto; }
+    header.top h1 { margin: 0 0 4px; font-size: 28px; }
+    .text-secondary { color: var(--muted); }
+    .small { font-size: 13px; }
+    main { padding: 0 24px 48px; max-width: 1200px; margin: 0 auto; }
+    section { margin-top: 36px; }
+    h2 { font-size: 20px; margin: 0 0 4px; }
+    h3 { font-size: 16px; margin: 0 0 6px; }
+    .lede { color: var(--muted); margin: 0 0 14px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
+    .seg { display: inline-flex; border: 1px solid #555; border-radius: 6px;
+           overflow: hidden; }
+    .seg button { border: 0; border-radius: 0; padding: 6px 14px; }
+    .seg button[aria-pressed="true"] { background: var(--ok-sky); color: #0b0b12;
+                                       font-weight: 600; }
+    button, select { background: #14141c; color: #e8e8ef; border: 1px solid #555;
+                     border-radius: 4px; padding: 4px 12px; font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, .stage:focus-visible,
+    input[type=range]:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--ok-yellow); outline-offset: 2px; }
+
+    .stage { background: var(--panel); border: 1px solid var(--line);
+             border-radius: 8px; padding: 12px; }
+    #arena { width: 100%; display: block; background: #0f0f16; border-radius: 4px; }
+    .controls { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+    .controls input[type=range] { flex: 1; }
+    .hud { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px;
+           font-size: 13px; color: var(--muted); }
+    .hud b { color: #e8e8ef; font-weight: 600; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px;
+              color: var(--muted); margin-top: 6px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+           margin-right: 5px; vertical-align: middle; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .compare { max-width: 560px; margin-top: 14px; }
+
+    .brain-grid { display: grid; gap: 16px;
+                  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+    .brain { background: var(--panel); border: 1px solid var(--line);
+             border-radius: 8px; padding: 12px; }
+    .brain canvas { width: 100%; display: block; }
+
+    .cards { display: grid; gap: 16px;
+             grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+    .card { background: var(--panel); border: 1px solid var(--line);
+            border-radius: 8px; padding: 16px; }
+    .card dl { margin: 8px 0; }
+    .card dt { font-weight: 600; font-size: 13px; color: var(--muted); }
+    .card dd { margin: 0 0 6px; }
+    .facts td:first-child { color: var(--muted); }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px;
+             font-size: 13px; font-weight: 600; border: 1px solid; }
+    .v-positive { color: var(--ok-green); border-color: var(--ok-green); }
+    .v-mixed { color: var(--ok-orange); border-color: var(--ok-orange); }
+    .v-null { color: var(--muted); border-color: #777; }
+    .takeaway { border-left: 3px solid var(--ok-sky); padding-left: 10px;
+                margin-top: 10px; }
+    .chart { margin: 8px 0; }
+    .chart svg { width: 100%; height: auto; display: block; }
+    .strip { display: flex; flex-wrap: wrap; gap: 6px; }
+    .strip span { width: 38px; text-align: center; border-radius: 4px;
+                  font-size: 12px; padding: 3px 0; border: 1px solid; }
+    .strip .ok { color: var(--ok-green); border-color: var(--ok-green); }
+    .strip .bad { color: var(--ok-vermillion); border-color: var(--ok-vermillion); }
+
+    details { margin-top: 36px; background: var(--panel); border: 1px solid var(--line);
+              border-radius: 8px; padding: 12px 16px; }
+    summary { cursor: pointer; font-weight: 600; }
+    .tabs { display: flex; gap: 4px; margin: 12px 0 12px; padding: 0;
+            list-style: none; border-bottom: 1px solid var(--line); }
+    .nav-link { display: block; padding: 8px 16px; color: var(--muted);
+                cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-link.active { color: #fff; border-bottom-color: var(--ok-sky); }
+    .picker { margin-bottom: 12px; }
+    .card img, #detail-body img { max-width: 100%; }
+    .d-none { display: none; }
     .sig { color: var(--ok-green); font-weight: 600; }
-    .ns { color: #b8b8c8; }
+    .ns { color: var(--muted); }
     .warn { color: var(--ok-orange); font-weight: 600; }
     code { color: var(--ok-sky); }
+    .notice { padding: 12px; border: 1px dashed #777; border-radius: 6px;
+              color: var(--muted); }
   </style>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-dark px-4">
-  <span class="navbar-brand">Neuroevolution Experiment Viewer</span>
-  <span class="text-secondary small">read-only view over experiments/EXP-*</span>
-</nav>
+<header class="top">
+  <h1>Neuroevolution Showcase</h1>
+  <p class="text-secondary" style="margin:0">Small neural-network agents evolved by a genetic algorithm.
+    Watch the best brains act, look inside them, then see what each experiment found.</p>
+</header>
 
-<div class="container-fluid py-4">
-  <ul class="nav nav-tabs mb-3" id="tabs">
-    <li class="nav-item"><a class="nav-link active" data-view="list">Experiments</a></li>
-    <li class="nav-item"><a class="nav-link" data-view="detail">Detail</a></li>
-    <li class="nav-item"><a class="nav-link" data-view="compare">Compare Conditions</a></li>
-  </ul>
+<main>
+  <section id="showcase" aria-labelledby="h-showcase">
+    <h2 id="h-showcase">1. Watch the evolved agents</h2>
+    <p class="lede">A recording of the real simulation, replayed here. Pick a world and
+      compare untrained random brains with evolved ones on the same arena and start positions.</p>
+    <div id="showcase-body"></div>
+  </section>
 
-  <div id="view-list">
-    <table class="table table-sm table-hover">
-      <thead><tr><th>Run</th><th>Family</th><th>Seeds</th><th>Plots</th><th></th></tr></thead>
-      <tbody id="experiment-rows"></tbody>
-    </table>
-  </div>
+  <section id="brains" aria-labelledby="h-brains">
+    <h2 id="h-brains">2. Look inside the brain</h2>
+    <p class="lede">Each agent is a small network (12 sensors, 32 and 16 hidden units, 3 actions).
+      Blue lines push a unit up, orange lines push it down; moving dots show the signals
+      flowing from sensors to actions for the featured agent, step by step.</p>
+    <div id="brain-grid" class="brain-grid"></div>
+    <div class="legend" id="brain-legend"></div>
+  </section>
 
-  <div id="view-detail" class="d-none">
-    <div class="mb-3">
-      <label class="me-2">Run</label>
-      <select id="detail-run" class="form-select d-inline-block w-auto"></select>
+  <section id="findings" aria-labelledby="h-findings">
+    <h2 id="h-findings">3. What the experiments found</h2>
+    <p class="lede">Each card says what was tested and what was measured. Verdicts are
+      computed from the statistics: a result only counts as supported when it passes the
+      significance test, and many here are trends that need more data.</p>
+    <div id="findings-grid" class="cards"></div>
+  </section>
+
+  <details id="raw">
+    <summary>Raw experiment data</summary>
+    <ul class="tabs" id="tabs">
+      <li><a class="nav-link active" data-view="list" tabindex="0">Experiments</a></li>
+      <li><a class="nav-link" data-view="detail" tabindex="0">Detail</a></li>
+      <li><a class="nav-link" data-view="compare" tabindex="0">Compare Conditions</a></li>
+    </ul>
+    <div id="view-list">
+      <table>
+        <thead><tr><th>Run</th><th>Family</th><th>Seeds</th><th>Plots</th><th></th></tr></thead>
+        <tbody id="experiment-rows"></tbody>
+      </table>
     </div>
-    <div id="detail-body"></div>
-  </div>
-
-  <div id="view-compare" class="d-none">
-    <div class="mb-3">
-      <label class="me-2">Run</label>
-      <select id="compare-run" class="form-select d-inline-block w-auto"></select>
+    <div id="view-detail" class="d-none">
+      <div class="picker"><label for="detail-run">Run </label><select id="detail-run"></select></div>
+      <div id="detail-body"></div>
     </div>
-    <p class="text-secondary small">Every comparison shows its p-value, effect size and
-      bootstrap interval together - a p-value is never shown alone.</p>
-    <div id="compare-body"></div>
-  </div>
-</div>
+    <div id="view-compare" class="d-none">
+      <div class="picker"><label for="compare-run">Run </label><select id="compare-run"></select></div>
+      <p class="text-secondary small">Every comparison shows its p-value, effect size and
+        bootstrap interval together - a p-value is never shown alone.</p>
+      <div id="compare-body"></div>
+    </div>
+  </details>
+</main>
 
 <script>
-let runs = [];
+// Static export replaces the marker below with the bundled data; when it
+// stays null the page runs in live mode against the FastAPI backend.
+const EMBEDDED = /*__EMBEDDED_DATA__*/ null;
 
+// ---------------------------------------------------------------- helpers
 // Artifact values reach innerHTML below; escape them so a crafted
-// condition or method string cannot inject markup into the viewer.
+// condition or method string cannot inject markup into the page.
 function esc(value) {
   return String(value).replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[ch]));
 }
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+function lerpAngle(a, b, t) {
+  let d = ((b - a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  return a + d * t;
+}
+const PALETTE = ['#56B4E9', '#E69F00', '#009E73', '#D55E00', '#CC79A7', '#F0E442'];
+const COLOR = { prey: '#56B4E9', predator: '#D55E00', food: '#009E73',
+                obstacle: '#4a4a5a', amber: '#E69F00', pos: '86,180,233', neg: '213,94,0' };
+const reducedMotion = window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// ------------------------------------------------------------- data layer
+// The only place that knows whether we are static or live.
+async function getRuns() {
+  if (EMBEDDED) return EMBEDDED.experiments;
+  const response = await fetch('/experiments');
+  return (await response.json()).experiments;
+}
+async function getSummary(runId) {
+  if (EMBEDDED) return EMBEDDED.summaries[runId] ?? {};
+  const response = await fetch(`/experiments/${encodeURIComponent(runId)}/stats_summary`);
+  return response.json();
+}
+async function getShowcase() {
+  if (EMBEDDED) return { findings: EMBEDDED.findings ?? [], recording: EMBEDDED.recording ?? null };
+  const response = await fetch('/showcase');
+  return response.json();
+}
+function plotUrl(runId, name) {
+  if (EMBEDDED) {
+    // An <img> never runs scripts inside an SVG, so embedding as a data
+    // URI is safe even for an unexpected plot file.
+    return 'data:image/svg+xml;charset=utf-8,' +
+      encodeURIComponent(EMBEDDED.plots[runId][name]);
+  }
+  return `/experiments/${encodeURIComponent(runId)}/plot/${encodeURIComponent(name)}`;
+}
+
+// ============================================================== SHOWCASE
+const STEPS_PER_SECOND = 12;
+const FRAME_INTERVAL_MS = 33;           // ~30 fps cap, kind to weak machines
+const NET_W = 640, NET_H = 460;
+const state = {
+  recording: null, scenario: 0, brain: 'evolved', run: null,
+  pos: 0, playing: false, speed: 1, lastTs: 0, lastDraw: 0,
+  scrubbing: false, visible: true, panels: [],
+};
+
+function currentScenario() { return state.recording.scenarios[state.scenario]; }
+
+function prepareRun() {
+  const scenario = currentScenario();
+  const run = scenario.runs[state.brain];
+  if (!run._food) {
+    // Food is stored only when it changes; forward-fill once per run.
+    let food = [];
+    run._food = run.frames.map(frame => { if (frame.f) food = frame.f; return food; });
+  }
+  state.run = run;
+  state.pos = 0;
+}
+
+function buildShowcase(recording) {
+  const body = document.getElementById('showcase-body');
+  if (!recording || !recording.scenarios.length) {
+    body.innerHTML = '<p class="notice">No replay has been recorded yet. Run ' +
+      '<code>python experiments/record_showcase.py</code>, then rebuild this page.</p>';
+    document.getElementById('brain-grid').innerHTML =
+      '<p class="notice">The network view needs a recorded replay.</p>';
+    return;
+  }
+  state.recording = recording;
+  state.playing = !reducedMotion;
+  const scenarioButtons = recording.scenarios.map((s, i) =>
+    `<button type="button" data-scenario="${i}" aria-pressed="${i === 0}">${esc(s.title)}</button>`).join('');
+  body.innerHTML = `
+    <div class="toolbar">
+      <div class="seg" id="scenario-seg" role="group" aria-label="World">${scenarioButtons}</div>
+      <div class="seg" id="brain-seg" role="group" aria-label="Brains">
+        <button type="button" data-brain="untrained" aria-pressed="false">Untrained (random brains)</button>
+        <button type="button" data-brain="evolved" aria-pressed="true">Evolved</button>
+      </div>
+    </div>
+    <div class="stage" id="stage" tabindex="0"
+         aria-label="Simulation replay. Space plays or pauses, arrow keys step.">
+      <canvas id="arena" role="img" aria-label="Replay of the simulation arena"></canvas>
+      <div class="controls">
+        <button type="button" id="play" aria-label="Play or pause"></button>
+        <input type="range" id="scrub" min="0" max="1" step="0.01" value="0" aria-label="Replay position">
+        <label class="small" for="speed">Speed</label>
+        <select id="speed">
+          <option value="0.5">0.5x</option><option value="1" selected>1x</option>
+          <option value="2">2x</option><option value="4">4x</option>
+        </select>
+      </div>
+      <div class="hud" id="hud" aria-live="off"></div>
+      <div class="legend">
+        <span><span class="dot" style="background:${COLOR.prey}"></span>prey</span>
+        <span><span class="dot" style="background:${COLOR.predator}"></span>predator</span>
+        <span><span class="dot" style="background:${COLOR.food}"></span>food</span>
+        <span><span class="dot" style="background:${COLOR.obstacle}"></span>obstacle</span>
+        <span>Ringed agent with sensor rays: the featured agent whose brain is shown below.</span>
+      </div>
+    </div>
+    <div id="run-note" class="text-secondary small" style="margin-top:10px"></div>
+    <div id="compare-strip"></div>`;
+
+  document.getElementById('scenario-seg').addEventListener('click', event => {
+    const index = event.target.dataset?.scenario;
+    if (index === undefined) return;
+    state.scenario = Number(index);
+    refreshShowcase();
+  });
+  document.getElementById('brain-seg').addEventListener('click', event => {
+    const brain = event.target.dataset?.brain;
+    if (!brain) return;
+    state.brain = brain;
+    refreshShowcase();
+  });
+  document.getElementById('play').addEventListener('click', togglePlay);
+  document.getElementById('speed').addEventListener('change', e => { state.speed = Number(e.target.value); });
+  const scrub = document.getElementById('scrub');
+  scrub.addEventListener('input', () => { state.pos = Number(scrub.value); state.scrubbing = true; render(); });
+  scrub.addEventListener('change', () => { state.scrubbing = false; });
+  document.getElementById('stage').addEventListener('keydown', event => {
+    if (event.key === ' ') { event.preventDefault(); togglePlay(); }
+    else if (event.key === 'ArrowRight') { event.preventDefault(); stepBy(1); }
+    else if (event.key === 'ArrowLeft') { event.preventDefault(); stepBy(-1); }
+  });
+  window.addEventListener('resize', () => { resizeArena(); render(); });
+  refreshShowcase();
+
+  if ('IntersectionObserver' in window) {
+    // Stop drawing while the showcase is off screen.
+    // Track each watched element; an entry only reports ones that changed.
+    const onScreen = new Map();
+    const observer = new IntersectionObserver(entries => {
+      for (const e of entries) onScreen.set(e.target.id, e.isIntersecting);
+      state.visible = [...onScreen.values()].some(Boolean);
+    }, { threshold: 0 });
+    observer.observe(document.getElementById('showcase'));
+    observer.observe(document.getElementById('brains'));
+  }
+  requestAnimationFrame(tick);
+}
+
+function togglePlay() {
+  state.playing = !state.playing;
+  updatePlayLabel();
+}
+function stepBy(delta) {
+  state.playing = false;
+  state.pos = clamp(Math.round(state.pos) + delta, 0, state.run.frames.length - 1);
+  updatePlayLabel();
+  render();
+}
+function updatePlayLabel() {
+  document.getElementById('play').textContent = state.playing ? 'Pause' : 'Play';
+}
+
+function refreshShowcase() {
+  prepareRun();
+  for (const b of document.querySelectorAll('#scenario-seg button'))
+    b.setAttribute('aria-pressed', String(Number(b.dataset.scenario) === state.scenario));
+  for (const b of document.querySelectorAll('#brain-seg button'))
+    b.setAttribute('aria-pressed', String(b.dataset.brain === state.brain));
+  const scrub = document.getElementById('scrub');
+  scrub.max = String(state.run.frames.length - 1);
+  scrub.value = '0';
+  updatePlayLabel();
+  resizeArena();
+  buildBrainPanels();
+  renderNotes();
+  render();
+}
+
+function renderNotes() {
+  const rec = state.recording, scenario = currentScenario();
+  const secs = rec.environment?.training_seconds ?? {};
+  const trainKey = `${scenario.id}_training_seconds`;
+  document.getElementById('arena').setAttribute('aria-label',
+    `Replay of ${scenario.title}, ${state.brain} brains`);
+  document.getElementById('run-note').innerHTML =
+    `${esc(scenario.description)} Replay of one ${state.run.summary.steps}-step run, seed ${esc(rec.seed)}; ` +
+    `evolved for ${esc(scenario.generations)} generations` +
+    (secs[trainKey] ? ` (trained in ${esc(secs[trainKey])} s on the recording machine)` : '') + '. ' +
+    'The featured agents are the top performers of this replay (most food eaten, then alive at the end). ' +
+    'This is one illustrative run, not statistical evidence - see section 3.';
+  const rows = [
+    ['Prey alive at end', r => `${r.summary.prey_alive_end} of ${r.summary.prey_total}`],
+    ['Plant food eaten (all prey)', r => r.summary.prey_food_eaten],
+  ];
+  if (state.run.summary.predator_total > 0) {
+    rows.splice(1, 0, ['Predators alive at end', r => `${r.summary.predator_alive_end} of ${r.summary.predator_total}`]);
+    rows.splice(2, 0, ['Prey captured', r => r.summary.captures]);
+  }
+  const u = scenario.runs.untrained, e = scenario.runs.evolved;
+  document.getElementById('compare-strip').innerHTML =
+    '<table class="compare"><thead><tr><th>Same arena, same start positions</th>' +
+    '<th class="num">Untrained</th><th class="num">Evolved</th></tr></thead><tbody>' +
+    rows.map(([label, fn]) => `<tr><td>${esc(label)}</td><td class="num">${esc(fn(u))}</td>` +
+      `<td class="num">${esc(fn(e))}</td></tr>`).join('') + '</tbody></table>';
+}
+
+// ------------------------------------------------------------------ arena
+function arenaScale() {
+  const arena = document.getElementById('arena');
+  return arena.width / state.run.world.width;   // canvas px per world px
+}
+function resizeArena() {
+  const arena = document.getElementById('arena');
+  const world = state.run.world;
+  const cssWidth = arena.clientWidth || 800;
+  arena.width = Math.round(cssWidth * DPR);
+  arena.height = Math.round(cssWidth * world.height / world.width * DPR);
+  arena.style.aspectRatio = `${world.width} / ${world.height}`;
+}
+
+function drawArena() {
+  const arena = document.getElementById('arena');
+  const ctx = arena.getContext('2d');
+  const run = state.run, world = run.world, frames = run.frames;
+  const k = arenaScale();
+  const i = Math.min(Math.floor(state.pos), frames.length - 1);
+  const j = Math.min(i + 1, frames.length - 1);
+  const t = j === i ? 0 : state.pos - i;
+  const f0 = frames[i], f1 = frames[j];
+  const cssScale = k / DPR;
+  const agentSize = Math.max(8, 6 / cssScale);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, arena.width, arena.height);
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+
+  ctx.fillStyle = COLOR.obstacle;
+  const half = world.obstacle_size / 2;
+  for (const [ox, oy] of world.obstacles) ctx.fillRect(ox - half, oy - half, world.obstacle_size, world.obstacle_size);
+
+  ctx.fillStyle = COLOR.food;
+  const food = run._food[i];
+  for (let n = 0; n < food.length; n += 2) {
+    ctx.beginPath(); ctx.arc(food[n], food[n + 1], 3, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  const featuredIdx = Object.values(run.featured);
+  const consts = state.recording.constants;
+  // Sensor rays of the featured agents (what the brain actually sees).
+  for (const [role, idx] of Object.entries(run.featured)) {
+    const a0 = f0.a[idx];
+    const trace = f0.n && f0.n[role];
+    if (!a0[4] || !trace) continue;
+    const a1 = f1.a[idx];
+    const x = a1[4] ? lerp(a0[0], a1[0], t) : a0[0];
+    const y = a1[4] ? lerp(a0[1], a1[1], t) : a0[1];
+    const heading = a1[4] ? lerpAngle(a0[2], a1[2], t) : a0[2];
+    consts.ray_angles_deg.forEach((deg, r) => {
+      const dist = trace.in[r];
+      const angle = heading + deg * Math.PI / 180;
+      const length = dist * consts.max_range;
+      ctx.strokeStyle = dist < 0.5 ? 'rgba(230,159,0,0.85)' : 'rgba(150,150,170,0.35)';
+      ctx.lineWidth = 1 / cssScale;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length); ctx.stroke();
+    });
+  }
+
+  run.agents.forEach((meta, idx) => {
+    const a0 = f0.a[idx], a1 = f1.a[idx];
+    if (!a0[4]) return;
+    const moving = a1[4] === 1;
+    const x = moving ? lerp(a0[0], a1[0], t) : a0[0];
+    const y = moving ? lerp(a0[1], a1[1], t) : a0[1];
+    const heading = moving ? lerpAngle(a0[2], a1[2], t) : a0[2];
+    const size = agentSize * (meta.role === 'predator' ? 1.35 : 1);
+    ctx.fillStyle = meta.role === 'predator' ? COLOR.predator : COLOR.prey;
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(heading);
+    ctx.beginPath();
+    ctx.moveTo(size, 0); ctx.lineTo(-size * 0.6, size * 0.55); ctx.lineTo(-size * 0.6, -size * 0.55);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if (featuredIdx.includes(idx)) {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 / cssScale;
+      ctx.beginPath(); ctx.arc(x, y, size * 1.6, 0, 2 * Math.PI); ctx.stroke();
+    }
+    // Events between this frame and the next: ate/captured, or died.
+    if (a1[5] > a0[5] && !reducedMotion) {
+      const flash = meta.role === 'predator' ? '230,159,0' : '0,158,115';
+      ctx.strokeStyle = `rgba(${flash},${1 - t})`;
+      ctx.lineWidth = 2 / cssScale;
+      ctx.beginPath(); ctx.arc(x, y, size * (1.5 + 2.5 * t), 0, 2 * Math.PI); ctx.stroke();
+    }
+  });
+  // Death marks (starvation or capture) fade out over one step.
+  run.agents.forEach((meta, idx) => {
+    const a0 = f0.a[idx], a1 = f1.a[idx];
+    if (a0[4] && !a1[4] && !reducedMotion) {
+      ctx.strokeStyle = `rgba(232,232,239,${1 - t})`; ctx.lineWidth = 1.5 / cssScale;
+      const r = agentSize * 0.9;
+      ctx.beginPath(); ctx.moveTo(a0[0] - r, a0[1] - r); ctx.lineTo(a0[0] + r, a0[1] + r);
+      ctx.moveTo(a0[0] + r, a0[1] - r); ctx.lineTo(a0[0] - r, a0[1] + r); ctx.stroke();
+    }
+  });
+}
+
+function updateHud() {
+  const run = state.run, i = Math.min(Math.floor(state.pos), run.frames.length - 1);
+  const agents = run.frames[i].a;
+  let prey = 0, predators = 0, captures = 0;
+  run.agents.forEach((meta, idx) => {
+    if (meta.role === 'prey') prey += agents[idx][4];
+    else { predators += agents[idx][4]; captures += agents[idx][5]; }
+  });
+  const parts = [`step <b>${i}</b> / ${run.frames.length - 1}`, `prey alive <b>${prey}</b>`];
+  if (run.summary.predator_total > 0) parts.push(`predators alive <b>${predators}</b>`, `captures <b>${captures}</b>`);
+  for (const [role, idx] of Object.entries(run.featured)) {
+    const a = agents[idx];
+    parts.push(`featured ${esc(role)}: ${a[4] ? `energy <b>${a[3]}</b>, food/captures <b>${a[5]}</b>` : '<b>dead</b>'}`);
+  }
+  document.getElementById('hud').innerHTML = parts.join(' &nbsp; ');
+  const scrub = document.getElementById('scrub');
+  if (!state.scrubbing) scrub.value = String(state.pos);
+}
+
+// ---------------------------------------------------------- network panels
+function buildBrainPanels() {
+  const grid = document.getElementById('brain-grid');
+  grid.innerHTML = '';
+  state.panels = [];
+  const run = state.run, consts = state.recording.constants;
+  const arch = consts.architecture;
+  for (const role of ['prey', 'predator']) {
+    const net = run.networks[role];
+    if (!net) continue;
+    const wrap = document.createElement('div');
+    wrap.className = 'brain';
+    const idx = run.featured[role];
+    wrap.innerHTML = `<h3>Featured ${esc(role)} (agent #${esc(run.agents[idx].id)}, ` +
+      `${esc(state.brain)} brain)</h3><canvas role="img" aria-label="Neural network of the featured ${esc(role)}"></canvas>`;
+    grid.appendChild(wrap);
+    const canvas = wrap.querySelector('canvas');
+    canvas.width = Math.round(NET_W * DPR);
+    canvas.height = Math.round(NET_H * DPR);
+    canvas.style.aspectRatio = `${NET_W} / ${NET_H}`;
+    state.panels.push(makePanel(role, canvas, net, arch));
+  }
+  document.getElementById('brain-legend').innerHTML =
+    '<span><span class="dot" style="background:rgb(' + COLOR.pos + ')"></span>excitatory link (positive weight)</span>' +
+    '<span><span class="dot" style="background:rgb(' + COLOR.neg + ')"></span>inhibitory link (negative weight)</span>' +
+    '<span><span class="dot" style="background:' + COLOR.amber + '"></span>unit activity (brighter = stronger)</span>' +
+    '<span>Moving dots: signal carried along a link this step (activity x weight).</span>';
+}
+
+function makePanel(role, canvas, net, arch) {
+  const margin = { l: 150, r: 150, t: 34, b: 14 };
+  const xs = arch.map((_, n) => margin.l + n * (NET_W - margin.l - margin.r) / (arch.length - 1));
+  const nodes = arch.map((count, n) => {
+    const spacing = Math.min((NET_H - margin.t - margin.b) / count, 56);
+    const y0 = margin.t + ((NET_H - margin.t - margin.b) - spacing * count) / 2;
+    return Array.from({ length: count }, (_, k) => [xs[n], y0 + spacing * (k + 0.5)]);
+  });
+  // Static weight layer drawn once; the per-frame overlay is cheap.
+  const layer = document.createElement('canvas');
+  layer.width = canvas.width; layer.height = canvas.height;
+  const lctx = layer.getContext('2d');
+  lctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const maxAbs = Math.max(1e-6, ...net.weights.flat(2).map(Math.abs));
+  net.weights.forEach((matrix, l) => {
+    matrix.forEach((row, i) => row.forEach((w, j) => {
+      const strength = Math.abs(w) / maxAbs;
+      lctx.strokeStyle = `rgba(${w >= 0 ? COLOR.pos : COLOR.neg},${0.03 + 0.28 * strength})`;
+      lctx.lineWidth = 0.4 + 0.8 * strength;
+      lctx.beginPath(); lctx.moveTo(...nodes[l][i]); lctx.lineTo(...nodes[l + 1][j]); lctx.stroke();
+    }));
+  });
+  return { role, canvas, net, arch, nodes, xs, layer, cacheIndex: -1, edges: null, maxSignal: [] };
+}
+
+// Edge signals for one frame: activity of the source unit times the weight.
+function computeEdges(panel, trace) {
+  const acts = [trace.in, trace.h1, trace.h2];
+  const keep = [48, 36, 16];
+  const edges = [];
+  panel.maxSignal = [];
+  panel.net.weights.forEach((matrix, l) => {
+    const layerEdges = [];
+    let maxSignal = 1e-9;
+    matrix.forEach((row, i) => row.forEach((w, j) => {
+      const signal = acts[l][i] * w;
+      const magnitude = Math.abs(signal);
+      if (magnitude > maxSignal) maxSignal = magnitude;
+      layerEdges.push({ l, i, j, signal, magnitude });
+    }));
+    layerEdges.sort((a, b) => b.magnitude - a.magnitude);
+    panel.maxSignal.push(maxSignal);
+    edges.push(...layerEdges.slice(0, keep[l]));
+  });
+  return edges;
+}
+
+function drawPanel(panel, frameIndex, stepFraction) {
+  const ctx = panel.canvas.getContext('2d');
+  const frame = state.run.frames[frameIndex];
+  const trace = frame.n && frame.n[panel.role];
+  const consts = state.recording.constants;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+  ctx.drawImage(panel.layer, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+
+  const titles = ['Sensors', 'Hidden 1', 'Hidden 2', 'Actions'];
+  ctx.fillStyle = '#b8b8c8'; ctx.textAlign = 'center';
+  panel.xs.forEach((x, n) => ctx.fillText(titles[n] ?? '', x, 14));
+
+  if (!trace) {
+    ctx.fillStyle = 'rgba(14,14,22,0.7)'; ctx.fillRect(0, 0, NET_W, NET_H);
+    ctx.fillStyle = '#e8e8ef'; ctx.textAlign = 'center'; ctx.font = '14px system-ui, sans-serif';
+    ctx.fillText('No signal: this agent is dead or the run has ended', NET_W / 2, NET_H / 2);
+    return;
+  }
+  if (panel.cacheIndex !== frameIndex) {
+    panel.edges = computeEdges(panel, trace);
+    panel.cacheIndex = frameIndex;
+  }
+  // Strongest signals this step, brightest first drawn underneath.
+  for (const edge of panel.edges) {
+    const strength = edge.magnitude / panel.maxSignal[edge.l];
+    const [x0, y0] = panel.nodes[edge.l][edge.i], [x1, y1] = panel.nodes[edge.l + 1][edge.j];
+    const rgb = edge.signal >= 0 ? COLOR.pos : COLOR.neg;
+    ctx.strokeStyle = `rgba(${rgb},${0.2 + 0.7 * strength})`;
+    ctx.lineWidth = 0.6 + 1.6 * strength;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    if (!reducedMotion) {
+      // Layer l pulses run in their own slice of the step so the signal
+      // visibly travels sensors -> hidden -> hidden -> actions.
+      const start = edge.l * 0.3, local = (stepFraction - start) / 0.4;
+      if (local > 0 && local < 1) {
+        ctx.fillStyle = `rgba(255,255,255,${0.35 + 0.6 * strength})`;
+        ctx.beginPath();
+        ctx.arc(lerp(x0, x1, local), lerp(y0, y1, local), 1.8 + 1.4 * strength, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+  }
+
+  const values = [trace.in, trace.h1, trace.h2, trace.out];
+  const hiddenMax = [1, Math.max(1e-6, ...trace.h1), Math.max(1e-6, ...trace.h2), 1];
+  const radius = [5, 3.6, 3.8, 7.5];
+  panel.nodes.forEach((layerNodes, n) => {
+    layerNodes.forEach(([x, y], k) => {
+      const level = clamp(Math.abs(values[n][k]) / hiddenMax[n], 0, 1);
+      ctx.fillStyle = '#26263a';
+      ctx.beginPath(); ctx.arc(x, y, radius[n], 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = `rgba(230,159,0,${level})`;
+      ctx.beginPath(); ctx.arc(x, y, radius[n], 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = 'rgba(184,184,200,0.6)'; ctx.lineWidth = 0.8; ctx.stroke();
+    });
+  });
+
+  // Input labels with live values, output labels with the decoded action.
+  ctx.textAlign = 'right'; ctx.fillStyle = '#e8e8ef';
+  panel.nodes[0].forEach(([x, y], k) => {
+    ctx.fillText(`${consts.input_labels[k]}  ${trace.in[k].toFixed(2)}`, x - 10, y);
+  });
+  ctx.textAlign = 'left';
+  const lastLayer = panel.nodes[panel.nodes.length - 1];
+  lastLayer.forEach(([x, y], k) => {
+    const acting = k === 2 && trace.out[2] > 0.5;
+    ctx.fillStyle = acting ? '#009E73' : '#e8e8ef';
+    const verb = k === 2 ? (panel.role === 'predator' ? ' CAPTURE' : ' EAT') : '';
+    ctx.fillText(`${consts.output_labels[k]}  ${trace.out[k].toFixed(2)}${acting ? verb : ''}`, x + 14, y);
+  });
+}
+
+// ------------------------------------------------------------ main loop
+function render() {
+  if (!state.run) return;
+  drawArena();
+  updateHud();
+  const index = Math.min(Math.floor(state.pos), state.run.frames.length - 1);
+  const fraction = state.pos - index;
+  for (const panel of state.panels) drawPanel(panel, index, fraction);
+}
+
+function tick(ts) {
+  requestAnimationFrame(tick);
+  if (document.hidden || !state.visible) { state.lastTs = ts; return; }
+  if (ts - state.lastDraw < FRAME_INTERVAL_MS) return;
+  state.lastDraw = ts;
+  const dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  if (state.playing && !state.scrubbing) {
+    state.pos += dt * STEPS_PER_SECOND * state.speed;
+    const last = state.run.frames.length - 1;
+    if (state.pos >= last) state.pos = 0;     // loop
+    render();
+  }
+}
+
+// ============================================================== FINDINGS
+const VERDICT_LABEL = { positive: 'Supported', mixed: 'Mixed or unproven', null: 'No evidence of an effect' };
+
+function svgBars(chart) {
+  const items = chart.items;
+  const lows = items.map(i => i.lo ?? i.value), highs = items.map(i => i.hi ?? i.value);
+  const domainMin = Math.min(0, ...lows), domainMax = Math.max(...highs) * 1.08 || 1;
+  const x0 = 150, x1 = 300, rowH = 28, height = items.length * rowH + 22;
+  const sx = v => x0 + (v - domainMin) / (domainMax - domainMin) * (x1 - x0);
+  let svg = `<svg viewBox="0 0 360 ${height}" role="img" aria-label="${esc(chart.unit)} by condition">`;
+  items.forEach((item, n) => {
+    const y = 8 + n * rowH, color = PALETTE[n % PALETTE.length];
+    svg += `<text x="${x0 - 8}" y="${y + 13}" text-anchor="end" fill="#e8e8ef" font-size="12">${esc(item.label)}</text>`;
+    svg += `<rect x="${sx(Math.min(0, item.value))}" y="${y + 3}" width="${Math.abs(sx(item.value) - sx(0))}" height="14" fill="${color}" opacity="0.85"/>`;
+    if (item.lo != null && item.hi != null) {
+      svg += `<line x1="${sx(item.lo)}" x2="${sx(item.hi)}" y1="${y + 10}" y2="${y + 10}" stroke="#fff" stroke-width="1.5"/>` +
+        `<line x1="${sx(item.lo)}" x2="${sx(item.lo)}" y1="${y + 5}" y2="${y + 15}" stroke="#fff"/>` +
+        `<line x1="${sx(item.hi)}" x2="${sx(item.hi)}" y1="${y + 5}" y2="${y + 15}" stroke="#fff"/>`;
+    }
+    svg += `<text x="${x1 + 6}" y="${y + 14}" fill="#b8b8c8" font-size="11">${item.value.toFixed(3)}</text>`;
+  });
+  svg += `<text x="${x0}" y="${height - 4}" fill="#b8b8c8" font-size="10">mean and 95% interval</text></svg>`;
+  return svg;
+}
+
+function svgLines(chart) {
+  const all = chart.series.flatMap(s => s.values);
+  const lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.08 || 1;
+  const yMin = lo - pad, yMax = hi + pad;
+  const left = 40, right = 350, top = 14, bottom = 130;
+  const n = Math.max(...chart.series.map(s => s.values.length));
+  const sx = i => left + (n > 1 ? i / (n - 1) : 0) * (right - left);
+  const sy = v => bottom - (v - yMin) / (yMax - yMin) * (bottom - top);
+  let svg = `<svg viewBox="0 0 360 170" role="img" aria-label="${esc(chart.ylabel)} over ${esc(chart.xlabel)}">`;
+  svg += `<line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" stroke="#555"/>` +
+    `<line x1="${left}" y1="${top}" x2="${left}" y2="${bottom}" stroke="#555"/>`;
+  svg += `<text x="${left - 4}" y="${top + 4}" text-anchor="end" fill="#b8b8c8" font-size="10">${yMax.toFixed(2)}</text>` +
+    `<text x="${left - 4}" y="${bottom}" text-anchor="end" fill="#b8b8c8" font-size="10">${yMin.toFixed(2)}</text>` +
+    `<text x="${(left + right) / 2}" y="${bottom + 16}" text-anchor="middle" fill="#b8b8c8" font-size="10">${esc(chart.xlabel)} (${esc(chart.ylabel)} on the vertical axis)</text>`;
+  chart.series.forEach((series, s) => {
+    const color = PALETTE[s % PALETTE.length];
+    const points = series.values.map((v, i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join(' ');
+    svg += `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    svg += `<text x="${left + 6 + s * 100}" y="164" fill="${color}" font-size="11">${esc(series.label)}</text>`;
+  });
+  return svg + '</svg>';
+}
+
+function strip(chart) {
+  return `<div class="small text-secondary">${esc(chart.title)}</div><div class="strip">` +
+    chart.items.map(item => `<span class="${item.ok ? 'ok' : 'bad'}">${esc(item.label)} ${item.ok ? 'ok' : 'x'}</span>`).join('') +
+    '</div>';
+}
+
+function renderChart(chart) {
+  if (chart.kind === 'bars') return svgBars(chart);
+  if (chart.kind === 'lines') return svgLines(chart);
+  if (chart.kind === 'strip') return strip(chart);
+  return '';
+}
+
+function buildFindings(findings) {
+  const grid = document.getElementById('findings-grid');
+  if (!findings.length) {
+    grid.innerHTML = '<p class="notice">No experiment artifacts were found to summarise.</p>';
+    return;
+  }
+  grid.innerHTML = findings.map(f => `
+    <article class="card" aria-labelledby="f-${esc(f.id)}">
+      <h3 id="f-${esc(f.id)}">${esc(f.title)} <span class="badge v-${esc(f.verdict.level)}">${esc(VERDICT_LABEL[f.verdict.level] ?? f.verdict.level)}</span></h3>
+      <dl>
+        <dt>What was tested</dt><dd>${esc(f.question)}</dd>
+        <dt>How</dt><dd>${esc(f.method)}</dd>
+      </dl>
+      <div class="chart">${renderChart(f.chart)}</div>
+      <table class="facts"><tbody>${f.facts.map(x => `<tr><td>${esc(x.label)}</td><td class="num">${esc(x.value)}</td></tr>`).join('')}</tbody></table>
+      <p style="margin:6px 0"><b>${esc(f.verdict.text)}</b></p>
+      <p class="takeaway">${esc(f.takeaway)}</p>
+    </article>`).join('');
+}
+
+// ============================================================ RAW DATA
+let runs = [];
 
 async function loadRuns() {
-  const response = await fetch('/experiments');
-  ({experiments: runs} = await response.json());
+  runs = await getRuns();
   const rows = document.getElementById('experiment-rows');
   rows.innerHTML = '';
   for (const run of runs) {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td><code>${esc(run.id)}</code></td><td>${esc(run.family)}</td>` +
       `<td>${run.n_seeds ?? '-'}</td><td>${esc(run.plots.join(', ')) || '-'}</td>` +
-      `<td><button class="btn btn-sm btn-outline-light" data-detail="${esc(run.id)}">open</button></td>`;
+      `<td><button data-detail="${esc(run.id)}">open</button></td>`;
     rows.appendChild(tr);
   }
   for (const select of ['detail-run', 'compare-run']) {
@@ -95,19 +786,20 @@ async function loadRuns() {
 }
 
 async function showDetail(runId) {
-  document.getElementById('detail-body').innerHTML = '<p class="text-secondary">loading…</p>';
-  const [summary, metrics] = await Promise.all([
-    fetch(`/experiments/${runId}/stats_summary`).then(r => r.json()),
-    fetch(`/experiments/${runId}/metrics`).then(r => r.json()),
-  ]);
+  document.getElementById('detail-body').innerHTML = '<p class="text-secondary">loading...</p>';
+  const summary = await getSummary(runId);
+  // Per-generation data is part of the summary itself, so no separate
+  // metrics request is needed in either mode.
+  const fitnessCurves = summary.fitness_curves ?? {};
+  const generations = summary.generations ?? [];
   let html = '';
   const run = runs.find(r => r.id === runId);
   for (const plot of (run?.plots ?? [])) {
-    html += `<div class="card card-body mb-3"><img src="/experiments/${runId}/plot/${plot}" style="max-width:100%"></div>`;
+    html += `<div class="card"><img alt="${esc(plot)}" src="${esc(plotUrl(runId, plot))}"></div>`;
   }
-  if (metrics.fitness_curves && Object.keys(metrics.fitness_curves).length) {
-    html += '<h5>Fitness over generations</h5><table class="table table-sm"><thead><tr><th>Method</th><th>Gen 0</th><th>Final</th><th>Change</th></tr></thead><tbody>';
-    for (const [method, curve] of Object.entries(metrics.fitness_curves)) {
+  if (Object.keys(fitnessCurves).length) {
+    html += '<h3>Fitness over generations</h3><table><thead><tr><th>Method</th><th>Gen 0</th><th>Final</th><th>Change</th></tr></thead><tbody>';
+    for (const [method, curve] of Object.entries(fitnessCurves)) {
       const first = curve.mean_fitness[0], last = curve.mean_fitness.at(-1);
       const delta = last - first;
       const color = delta > 0 ? 'var(--ok-green)' : 'var(--ok-vermillion)';
@@ -116,30 +808,24 @@ async function showDetail(runId) {
     }
     html += '</tbody></table>';
   }
-  if (metrics.generations && metrics.generations.length) {
+  if (generations.length) {
     // NEAT and co-evolution key per-generation rows here; without this
     // their detail views render as "no renderable data".
-    const rows = metrics.generations;
-    const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
-    html += '<h5>Per-generation rows</h5><table class="table table-sm"><thead><tr>' +
-      columns.map(c => `<th>${esc(c)}</th>`).join('') +
-      '</tr></thead><tbody>';
-    for (const row of rows) {
+    const columns = [...new Set(generations.flatMap(row => Object.keys(row)))];
+    html += '<h3>Per-generation rows</h3><table><thead><tr>' +
+      columns.map(c => `<th>${esc(c)}</th>`).join('') + '</tr></thead><tbody>';
+    for (const row of generations) {
       html += '<tr>' + columns.map(c => {
         const value = row[c];
-        if (typeof value === 'number') {
-          return `<td>${value.toFixed(4)}</td>`;
-        }
-        if (value && typeof value === 'object') {
-          return `<td>${esc(JSON.stringify(value))}</td>`;
-        }
+        if (typeof value === 'number') return `<td>${value.toFixed(4)}</td>`;
+        if (value && typeof value === 'object') return `<td>${esc(JSON.stringify(value))}</td>`;
         return `<td>${esc(value ?? '-')}</td>`;
       }).join('') + '</tr>';
     }
     html += '</tbody></table>';
   }
   if (summary.per_condition_scores) {
-    html += '<h5>Condition means</h5><table class="table table-sm"><tbody>';
+    html += '<h3>Condition means</h3><table><tbody>';
     for (const [condition, scores] of Object.entries(summary.per_condition_scores)) {
       const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
       html += `<tr><td>${esc(condition)}</td><td>${mean.toFixed(4)}</td></tr>`;
@@ -147,14 +833,14 @@ async function showDetail(runId) {
     html += '</tbody></table>';
   }
   if (summary.gap_mean !== undefined) {
-    html += `<p class="mb-1">Generalization gap (train - unseen): <b>${summary.gap_mean.toFixed(4)}</b>` +
+    html += `<p>Generalization gap (train - unseen): <b>${summary.gap_mean.toFixed(4)}</b>` +
       ` &nbsp; CI [${summary.gap_ci95.map(x => x.toFixed(4)).join(', ')}]</p>`;
   }
   document.getElementById('detail-body').innerHTML = html || '<p class="text-secondary">no renderable data</p>';
 }
 
 async function showCompare(runId) {
-  const summary = await fetch(`/experiments/${runId}/stats_summary`).then(r => r.json());
+  const summary = await getSummary(runId);
   const comparison = summary.comparison?.pairwise;
   if (!comparison || !comparison.length) {
     document.getElementById('compare-body').innerHTML =
@@ -165,32 +851,24 @@ async function showCompare(runId) {
   // from the raw p-value: a p<0.05 pair can still fail the correction.
   const significant = new Set(summary.comparison?.significant_pairs || []);
   const alpha = summary.comparison?.alpha ?? 0.05;
-  let html = '<table class="table table-sm"><thead><tr><th>Comparison</th><th>Mean diff</th>' +
+  let html = '<table><thead><tr><th>Comparison</th><th>Mean diff</th>' +
     '<th>95% CI</th><th>p (paired)</th><th>Effect size r</th>' +
     `<th>Verdict (Holm, alpha=${alpha})</th></tr></thead><tbody>`;
   for (const row of comparison) {
     const label = `${row.condition_a}_vs_${row.condition_b}`;
     const ci = (row.diff_ci95 || []).map(x => x.toFixed(3)).join(', ');
     let verdict, cls;
-    if (significant.has(label)) {
-      verdict = 'significant';
-      cls = 'sig';
-    } else if (row.p_value < alpha) {
-      verdict = 'raw p < alpha, not significant after Holm';
-      cls = 'warn';
-    } else {
-      verdict = 'not significant; effect shown for context only';
-      cls = 'ns';
-    }
+    if (significant.has(label)) { verdict = 'significant'; cls = 'sig'; }
+    else if (row.p_value < alpha) { verdict = 'raw p < alpha, not significant after Holm'; cls = 'warn'; }
+    else { verdict = 'not significant; effect shown for context only'; cls = 'ns'; }
     html += `<tr><td>${esc(row.condition_a)} vs ${esc(row.condition_b)}</td>` +
-      `<td>${(row.mean_diff ?? 0).toFixed(4)}</td>` +
-      `<td>[${ci}]</td>` +
+      `<td>${(row.mean_diff ?? 0).toFixed(4)}</td><td>[${ci}]</td>` +
       `<td>${row.p_value.toFixed(4)}</td>` +
       `<td>${(row.matched_pairs_rank_biserial ?? 0).toFixed(3)}</td>` +
       `<td class="${cls}">${verdict}</td></tr>`;
   }
-  html += '</tbody></table>';
-  html += '<p class="text-secondary small">Effect size r is the matched-pairs rank-biserial; ' +
+  html += '</tbody></table>' +
+    '<p class="text-secondary small">Effect size r is the matched-pairs rank-biserial; ' +
     'CI is the percentile bootstrap interval of the paired mean difference. ' +
     'Verdicts are the run\'s Holm-Bonferroni rejections.</p>';
   document.getElementById('compare-body').innerHTML = html;
@@ -208,11 +886,15 @@ document.querySelectorAll('#tabs .nav-link').forEach(link => {
     if (view === 'detail') showDetail(document.getElementById('detail-run').value);
     if (view === 'compare') showCompare(document.getElementById('compare-run').value);
   });
+  link.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); link.click(); }
+  });
 });
 
 document.addEventListener('click', event => {
   const runId = event.target.dataset?.detail;
   if (runId) {
+    document.getElementById('raw').open = true;
     document.getElementById('detail-run').value = runId;
     document.querySelector('#tabs .nav-link[data-view="detail"]').click();
   }
@@ -225,7 +907,18 @@ for (const select of ['detail-run', 'compare-run']) {
   });
 }
 
-loadRuns();
+// ================================================================= start
+(async function start() {
+  try {
+    const { findings, recording } = await getShowcase();
+    buildShowcase(recording);
+    buildFindings(findings);
+  } catch (error) {
+    document.getElementById('showcase-body').innerHTML =
+      '<p class="notice">Could not load the showcase data.</p>';
+  }
+  loadRuns();
+})();
 </script>
 </body>
 </html>

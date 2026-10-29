@@ -1,116 +1,70 @@
 """
 Read-only web dashboard backend (PLAN.md Section 12.3, Phase 9).
 
-Explicitly decoupled from the simulation core: this module only
-reads the committed artifacts under `experiments/EXP-*/` and serves
-them as JSON plus the frontend page. It never imports the simulation,
-never writes state, and the endpoints are adapted to the artifacts
-that actually exist (stats_summary.json summaries and SVG plots)
-rather than the CSV format the plan sketched before Phase 5 fixed
-the output contract.
+Optional live mode. For a machine without the project's dependencies,
+use the dependency-free static exporter instead:
+    python webdash/build_static.py
 
-Run: .venv\Scripts\python.exe -m uvicorn webdash.backend.main:app
+Explicitly decoupled from the simulation core: this module only
+reads the committed artifacts under `experiments/EXP-*/` (through
+webdash.artifacts) and serves them as JSON plus the frontend page. It
+never imports the simulation and never writes state.
+
+Run: .venv\\Scripts\\python.exe -m uvicorn webdash.backend.main:app
 """
 
 from __future__ import annotations
-import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-EXPERIMENTS_ROOT = Path("experiments")
+from webdash.artifacts import (EXPERIMENTS_ROOT, FAMILY_BY_PREFIX,  # noqa: F401
+                               SUMMARY_PREFERENCE, load_recording,
+                               read_summary, scan_experiments)
+from webdash.findings import build_findings
+
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
-app = FastAPI(title="Neuroevolution Experiment Viewer", version="1.0.0")
-
-# Which family each experiment belongs to (filter on the plan's page)
-FAMILY_BY_PREFIX = {
-    "EXP-GEN": "A/B (generalization)",
-    "EXP-D": "D (fitness weighting)",
-    "EXP-E": "E (crossover)",
-    "EXP-COEV": "Predator/prey co-evolution",
-    "EXP-NEAT": "NEAT extension",
-    "EXP-HEADLESS": "Headless smoke",
-    "EXP-GUI": "GUI checkpoint",
-}
-
-
-# Which summary file to serve per run when a directory holds several
-# (the solo runners write stats_summary.json; NEAT writes
-# neat_summary.json; co-evolution writes coevolution_summary.json)
-SUMMARY_PREFERENCE = ("stats_summary.json", "neat_summary.json",
-                      "coevolution_summary.json")
-
-
-def scan_experiments(root: Optional[Path] = None) -> List[Dict]:
-    """
-    Discover experiment runs and their summaries. Pure function over
-    the filesystem - the endpoint layer is a thin wrapper, so this is
-    what the tests exercise. `root` defaults to the module's
-    EXPERIMENTS_ROOT resolved at call time.
-    """
-    if root is None:
-        root = EXPERIMENTS_ROOT
-    runs: List[Dict] = []
-    if not root.is_dir():
-        return runs
-    for directory in sorted(root.glob("EXP-*")):
-        if not directory.is_dir():
-            continue
-        summaries = [name for name in SUMMARY_PREFERENCE
-                     if (directory / name).is_file()]
-        if not summaries:
-            continue
-        try:
-            summary = json.loads(
-                (directory / summaries[0]).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        plots = sorted(path.name for path in directory.glob("*.svg"))
-        runs.append({
-            "id": directory.name,
-            "family": FAMILY_BY_PREFIX.get(directory.name, "Other"),
-            "primary_summary": summaries[0],
-            "summaries": summaries,
-            "n_seeds": summary.get("n_seeds"),
-            "plots": plots,
-        })
-    return runs
+app = FastAPI(title="Neuroevolution Experiment Viewer", version="1.1.0")
 
 
 def load_summary(run_id: str, root: Optional[Path] = None) -> Dict:
     """Load a run's primary summary (404 for unknown or malformed ids)."""
     if root is None:
         root = EXPERIMENTS_ROOT
-    # A run_id reaches the filesystem, so it must resolve to a discovered
-    # run directory: "..\\configs" and absolute paths are rejected here
+    # A run_id reaches the filesystem, so it must match a directory the
+    # scan discovered: "..\\configs" and absolute paths are rejected here
     # instead of being sanitized piecemeal.
-    if run_id not in {run["id"] for run in scan_experiments(root)}:
+    entry = next((run for run in scan_experiments(root)
+                  if run["id"] == run_id), None)
+    summary = read_summary(entry, root) if entry else None
+    if summary is None:
         raise HTTPException(status_code=404,
                             detail=f"no summary for {run_id}")
-    for name in SUMMARY_PREFERENCE:
-        path = root / run_id / name
-        if path.is_file():
-            return json.loads(path.read_text(encoding="utf-8"))
-    raise HTTPException(status_code=404,
-                        detail=f"no summary for {run_id}")
+    return summary
+
+
+@app.get("/showcase")
+def showcase() -> Dict:
+    """Findings cards and the recorded replay (None when not recorded)."""
+    return {"findings": build_findings(EXPERIMENTS_ROOT),
+            "recording": load_recording(EXPERIMENTS_ROOT)}
 
 
 @app.get("/experiments")
 def list_experiments() -> Dict:
     """List all runs with summary metadata."""
-    return {"experiments": scan_experiments()}
+    return {"experiments": scan_experiments(EXPERIMENTS_ROOT)}
 
 
 @app.get("/experiments/{run_id}/stats_summary")
 def stats_summary(run_id: str) -> Dict:
     """
-    The experiment's stats_summary.json: per-condition scores,
-    pairwise comparisons with p-values, confidence intervals and
-    effect sizes.
+    The experiment's primary summary: per-condition scores, pairwise
+    comparisons with p-values, confidence intervals and effect sizes.
     """
     return load_summary(run_id)
 
@@ -133,7 +87,7 @@ def metrics(run_id: str) -> Dict:
 @app.get("/experiments/{run_id}/plot/{name}")
 def plot(run_id: str, name: str) -> FileResponse:
     """Serve a committed SVG plot (fitness curves, complexity growth)."""
-    entry = next((r for r in scan_experiments()
+    entry = next((r for r in scan_experiments(EXPERIMENTS_ROOT)
                   if r["id"] == run_id), None)
     if entry is None or name not in entry["plots"]:
         raise HTTPException(status_code=404, detail="plot not found")
