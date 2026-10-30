@@ -91,7 +91,7 @@ python -m experiments.run --config configs/baseline.json --mode headless --devic
 ## Running Tests
 
 ```bash
-# Full suite (251 tests)
+# Full suite (291 tests)
 pytest tests/ -q
 
 # Specific test groups
@@ -99,6 +99,106 @@ pytest tests/unit/ -q
 pytest tests/integration/ -q
 pytest tests/performance/ -q
 ```
+
+## Showcase Dashboard
+
+`dashboard.html` is a single self-contained page: no server, no network and
+no Python needed to view it.
+
+1. **Arena replay** - the page plays back a recording of the production
+   simulation (`step_simulation` plus `resolve_captures`), not a JavaScript
+   re-implementation. Two worlds are recorded:
+   - **Predator and prey** (primary): both populations co-evolve in one
+     shared world.
+   - **Solo food seeker** (secondary): one population, plant food only.
+   Each world can be watched with **untrained random brains** or **evolved
+   brains** on an identical arena and identical start positions, so the
+   controller is the only difference.
+2. **Brain view** - the featured agents' activations (12 sensors -> 32 -> 16
+   -> 3 actions) are shown step by step, with signal flow animated along the
+   strongest links.
+3. **Findings** - one card per experiment. Every number, chart and verdict is
+   computed from the committed `experiments/EXP-*` artifacts by
+   `webdash/findings.py`. A result is labelled "Supported" only when it passes
+   the significance test; otherwise it is shown as "Mixed or unproven" or
+   "No evidence of an effect".
+
+Build it:
+
+```bash
+python experiments/record_showcase.py   # train and record (~38 s, see below)
+python webdash/build_static.py          # writes dashboard.html
+```
+
+The recording is deterministic: the same `--seed` produces identical
+scenarios (enforced by `tests/integration/test_record_showcase.py`). The
+recorder only drives the simulation; no simulation code is modified for the
+showcase.
+
+Design decisions:
+
+- **Record the real loop instead of re-simulating in the browser.** A
+  JavaScript re-implementation would drift from the Python physics, sensors
+  and controller and could not honestly claim to show the simulation. One
+  recording is a single source of truth, needs no server, and adds about
+  760 KB to the page.
+- **Co-evolution first, solo second.** Co-evolution is the headline result
+  (two roles, captures, an arms race). The solo world isolates food-seeking
+  as a clean baseline, but its evolved effect is small (2 of 10 agents alive
+  at the end of the recorded run), so it should not lead the page.
+- **Untrained vs evolved on the same seed.** This is the only comparison that
+  isolates the controller from the arena and the start positions.
+- **The featured agent is the replay's best performer** (most food, then
+  alive), not the elite genome. The elite is the best of the previous
+  evaluation and can die early in a fresh replay; the page states the rule,
+  and the summary table reports whole-population numbers, so the replay stays
+  illustrative rather than a statistical claim.
+
+Live mode (requires the project dependencies):
+`.venv\Scripts\python.exe -m uvicorn webdash.backend.main:app`, then open
+http://127.0.0.1:8000. The live page reads the same recording and findings
+through `/showcase`.
+
+## Training Time and Resources
+
+Measured on the development PC on 2026-10-30 in the CPU-deterministic tier
+(`num_threads=1`; PyTorch CPU build, so the GPU is not used).
+
+| Component | Spec |
+|---|---|
+| CPU | Intel Core i5-12400F, 6 cores / 12 threads, 2.5 GHz base |
+| Memory | 32 GB |
+| GPU | NVIDIA GeForce RTX 3060 12 GB (unused by the pinned CPU build) |
+| Storage | SSD |
+| OS | Windows 10 22H2 (10.0.19044) |
+| Python / PyTorch / NumPy | 3.14.5 / 2.14.0+cpu / 2.5.3 |
+
+| Run (one seed unless stated) | Wall time |
+|---|---|
+| Solo evolution, 12 generations x 40 agents | 16.3 s |
+| Co-evolution, 12 generations x (24 prey + 3 predators) | 15.0 s |
+| Showcase recording (both trainings + 8 replays) | 37.8 s |
+| Generalization experiment | 68.8 s |
+| Experiment D (4 weightings) | 70.6 s |
+| Experiment E (3 crossover methods) | 56.7 s |
+| Co-evolution driver (12 generations + hall of fame) | 17.7 s |
+| Stability sweep (10 days) | 11.2 s |
+| NEAT benchmark (30 generations, 100 genomes) | 193.3 s |
+| NEAT batching benchmark | 2.5 s |
+
+Notes:
+
+- The committed artifacts were produced with `--seeds 10`. Wall time grows
+  roughly linearly with the seed count, so a full 10-seed run takes about
+  11.5 min (generalization), 11.8 min (Experiment D), 9.5 min (Experiment E),
+  3.0 min (co-evolution) and 1.9 min (stability sweep). NEAT is single-seed
+  by design at about 3.2 min.
+- Peak working set measured for two representative runs: 351 MB (showcase
+  recording) and 352 MB (Experiment D). Only one core is used, so the
+  experiments run comfortably on a laptop; a GPU is not required.
+- The full test suite (291 tests) runs in about 1 min 41 s.
+- The generated `dashboard.html` is about 835 KB (760 KB of it is the replay)
+  and needs no WebGL.
 
 ## Development Plan (summary)
 
@@ -252,7 +352,8 @@ As of September 2026, the following components have been implemented:
 - ✅ Dashboard reconciliation - `config.phase_tier` selects MVP vs. Advanced (the MVP build can never render a Phase 6/7-only metric); `tests/unit/test_dashboard_tiers.py` enforces it
 - ✅ Section 12 build-out (Phase 9): control bar (Pause/x1/x10/Save/Reset) + best-agent inspector (vitals, seven-ray overlay, controller graph with live activations) - `visualization/control_bar.py`, `visualization/best_agent_inspector.py`
 - ✅ Web dashboard - FastAPI + Bootstrap/vanilla JS read-only viewer over the committed artifacts (`webdash/`; low-resource machines: `python webdash/build_static.py` writes one offline `dashboard.html`; live mode: `uvicorn webdash.backend.main:app`)
-- ✅ Packaging verified - editable install, both entry points, 251-test suite, lint gate clean
+- ✅ Showcase dashboard - offline replay of the real simulation (predator/prey primary, solo food seeker secondary), step-by-step network activations, and findings computed from the artifacts (`experiments/record_showcase.py`, `webdash/findings.py`)
+- ✅ Packaging verified - editable install, both entry points, 291-test suite, lint gate clean
 - ✅ `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` (rehearsable, with the author-side video checklist) + `docs/slide_outline.md`
 - ✅ Energy-limited dynamics (Phase 9): `metabolic_base_cost` config-tunable (0.7/step in experiments, legacy pacing in the GUI), food regrowth applied in every evaluation loop, live exploration component, newborn energy inheritance; every experiment re-run - +0.28 to +0.50 fitness gain, consistent-direction generalization penalty, equal-weighting leads its specializations
 

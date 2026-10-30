@@ -162,7 +162,6 @@ def build_scenarios(seed: int, steps: Optional[int], solo_agents: int,
     prey_final, predators_final = train_coevolution(coev_config, seed)
     timings["coev_training_seconds"] = time.perf_counter() - started
 
-    apply_seed_determinism(seed)
     init_rng = np.random.default_rng(seed + 90_000)
     size = genome_size()
     prey_random = [init_rng.uniform(-1, 1, size).astype(np.float32)

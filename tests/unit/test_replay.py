@@ -89,7 +89,11 @@ def test_replay_is_deterministic_and_complete():
 
 def test_activations_recorded_only_while_featured_agent_alive():
     world, agents = _prepare()()
-    agents[0].energy = 0.5          # starves within a few steps
+    # No food and near-zero energy: the agent dies on the first step, so
+    # the only way it survives is the bug this test guards against.
+    world.food = []
+    world.food_regrowth_per_step = 0.0
+    agents[0].energy = 0.05
     run = record_replay(world, agents, {'prey': agents[0]}, steps=40)
     with_trace = [("n" in frame and "prey" in frame["n"]) for frame in run["frames"]]
     assert with_trace[0] is True
@@ -123,11 +127,15 @@ def test_pick_featured_rule_is_most_food_then_alive_then_first():
 
 def test_replay_stops_early_when_everyone_is_dead():
     world, agents = _prepare(num_prey=2, num_predators=0)()
+    world.food = []
+    world.food_regrowth_per_step = 0.0
     for agent in agents:
-        agent.energy = 0.2
+        agent.energy = 0.05         # below the metabolic cost: dies in one step
     run = record_replay(world, agents, {}, steps=200)
-    assert run["summary"]["steps"] < 200
+    assert run["summary"]["steps"] == 1
     assert run["summary"]["prey_alive_end"] == 0
+    # One recorded step plus the final state frame.
+    assert len(run["frames"]) == 2
 
 
 @pytest.mark.parametrize("bad_genome_length", [10, genome_size() + 1])

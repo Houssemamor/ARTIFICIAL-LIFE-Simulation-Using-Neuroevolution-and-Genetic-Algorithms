@@ -17,6 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 
 from webdash import build_static
+from webdash.artifacts import (MAX_RECORDING_BYTES, RECORDING_PATH,
+                               RECORDING_VERSION, load_recording)
 from webdash.build_static import (MAX_PLOT_BYTES, PLACEHOLDER, build_payload,
                                   render_html)
 
@@ -133,9 +135,6 @@ def test_export_of_committed_artifacts(tmp_path):
 
 
 # --- showcase recording and findings ------------------------------------
-
-from webdash.artifacts import (MAX_RECORDING_BYTES, RECORDING_PATH,
-                               RECORDING_VERSION, load_recording)
 
 
 def _write_recording(root: Path, payload) -> Path:
