@@ -54,7 +54,7 @@ from simulation.world_config import BaselineConfig, load_config  # noqa: E402
 COEV_CONFIG = "configs/predator_prey.json"
 SOLO_BASE_CONFIG = "configs/generalization_train.json"
 DEFAULT_OUTPUT = Path("experiments/EXP-SHOWCASE/recording.json")
-RECORDING_VERSION = 1
+RECORDING_VERSION = 2
 
 
 def _spawn_role(genomes: List[np.ndarray], role: str, start_id: int,

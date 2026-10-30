@@ -64,9 +64,9 @@ weighting result says the balanced weights are already near-optimal
 The oscillating arms race chart, explained, not hidden
 (`docs/coevolution_notes.md`): within-generation fitness is
 relative; the frozen-archive win rate is the absolute measure.
-Stability: 7 of 10 seeds collapse (5 predator extinctions,
-2 prey) after the newborn-energy fix; viable runs climb
-5 -> 22 captures/day.
+Stability: 6 of 10 seeds collapse (5 prey extinctions,
+1 predator) after the newborn-energy fix and the role-aware
+predator-sense fix; viable runs climb 5 -> 22 captures/day.
 
 ## 12. Results: NEAT extension
 Complexity-over-generations plot (51 -> 102 mean, max 117); the
@@ -78,11 +78,12 @@ per-agent) and why the per-species prototype lost
 One shape, honestly: the landscape is now *bimodal*, not graded - a
 few well-fed foragers near fitness 2.0, most agents starving near
 0.3. That shape is enough for the GA but not for NEAT speciation
-(one species). The ecosystem's predator role is fragile (7/10
-collapse). Every D/E contrast sits near but not past Holm at n = 10.
+(one species). The ecosystem is fragile (6/10 collapse, now mostly
+prey overharvest). Every D/E contrast sits near but not past Holm at
+n = 10.
 
 ## 14. Future work
 Re-run the solo experiments at n = 20-30; sweep metabolic cost
 (0.4/0.7/1.0); soften the bimodality (intermediate food) to give
-speciation a gradient; strengthen the ecosystem clock; presentation
-rehearsal per Section 13.4.
+speciation a gradient; tune the ecosystem clock and capture pressure;
+presentation rehearsal per Section 13.4.

@@ -640,9 +640,13 @@ function drawPanel(panel, frameIndex, stepFraction) {
   });
 
   // Input labels with live values, output labels with the decoded action.
+  // Role-aware input names: a predator reads prey/rival bearings, a prey
+  // reads food/threat bearings (see agents/sensors.py).
+  const inputLabels = (consts.input_labels_by_role
+    && consts.input_labels_by_role[panel.role]) || consts.input_labels;
   ctx.textAlign = 'right'; ctx.fillStyle = '#e8e8ef';
   panel.nodes[0].forEach(([x, y], k) => {
-    ctx.fillText(`${consts.input_labels[k]}  ${trace.in[k].toFixed(2)}`, x - 10, y);
+    ctx.fillText(`${inputLabels[k]}  ${trace.in[k].toFixed(2)}`, x - 10, y);
   });
   ctx.textAlign = 'left';
   const lastLayer = panel.nodes[panel.nodes.length - 1];

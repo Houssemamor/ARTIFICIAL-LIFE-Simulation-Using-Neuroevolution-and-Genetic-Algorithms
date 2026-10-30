@@ -31,8 +31,6 @@ PLACEHOLDER = "/*__EMBEDDED_DATA__*/ null"
 MAX_PLOT_BYTES = 2 * 1024 * 1024
 
 
-
-
 def build_payload(root: Path) -> Dict:
     """
     Read every run once: the run list, each summary and each SVG plot.
@@ -94,7 +92,10 @@ def main(argv: Optional[list] = None) -> int:
         return 1
     html = render_html(TEMPLATE_PATH.read_text(encoding="utf-8"), payload)
     args.output.write_text(html, encoding="utf-8")
-    print(f"Wrote {args.output} ({len(html) // 1024} KB, "
+    # Report the written file's byte size, not len(html): the page contains
+    # multi-byte UTF-8 characters, so the two differ by a few kilobytes.
+    size_kb = args.output.stat().st_size // 1024
+    print(f"Wrote {args.output} ({size_kb} KB, "
           f"{len(payload['experiments'])} runs)")
     return 0
 

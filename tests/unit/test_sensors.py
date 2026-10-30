@@ -26,10 +26,11 @@ from simulation.physics import Vector2D
 
 
 def _agent(x: float = 100.0, y: float = 100.0, heading: float = 0.0,
-           energy: float = INITIAL_ENERGY, speed: float = 0.0) -> Organism:
+           energy: float = INITIAL_ENERGY, speed: float = 0.0,
+           role: str = "prey") -> Organism:
     """Build a live agent at a known pose, outside any obstacle the test
     places, with a deterministic identity for sensor ordering."""
-    agent = Organism(0, x, y, initial_energy=energy)
+    agent = Organism(0, x, y, initial_energy=energy, role=role)
     agent.heading = heading
     if speed > 0:
         agent.velocity = Vector2D(math.cos(heading) * speed,
@@ -153,3 +154,54 @@ class TestPopulationObservation:
         assert np.allclose(np.concatenate([obs[0, :3], obs[0, 4:7]]), 1.0)
         # Agent 0's threat bearing points dead ahead (0 deg relative)
         assert np.isclose(obs[0, 8], 0.0, atol=0.01)
+
+
+class TestRoleAwareObservation:
+    """Predators must not perceive plants; prey stay byte-compatible."""
+
+    def test_predator_rays_ignore_plants_and_still_see_prey(
+            self, empty_world: World, raycaster: RayCaster) -> None:
+        """A plant dead ahead is invisible to a predator; a prey is not."""
+        predator = _agent(role="predator")
+        empty_world.food = [Food(250.0, 100.0)]  # 150 px dead ahead
+        obs = raycaster.observe_agent(predator, empty_world, [])
+        assert np.allclose(obs[:7], 1.0)
+        # No prey and no rival -> both role channels stay neutral.
+        assert np.isclose(obs[7], 0.0)
+        assert np.isclose(obs[8], 0.0)
+
+        prey = _agent(x=250.0, y=100.0, role="prey")
+        obs = raycaster.observe_agent(predator, empty_world, [prey])
+        assert np.isclose(obs[3], 150.0 / MAX_RANGE)
+
+    def test_predator_food_bearing_points_at_prey_not_plant(
+            self, empty_world: World, raycaster: RayCaster) -> None:
+        """Input 7 follows the nearest prey even when a plant is closer."""
+        predator = _agent(role="predator")
+        empty_world.food = [Food(300.0, 100.0)]  # plant dead ahead
+        prey = _agent(x=200.0, y=200.0, role="prey")  # +45 deg relative
+        obs = raycaster.observe_agent(predator, empty_world, [prey])
+        assert np.isclose(obs[7], 0.25, atol=0.02)
+
+    def test_predator_threat_bearing_points_at_rival_not_prey(
+            self, empty_world: World, raycaster: RayCaster) -> None:
+        """Input 8 follows a rival predator, never the prey it is chasing."""
+        predator = _agent(role="predator")
+        prey = _agent(x=200.0, y=100.0, role="prey")  # dead ahead
+        obs = raycaster.observe_agent(predator, empty_world, [prey])
+        assert np.isclose(obs[8], 0.0, atol=0.01)  # no rival -> neutral
+
+        rival = _agent(x=200.0, y=0.0, role="predator")  # -45 deg relative
+        obs = raycaster.observe_agent(predator, empty_world, [prey, rival])
+        assert np.isclose(obs[8], -0.25, atol=0.02)
+
+    def test_prey_observation_still_uses_plants_and_any_agent(
+            self, empty_world: World, raycaster: RayCaster) -> None:
+        """Regression: the prey encoding is unchanged by the predator fix."""
+        prey = _agent(role="prey")
+        empty_world.food = [Food(250.0, 100.0)]  # 150 px dead ahead
+        rival = _agent(x=200.0, y=0.0, role="predator")  # -45 deg relative
+        obs = raycaster.observe_agent(prey, empty_world, [rival])
+        assert np.isclose(obs[3], 150.0 / MAX_RANGE)  # plant still on a ray
+        assert np.isclose(obs[7], 0.0, atol=0.01)     # plant is the food
+        assert np.isclose(obs[8], -0.25, atol=0.02)   # any agent is a threat

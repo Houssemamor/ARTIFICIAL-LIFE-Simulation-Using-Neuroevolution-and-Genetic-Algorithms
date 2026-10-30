@@ -55,36 +55,46 @@ Honest finding: with fixed (non-evolved) random controllers, the
 ecosystem is **viable but fragile**. Under
 `configs/predator_prey.json` (3 apex predators, 24 prey, per-role
 carrying capacities 40/8, food regrowth 0.25/step, capture radius
-30 px, `metabolic_base_cost` 0.25/step), **7 of 10 seeds collapse**
-(one role extinct) within 10 days - the opposite direction from the
-previous 3-of-10 figure, which was measured before the newborn
-energy fix (see below). The three survivors settle into a
-Lotka-Volterra pattern around carrying capacity: prey 13-28,
-predators steady at 6, captures per day climbing 5 -> 6 -> 9 -> 5 ->
-12 -> 12 -> 15 -> 22 -> 22 -> 15 across ten days (seed 4) as
-selection favors capturable prey. The claim traces to a committed,
+30 px, `metabolic_base_cost` 0.25/step), **6 of 10 seeds collapse**
+(one role extinct) within 10 days. The four survivors (seeds 1, 4, 8,
+9) settle into a Lotka-Volterra pattern around carrying capacity:
+prey cycle between 11 and 40, predators between 1 and 6. Seed 4, the
+longest-running example, shows captures per day of
+5 -> 8 -> 6 -> 17 -> 28 -> 8 -> 14 -> 19 -> 11 -> 22 across ten days
+through a boom-bust cycle. The claim traces to a committed,
 regenerable artifact: `experiments/EXP-COEV/stability_sweep.json`,
 produced by `experiments/run_coevolution.py --mode stability-sweep
 --seed 1 --seeds 10 --days 10` (the pipeline is deterministic per
 seed, so a re-run reproduces the file).
 
-**The collapse is predator-led but not predator-only**: 5 of the
-7 failing seeds lose the predator role (min_predator_alive = 0 at
-some day), 2 lose prey instead (seeds 3 and 10, where predators
-survive on a depleted prey population). The dominant mechanism is
-newborn energy inheritance. `create_offspring` once constructed
-newborns without the parent's energy config, so every predator born
-after day 0 silently ran the legacy 0.1/step equation while its
-parent ran 0.25 - an easier landscape for offspring than for
-parents. Fixing that (Phase 9 review) removed the subsidy and the
-collapse rate rose from 3/10 to 7/10. The 0.25 metabolic setting
-itself remains correct for the ecosystem (at 0.7 every predator
+**The collapse is now prey-led**: 5 of the 6 failing seeds lose the
+prey role (seeds 2, 3, 5, 7 and 10), and 1 loses predators (seed 6,
+where the predators starve on a depleted prey population). This is the
+opposite failure mode from the previous sweep (after the newborn fix,
+before the sensor fix), which lost predators in 5 of 7 failures. The
+history has two corrections. First,
+`create_offspring` once constructed newborns without the parent's
+energy config, so every predator born after day 0 silently ran the
+legacy 0.1/step equation while its parent ran 0.25 - an easier
+landscape for offspring than for parents. Fixing that removed the
+subsidy and raised the collapse rate from 3/10 to 7/10. Second, the
+original 12-input observation was prey-centric: input 7 always pointed
+at the nearest plant and the seven rays always hit plants first, so a
+predator spent its life walking toward food it cannot eat (the engine
+blocks plant consumption for predators). Predators now receive
+role-aware senses - rays ignore plants, input 7 points at the nearest
+live prey, input 8 at the nearest rival predator - while prey
+observations remain byte-identical. With effective predators the
+collapse rate fell slightly to 6/10, but the surviving failure mode is
+overharvest rather than predator starvation. The 0.25 metabolic
+setting remains correct for the ecosystem (at 0.7 every predator
 starves before its first capture and the ecosystem collapses on day
 0, because one missed day is death): the solo experiments run
 150-step episodes, the ecosystem runs 150-step days in a persistent
 world, so it needs a slower clock. Lowering the ecosystem clock
-further (0.15-0.20) is the obvious next lever if a sturdier demo is
-needed. The hall-of-fame duels were fixed the same way: `run_duel`
+further (0.15-0.20) and reducing capture pressure (radius 30 -> 20 px
+or transfer 60 -> 40) are the obvious next levers if a sturdier demo
+is needed. The hall-of-fame duels were fixed the same way: `run_duel`
 now builds its duelists with the configured energy equation, so
 frozen-checkpoint win rates are measured under the same dynamics as
 the generation metrics they are compared against.
@@ -93,7 +103,7 @@ The stability test (`tests/integration/test_predator_prey_stability.py`)
 therefore asserts the honest property - viability, not stability -
 on the first three sweep seeds (1, 2, 3), with no cherry-picking:
 at least one must complete the full horizon with both roles alive
-(seed 2 does), and no seed may reach total extinction. The 10-seed
+(seed 1 does), and no seed may reach total extinction. The 10-seed
 rate lives in the sweep artifact. The negative test proves the
 fixture is not vacuous (24 predators with reproduction disabled
 extinguish themselves within 7 days).
@@ -145,10 +155,12 @@ generations, and viable ecosystem runs show their ecological analogue:
 captures climb 5 -> 22 per day as selection favors capturable prey in
 a population that births keep replenished. But the stability basin
 *narrowed* under the corrected dynamics (3 of 10 -> 7 of 10
-collapse) once newborns inherited the parent's energy equation, so
-the honest summary is: learning potential is real in both settings,
-viability is seed-dependent, and the predator role is the fragile
-one.
+collapse) once newborns inherited the parent's energy equation, and
+the role-aware predator senses then traded predator starvation for
+prey overharvest (7/10 -> 6/10 collapse), so the honest summary is:
+learning potential is real in both settings, viability is
+seed-dependent, and the fragile role is now the prey rather than the
+predator.
 
 The downstream NEAT system still feels little divergence pressure
 (`docs/neat_extension_report.md`), for a different reason than before:

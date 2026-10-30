@@ -70,7 +70,7 @@ def scan_experiments(root: Optional[Path] = None) -> List[Dict]:
 # version and size cap are accepted, so a stray or oversized file cannot
 # bloat or break the page.
 RECORDING_PATH = Path("EXP-SHOWCASE") / "recording.json"
-RECORDING_VERSION = 1
+RECORDING_VERSION = 2
 MAX_RECORDING_BYTES = 8 * 1024 * 1024
 
 

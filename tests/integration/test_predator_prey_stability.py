@@ -3,8 +3,9 @@ Integration tests for the Phase 6 predator/prey ecosystem.
 
 The ecosystem is viability-marginal under the corrected dynamics
 (newborns inherit the parent's energy equation, food regrows every
-step): 7 of 10 seeds collapse within 10 days, every failure a
-predator extinction (the committed
+step, predators have role-aware senses): 6 of 10 seeds collapse
+within 10 days, five via prey extinction and one via predator
+extinction (the committed
 experiments/EXP-COEV/stability_sweep.json). These tests therefore
 assert the honest property - the system is viable, not stable - on
 the first three seeds (1-3, no cherry-picking): at least one must
@@ -30,11 +31,12 @@ CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), "configs", "predator_prey.json")
 
 # The first three sweep seeds (1, 2, 3): a deterministic, unselected
-# sample of the sweep. Under the current dynamics seed 2 completes the
-# horizon; seeds 1 and 3 collapse. Runtime: each seed is a 10-day run
-# (~30s). Re-verify whenever dynamics-affecting parameters change
-# (metabolic cost, consumption radius, calibration scales, predation or
-# reproduction rates, newborn energy inheritance).
+# sample of the sweep. Under the current dynamics seed 1 completes the
+# horizon; seeds 2 and 3 lose the prey role. Runtime: each seed is a
+# 10-day run (~30s). Re-verify whenever dynamics-affecting parameters
+# change (metabolic cost, consumption radius, calibration scales,
+# predation or reproduction rates, newborn energy inheritance, or the
+# sensor encoding).
 STABILITY_SEEDS = [1, 2, 3]
 
 

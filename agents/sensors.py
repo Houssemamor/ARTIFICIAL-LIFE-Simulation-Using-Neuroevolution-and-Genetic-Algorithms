@@ -6,18 +6,21 @@ fixed world-angles relative to the agent heading, plus a fixed 12-dim
 observation vector consumed by the fixed controller.
 
 Observation layout (fixed and versioned; do not reorder -- genome
-compatibility depends on a stable ordering):
+compatibility depends on a stable ordering). The meaning of the food and
+threat channels depends on the observer's role, because a predator cannot
+eat plants and must not be told that plants are food:
 
     [0:7]   ray distances       [0,1], 0 = object at the agent, 1 = beyond range
-    [7]     nearest-food bearing [-1,1], relative to heading (right positive)
-    [8]     nearest-threat bearing [-1,1] (threat = other live agents)
+    [7]     prey: nearest-food bearing; predator: nearest-prey bearing [-1,1]
+    [8]     prey: nearest live agent; predator: nearest rival predator [-1,1]
     [9]     nearest-obstacle bearing [-1,1]
     [10]    energy               [0,1]
     [11]    speed                [0,1]
 
-This gives 12 inputs for the 12-32-16-3 controller. The three bearings encode
-direction to the nearest food/threat/obstacle resolved over the full 360 deg,
-while the per-ray distances encode local directional proximity.
+Bearings are relative to heading (right positive). Predator rays ignore
+plant food entirely, so a predator perceives only prey, rival predators
+and obstacles. Prey observations are byte-identical to the original
+encoding, so the prey-only experiments remain reproducible.
 """
 
 from __future__ import annotations
@@ -92,24 +95,26 @@ def _ray_circle_hit(ray_dir_x: float, ray_dir_y: float,
 
 def _raycast_ray(agent_x: float, agent_y: float,
                  ray_dir_x: float, ray_dir_y: float,
-                 world, live_agents: list) -> float:
+                 food_targets: list, obstacles: list,
+                 live_agents: list) -> float:
     """
-    Cast one ray against food, obstacles, and other agents.
+    Cast one ray against the given food targets, obstacles, and agents.
 
     Args:
         agent_x, agent_y: ray origin (the observing agent).
         ray_dir_x, ray_dir_y: unit direction vector of the ray.
-        world: World providing food and obstacles.
-        live_agents: list of live agents (threats), excluding the observer.
+        food_targets: food items this observer can perceive (empty for a
+            predator, which cannot eat plants).
+        obstacles: world obstacles.
+        live_agents: list of live agents (excluding the observer).
 
     Returns:
         Normalized distance [0,1] to the nearest object hit along this ray,
         with 1.0 meaning nothing within MAX_RANGE.
     """
     nearest_raw = MAX_RANGE
-    closest = MAX_RANGE
 
-    for food in world.food:
+    for food in food_targets:
         dx = food.x - agent_x
         dy = food.y - agent_y
         dist = _ray_circle_hit(ray_dir_x, ray_dir_y, dx, dy, FOOD_RADIUS)
@@ -117,7 +122,7 @@ def _raycast_ray(agent_x: float, agent_y: float,
         if 0.0 < dist < nearest_raw:
             nearest_raw = dist
 
-    for obstacle in world.obstacles:
+    for obstacle in obstacles:
         dx = obstacle.x - agent_x
         dy = obstacle.y - agent_y
         dist = _ray_circle_hit(ray_dir_x, ray_dir_y, dx, dy, OBSTACLE_RADIUS)
@@ -131,7 +136,7 @@ def _raycast_ray(agent_x: float, agent_y: float,
         if 0.0 < dist < nearest_raw:
             nearest_raw = dist
 
-    if nearest_raw < closest:
+    if nearest_raw < MAX_RANGE:
         return nearest_raw / MAX_RANGE
     return 1.0
 
@@ -185,6 +190,10 @@ class RayCaster:
         """
         Return one agent's 12-dim observation vector.
 
+        The observation is role-aware: prey see plants as food and every
+        other live agent as a threat; predators see prey as food, rival
+        predators as threats, and never see plants at all.
+
         Args:
             agent: the observing Organism.
             world: World instance.
@@ -199,18 +208,36 @@ class RayCaster:
         ay = agent.position.y
         others = [t for t in live_agents if t is not agent]
 
+        # Role-aware perception: a predator cannot consume plants
+        # (step_simulation blocks that), so plants are removed from its rays
+        # and its food channel instead points at live prey. The threat
+        # channel points at rival predators. Prey keep the original encoding
+        # exactly, preserving the prey-only experiment artifacts.
+        role = getattr(agent, "role", "prey")
+        if role == "predator":
+            food_targets: list = []
+            food_candidates = [t for t in others
+                               if getattr(t, "role", "prey") == "prey"]
+            threat_candidates = [t for t in others
+                                 if getattr(t, "role", "prey") == "predator"]
+        else:
+            food_targets = world.food
+            food_candidates = world.food
+            threat_candidates = others
+
         # Per-ray distances (indices 0..6)
         ray_dists: list[float] = []
         for offset_deg in RAY_ANGLES_DEG:
             ray_angle = agent.heading + math.radians(offset_deg)
             dir_x = math.cos(ray_angle)
             dir_y = math.sin(ray_angle)
-            ray_dists.append(_raycast_ray(ax, ay, dir_x, dir_y, world, others))
+            ray_dists.append(_raycast_ray(ax, ay, dir_x, dir_y, food_targets,
+                                          world.obstacles, others))
         obs[0:7] = ray_dists
 
         # Global nearest bearings (indices 7..9)
-        food_bearing = _bearing_to_nearest(ax, ay, agent.heading, world.food)
-        threat_bearing = _bearing_to_nearest(ax, ay, agent.heading, others)
+        food_bearing = _bearing_to_nearest(ax, ay, agent.heading, food_candidates)
+        threat_bearing = _bearing_to_nearest(ax, ay, agent.heading, threat_candidates)
         obstacle_bearing = _bearing_to_nearest(ax, ay, agent.heading, world.obstacles)
         obs[7] = food_bearing if food_bearing is not None else 0.0
         obs[8] = threat_bearing if threat_bearing is not None else 0.0

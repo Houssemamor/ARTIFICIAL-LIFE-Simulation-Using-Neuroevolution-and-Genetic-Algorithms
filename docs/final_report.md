@@ -36,8 +36,8 @@ specialization: equal weighting leads every specialized condition by
 +0.07 to +0.12 (no pair survives Holm at n = 10). Crossover method
 does not matter at this scale (blend vs uniform +0.001, p = 0.92),
 though both beat mutation-only by ~+0.08. The ecosystem is viable
-but fragile (7 of 10 random seeds collapse - five via predator
-extinction, two via prey; captures climb 5 -> 22/day in survivors),
+but fragile (6 of 10 random seeds collapse - five via prey
+extinction, one via predator; captures climb 5 -> 22/day in survivors),
 and NEAT topology grows (mean complexity 51 -> 102) with the batching
 question resolved by measurement (2.9x the per-agent reference).
 
@@ -51,6 +51,9 @@ the throughput benchmark and the demo story possible.
 
 **Agents.** Seven ray sensors (each returning nearest-surface
 distance plus left/right bearing) feed a 12-value observation vector.
+The food and threat channels are role-aware: prey read plants and any
+other live agent, while predators read live prey and rival predators
+and never see plants, because they cannot eat them.
 The controller is a 12-32-16-3 MLP decoded as tanh steering plus
 sigmoid throttle and eat-gate. The energy equation charges base
 metabolism, action costs, and collision contacts, and pays for food;
@@ -130,19 +133,21 @@ generations - 7-9x the strongest previous signal, and the Phase 3
 ### 4.3 Predator/prey and the hall of fame (Phase 6)
 
 Capture-collision resolution plus in-episode reproduction produce a
-viable-but-fragile ecosystem: 7 of 10 random seeds collapse within 10
-days - a consequence of the
+viable-but-fragile ecosystem: 6 of 10 random seeds collapse within 10
+days. The number reflects two corrections: the
 newborn-energy fix (offspring now run the parent's 0.25/step
-equation instead of a silent 0.1 subsidy) - while the survivors
-settle at carrying capacity with captures per day climbing 5 -> 22 as
-selection favors capturable prey. Five of the seven failures are
-predator extinctions; two are prey. The stability test asserts
-viability on the first three sweep seeds (no cherry-picking) and a
-negative test proves the fixture can fail. The co-evolution run's
-hall-of-fame evaluation shows prey winning nearly every duel
-against archived opponents (unevolved predators rarely catch
-anything inside 150-step duels, and the duel harness now uses the
-same 0.25/step energy equation as the generation metrics)
+equation instead of a silent 0.1 subsidy), and the role-aware
+predator senses that replaced the original prey-centric observation.
+The survivors settle at carrying capacity with captures per
+day climbing 5 -> 22 as the population cycles. Five of the six
+failures are prey extinctions (overharvest); one is a predator
+extinction. The stability test asserts viability on the first three
+sweep seeds (no cherry-picking) and a negative test proves the fixture
+can fail. The co-evolution run's hall-of-fame evaluation shows prey
+winning every archived duel in the final evaluation (predator win
+rate 0.00-0.25 across snapshots; single duels in a 1200x700 arena
+remain detection-limited, and the duel harness now uses the same
+0.25/step energy equation as the generation metrics)
 (`docs/coevolution_notes.md`).
 
 ### 4.4 NEAT extension (Phase 7)
@@ -180,8 +185,10 @@ nulls moved as a family:
 - crossover method remains indistinguishable (blend = uniform), with
   both ahead of mutation-only by ~+0.08;
 - the ecosystem's collapse rate rose (3/10 -> 7/10) once the newborn
-  energy subsidy was removed: viable runs show captures climbing
-  5 -> 22/day, but the predator role is fragile.
+  energy subsidy was removed, and the role-aware predator-sense fix
+  then traded predator starvation for prey overharvest (7/10 -> 6/10
+  collapse): viable runs show captures climbing 5 -> 22/day, and the
+  fragile role is now the prey.
 
 That last item deserves emphasis because it cuts against the earlier
 framing: the first Phase 9 iteration *improved* every stability
@@ -189,7 +196,11 @@ number, and the improvement was a bug. The stability artifact was
 regenerated after the newborn-energy fix, the fixture seeds were
 replaced with an unselected sample, and the integration test now
 asserts the weaker property the system actually has (viability, not
-stability).
+stability). A second, independent confound surfaced later: the
+original observation was prey-centric, so predators spent their lives
+walking toward plants they cannot eat. Role-aware predator senses
+corrected that, the collapse rate fell to 6/10, and the failure mode
+moved from predator starvation to prey overharvest.
 
 What did *not* move: NEAT speciation still reads one species, and
 Holm correction at n = 10 still holds every D and E contrast. Both
@@ -225,9 +236,10 @@ were documented in place rather than quietly overwritten.
    experimental parameter: it sets the survival-vs-forging split
    that every result above depends on. It deserves a sweep
    (0.4 / 0.7 / 1.0) rather than a single point. The ecosystem's
-   0.25/step is the same knob set for a persistent world and is the
-   first candidate if ecosystem robustness matters (its 7/10
-   collapse rate is the weakest number in this report).
+   0.25/step is the same knob set for a persistent world, and the
+   capture rate is the other candidate if ecosystem robustness
+   matters (its 6/10 collapse rate is the weakest number in this
+   report).
 4. **Dashboards.** The live view ships with tiered panels
    (`config.phase_tier` enforces MVP/Advanced separation so the MVP
    build cannot render a Phase 6/7-only metric), plus the Phase 9
@@ -245,7 +257,7 @@ were documented in place rather than quietly overwritten.
 .venv\Scripts\python.exe -m pip install -e . --no-deps
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# tests (251)
+# tests (295)
 .venv\Scripts\python.exe -m pytest tests/ -q
 
 # experiments (each writes JSON + SVG under experiments/)

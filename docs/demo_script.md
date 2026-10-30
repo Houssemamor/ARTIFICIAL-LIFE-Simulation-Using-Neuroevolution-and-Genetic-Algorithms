@@ -40,6 +40,9 @@ if live performance differs from the measured values.
 
 - Red triangles are predators, green are prey; captures transfer
   energy and birth offspring (fitness refresh every evaluation window).
+- Predators see prey and rival predators, not plants: role-aware
+  sensors replaced the original prey-centric encoding, so the red
+  triangles now chase rather than graze.
 - Press F9: the advanced panel shows live prey/predator counts,
   captures, births, and the hall-of-fame win rates from the last
   co-evolution run (`experiments/EXP-COEV/coevolution_summary.json`).

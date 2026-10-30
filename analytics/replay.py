@@ -27,11 +27,21 @@ from simulation.engine import resolve_captures, step_simulation
 from simulation.environment import World
 
 # Labels for the fixed 12-value observation (order is part of the genome
-# compatibility contract, see agents/sensors.py).
+# compatibility contract, see agents/sensors.py). The food and threat
+# channels are role-aware: prey read plants and any other agent, while
+# predators read live prey and rival predators and never see plants.
 INPUT_LABELS: List[str] = (
     [f"ray {int(angle)}" for angle in RAY_ANGLES_DEG]
     + ["food bearing", "threat bearing", "obstacle bearing", "energy", "speed"]
 )
+PREDATOR_INPUT_LABELS: List[str] = (
+    [f"ray {int(angle)}" for angle in RAY_ANGLES_DEG]
+    + ["prey bearing", "rival bearing", "obstacle bearing", "energy", "speed"]
+)
+INPUT_LABELS_BY_ROLE: Dict[str, List[str]] = {
+    "prey": INPUT_LABELS,
+    "predator": PREDATOR_INPUT_LABELS,
+}
 OUTPUT_LABELS: List[str] = ["steer", "accelerate", "eat / capture"]
 
 # Obstacles are drawn as squares of this side length (see the renderer).
@@ -243,5 +253,6 @@ def recording_constants() -> Dict:
         "ray_angles_deg": list(RAY_ANGLES_DEG),
         "max_range": MAX_RANGE,
         "input_labels": INPUT_LABELS,
+        "input_labels_by_role": INPUT_LABELS_BY_ROLE,
         "output_labels": OUTPUT_LABELS,
     }
