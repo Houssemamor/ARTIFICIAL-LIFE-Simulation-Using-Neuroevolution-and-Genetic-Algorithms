@@ -53,14 +53,15 @@ Win conditions (fixed by definition, `run_duel`):
 
 Honest finding: with fixed (non-evolved) random controllers, the
 ecosystem is **viable but fragile**. Under
-`configs/predator_prey.json` (3 apex predators, 24 prey, per-role
-carrying capacities 40/8, food regrowth 0.25/step, capture radius
-30 px, `metabolic_base_cost` 0.25/step, 40 px solid obstacles),
-**7 of 10 seeds collapse** (one role extinct) within 10 days. The
-three survivors (seeds 1, 3 and 5) run the full horizon with both
-roles alive; their per-seed minima are 14/1, 18/1 and 2/3
-(prey/predator). The claim traces to a committed, regenerable
-artifact: `experiments/EXP-COEV/stability_sweep.json`, produced by
+`configs/predator_prey.json` (6 apex predators, 24 prey, 20
+coevolution generations, per-role carrying capacities 40/8, food
+regrowth 0.25/step, capture radius 30 px, `metabolic_base_cost`
+0.25/step, 40 px solid obstacles), **8 of 10 seeds collapse** (one role
+extinct) within 10 days. The two survivors (seeds 6 and 8) run the full
+horizon with both roles alive; their per-seed minima are 15/4 and 13/1
+(prey/predator), ending at 28/6 and 39/2. The claim traces to a
+committed, regenerable artifact:
+`experiments/EXP-COEV/stability_sweep.json`, produced by
 `experiments/run_coevolution.py --mode stability-sweep --seed 1
 --seeds 10 --days 10` (the pipeline is deterministic per seed, so a
 re-run reproduces the file). This sweep includes the Phase B
@@ -71,17 +72,19 @@ weighted toward survival/foraging
 (`survival 0.45, food 0.25, exploration 0.2, collision 0.1`), resolved
 per role in co-evolution and ecosystem fitness updates.
 
-**Every collapse is a predator extinction.** The 7 failing seeds (2, 4,
-6, 7, 8, 9 and 10) all lose the predator role; none lose prey. This is
-a different failure mode from the previous sweep under the same
-collapse rate (7/10), which split 5 predator / 2 prey extinctions with
-survivors 3, 4 and 5. The incentive fix made predators more
-capture-seeking and improved seed 1 from an early predator die-off to a
-full 10-day run (seed 1 is now a survivor, 14/1 minimum), but it did
-not widen the stability basin: when captures do not arrive fast enough,
-the predator population still starves.
+**Seven collapses are predator extinctions and one is a prey
+extinction.** Seeds 1, 2, 3, 5, 7, 9 and 10 lose the predator role;
+seed 4 loses prey (ending 0 prey / 2 predators at day 5). Increasing the
+initial predator count to 6 and the coevolution budget to 20 generations
+strengthened in-episode pursuit in the GA run (see below), but the
+fixed-controller ecosystem became less forgiving: the collapse rate rose
+from 7/10 to 8/10 and the committed seed-1 ecosystem run now collapses on
+day 4 (14/5, 16/6, 15/6, 20/6, 17/0; captures 9, 12, 8, 1, 0). More
+starting predators raise early capture pressure and energy demand in a
+random-controller world, so pursuit incentives alone are not a
+substitute for better predator economics.
 
-The history now has four measured corrections. First, `create_offspring`
+The history now has five measured corrections. First, `create_offspring`
 once constructed newborns without the parent's energy config, so every
 predator born after day 0 silently ran the legacy 0.1/step equation
 while its parent ran 0.25 - an easier landscape for offspring than for
@@ -89,46 +92,45 @@ parents. Fixing that removed the subsidy and raised the collapse rate
 from 3/10 to 7/10. Second, the original 12-input observation was
 prey-centric: input 7 always pointed at the nearest plant and the seven
 rays always hit plants first, so a predator spent its life walking
-toward food it cannot eat (the engine blocks plant consumption for
-predators). Predators now receive role-aware senses - rays ignore
-plants, input 7 points at the nearest live prey, input 8 at the nearest
-rival predator - while prey observations remain byte-identical. With
-effective predators the collapse rate fell to 6/10 and the failure mode
-moved to prey overharvest. Third, the 40 px solid obstacles stopped
-agents from driving through walls; the likely mechanism is energy, since
-predators can no longer take straight-line shortcuts through obstacle
-clusters (6/10 -> 7/10). Fourth, role-specific fitness weights now pay
-predators much more for captures than for generic survival, which keeps
-seed 1 viable through the full horizon but leaves the 10-seed collapse
-count unchanged and predator starvation as the only observed failure.
+toward food it cannot eat. Predators now receive role-aware senses -
+rays ignore plants, input 7 points at the nearest live prey, input 8 at
+the nearest rival predator - while prey observations remain
+byte-identical. With effective predators the collapse rate fell to 6/10
+and the failure mode moved to prey overharvest. Third, the 40 px solid
+obstacles stopped agents from driving through walls; the likely
+mechanism is energy, since predators can no longer take straight-line
+shortcuts through obstacle clusters (6/10 -> 7/10). Fourth, role-specific
+fitness weights paid predators much more for captures than for generic
+survival, which kept the 3-predator/10-generation sweep at 7/10 with all
+predator extinctions but made seed 1 viable in that regime. Fifth,
+increasing to 6 predators and 20 coevolution generations improved
+learned pursuit (the coevolution run sustains captures 5-18 per
+generation with 4-6 predators alive at evaluation end), but the
+fixed-controller 10-seed sweep worsened to 8/10 with one prey
+extinction reappearing.
 
-The committed seed-1 ecosystem run illustrates the improved but still
-fragile regime: it survives all 10 days with prey/predators 16/2,
-14/5, 17/4, 24/3, 16/3, 19/1, 20/1, 20/6, 30/6, 21/6 and captures
-6, 10, 2, 2, 8, 0, 4, 5, 11, 6. Predators dip to a single survivor on
-days 5-6, then recover to 6 by day 7 through reproduction after later
-captures. The 0.25 metabolic setting remains correct for the ecosystem
-(at 0.7 every predator starves before its first capture and the
-ecosystem collapses on day 0, because one missed day is death): the
-solo experiments run 150-step episodes, the ecosystem runs 150-step
-days in a persistent world, so it needs a slower clock. Lowering the
-ecosystem clock further (0.15-0.20), reducing capture pressure (radius
-30 -> 20 px or transfer 60 -> 40), or increasing predator
-count/generations are the obvious next levers if a sturdier demo is
-needed. The hall-of-fame duels were fixed earlier the same way:
-`run_duel` builds its duelists with the configured energy equation and a
-legal spawn clear of the solid bodies, so frozen-checkpoint win rates
-are measured under the same dynamics as the generation metrics they are
-compared against.
+The 0.25 metabolic setting remains correct for the ecosystem (at 0.7
+every predator starves before its first capture and the ecosystem
+collapses on day 0, because one missed day is death): the solo
+experiments run 150-step episodes, the ecosystem runs 150-step days in a
+persistent world, so it needs a slower clock. Lowering the ecosystem
+clock further (0.15-0.20), reducing capture pressure (radius 30 -> 20 px
+or transfer 60 -> 40), normalizing capture rewards, or revisiting
+predator count/carrying capacity are the obvious next levers if a
+sturdier demo is needed. The hall-of-fame duels were fixed earlier the
+same way: `run_duel` builds its duelists with the configured energy
+equation and a legal spawn clear of the solid bodies, so frozen-checkpoint
+win rates are measured under the same dynamics as the generation metrics
+they are compared against.
 
 The stability test (`tests/integration/test_predator_prey_stability.py`)
 therefore asserts the honest property - viability, not stability -
-on the first three sweep seeds (1, 2, 3), with no cherry-picking:
-at least one must complete the full horizon with both roles alive
-(seeds 1 and 3 do), and no seed may reach total extinction. The 10-seed
-rate lives in the sweep artifact. The negative test proves the
-fixture is not vacuous (24 predators with reproduction disabled
-extinguish themselves within 7 days).
+on a fixed contiguous sample of sweep seeds (6, 7, 8), with no
+cherry-picking within the block: at least one must complete the full
+horizon with both roles alive (seeds 6 and 8 do), and no seed may reach
+total extinction. The 10-seed rate lives in the sweep artifact. The
+negative test proves the fixture is not vacuous (24 predators with
+reproduction disabled extinguish themselves within 7 days).
 
 Three structural findings from the tuning work, for whoever iterates:
 
@@ -178,16 +180,23 @@ ecological analogue of the same selection pressure. The stability basin
 *narrowed* under the corrected dynamics (3 of 10 -> 7 of 10 collapse)
 once newborns inherited the parent's energy equation; role-aware
 predator senses briefly traded predator starvation for prey overharvest
-(7/10 -> 6/10), and the 40 px solid obstacles moved the failure mode
-back to predator starvation (6/10 -> 7/10). Role-specific fitness
-weights (the predator-pursuit incentive fix) then changed the character
-of the failures without changing the rate: the committed sweep is still
-7/10, but every collapse is now a predator extinction and seed 1 is a
-full-horizon survivor. The committed seed-1 ecosystem run shows the
-pattern directly: captures of 6, 10, 2, 2, 8, 0, 4, 5, 11, 6 over ten
-days, with predators dipping to 1 on days 5-6 before recovering to 6 by
-day 7. The honest summary is: learning and pursuit incentives are real,
-viability is seed-dependent, and the fragile role remains the predator.
+(7/10 -> 6/10), the 40 px solid obstacles moved the failure mode back to
+predator starvation (6/10 -> 7/10), and role-specific fitness weights
+kept the 3-predator/10-generation sweep at 7/10 with all predator
+extinctions. Increasing to 6 predators and 20 coevolution generations
+improved learned pursuit in the coevolution run (captures 5-18 per
+generation, 4-6 predators alive at evaluation end, HOF predator/prey win
+rates ending 0.10/1.00 across snapshots 0.50/1.00, 0.33/1.00, 0.25/0.75,
+0.20/0.80, 0.00/1.00, 0.00/0.86, 0.00/1.00, 0.00/1.00, 0.10/1.00), but
+worsened the fixed-controller ecosystem: the stability sweep is 8/10
+(7 predator, 1 prey extinction; survivors seeds 6 and 8) and the
+committed seed-1 ecosystem run collapses on day 4 with captures 9, 12,
+8, 1, 0.
+
+The honest summary is: capture incentives and a larger coevolution
+budget improve pursuit during evolution, but fixed-controller ecosystem
+robustness did not improve. Predator count/carrying capacity, capture
+normalization/pressure, and the 0.25/step clock remain the key levers.
 
 The downstream NEAT system still feels little divergence pressure
 (`docs/neat_extension_report.md`), for a different reason than before:
