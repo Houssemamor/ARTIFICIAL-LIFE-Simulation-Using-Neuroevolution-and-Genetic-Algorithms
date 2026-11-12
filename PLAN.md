@@ -479,7 +479,7 @@ artificial-life-sim/
 
 ### Deliverables — Phase 6
 
-- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days (5 predator extinctions, 2 prey) after the newborn-energy fix, the role-aware predator senses and the solid 40 px obstacles (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; the ecosystem clock is the robustness lever)
+- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days (all predator extinctions) after the newborn-energy fix, role-aware predator senses, solid 40 px obstacles, and role-specific capture incentives (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; predator economics and the ecosystem clock remain the robustness levers)
 - [x] A working hall-of-fame evaluation harness and dashboard panel (F9 GUI toggle; frozen-opponent win rates in analytics/hall_of_fame.py)
 - [x] A documented co-evolution caveat protecting later readers from misreading the metrics (docs/coevolution_notes.md)
 
@@ -582,7 +582,7 @@ artificial-life-sim/
 | Generalization | null (+0.001, p=0.846) | **null (-0.008, p=0.7695, r=-0.127, 4/10 seeds train-higher, CI [-0.043, +0.029])**; the earlier +0.047 penalty was regime-dependent |
 | Fitness weighting (D) | all conditions within 0.015 | **equal is the best point estimate but tied with exploration (+0.015)**; survival-weighting is last by +0.18 (p=0.16; no pair survives Holm at n=10) |
 | Crossover (E) | blend ≈ uniform | **no pair survives Holm**; blend leads uniform +0.12 (p=0.13) and mutation-only +0.16 (p=0.064) |
-| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (5 predator extinctions, 2 prey, after the newborn-energy fix and solid 40 px obstacles); the committed seed-1 run captures 6, 10, 1, 7, 5, 0, 0 and loses its last predator on day 6 |
+| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (all predator extinctions, after the newborn-energy fix, solid 40 px obstacles, and role-specific capture incentives); seed 1 now survives 10 days (captures 6, 10, 2, 2, 8, 0, 4, 5, 11, 6, ending 21 prey / 6 predators) |
 | NEAT topology | 51 → 108.6 | 51 → 107 (unchanged growth; 605 innovations, 1 species) |
 
 **Review-driven corrections to the dynamics themselves (the reason the first re-run's numbers were withdrawn):**
@@ -598,7 +598,7 @@ artificial-life-sim/
 - Web dashboard: FastAPI + Bootstrap/vanilla JS read-only viewer over `experiments/` (`webdash/`), the plan's Section 12.3 endpoints adapted to the artifacts that exist; packaged into the wheel.
 - `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` with an author-side recording checklist for the demo video.
 
-**Open after Phase 9 (documented, not hidden):** the three best effects sit near but not past Holm at n=10 (larger-n confirmations are the top next action); the ecosystem's predator role is fragile (7/10 collapse; the 0.25/step ecosystem clock is the lever); NEAT speciation still reads one species against the bimodal landscape; the metabolic cost itself deserves a sweep (0.4 / 0.7 / 1.0).
+**Open after Phase 9 (documented, not hidden):** the three best effects sit near but not past Holm at n=10 (larger-n confirmations are the top next action); the ecosystem's predator role is fragile (7/10 collapse, all predator extinctions despite stronger capture incentives; predator count/generations, capture normalization, and the 0.25/step ecosystem clock are levers); NEAT speciation still reads one species against the bimodal landscape; the metabolic cost itself deserves a sweep (0.4 / 0.7 / 1.0).
 
 ---
 

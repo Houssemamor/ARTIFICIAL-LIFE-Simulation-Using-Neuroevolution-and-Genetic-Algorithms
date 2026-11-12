@@ -42,7 +42,10 @@ p = 0.13, and mutation-only by +0.16, p = 0.064). The ecosystem is viable
 but fragile (7 of 10 random seeds collapse - five via predator
 extinction, two via prey), and NEAT topology grows (mean complexity
 51 -> 107) with the batching question resolved by measurement (3.1x
-the per-agent reference).
+the per-agent reference). A subsequent role-specific predator incentive
+fix (predator fitness weighted toward captures) preserved the 7/10
+ecosystem collapse rate but changed all failures to predator
+extinctions and made seed 1 viable for the full horizon.
 
 ## 2. System
 
@@ -140,20 +143,22 @@ generations - 15-22x the strongest previous signal, and the Phase 3
 
 Capture-collision resolution plus in-episode reproduction produce a
 viable-but-fragile ecosystem: 7 of 10 random seeds collapse within 10
-days. The number reflects three corrections: the newborn-energy fix
+days. The number reflects four corrections: the newborn-energy fix
 (offspring now run the parent's 0.25/step equation instead of a
 silent 0.1 subsidy), the role-aware predator senses that replaced the
-original prey-centric observation, and the solid 40 px obstacles that
-stopped agents driving through walls. Five of the seven failures are
-predator extinctions (seeds 1, 2, 6, 8, 10) and two are prey
-extinctions (seeds 7, 9); the three survivors (seeds 3, 4, 5) finish
-the horizon with per-seed minima of 7/1, 2/3 and 14/3 prey/predator.
-The committed seed-1 ecosystem run survives seven days with captures
-6, 10, 1, 7, 5, 0, 0 before the last predator starves on day 6. The
-stability test asserts viability on the first three sweep seeds (no
-cherry-picking; seed 3 completes the horizon) and a negative test
-proves the fixture can fail. The co-evolution run's hall-of-fame
-evaluation gives predator win rates of 0.50, 0.00, 0.25 and 0.40
+original prey-centric observation, the solid 40 px obstacles that
+stopped agents driving through walls, and role-specific fitness
+weights that reward predators more strongly for captures than for
+generic survival. All seven failures are predator extinctions (seeds
+2, 4, 6, 7, 8, 9 and 10); the three survivors (seeds 1, 3 and 5)
+finish the horizon with per-seed minima of 14/1, 18/1 and 2/3
+prey/predator. The committed seed-1 ecosystem run now survives all 10
+days with captures 6, 10, 2, 2, 8, 0, 4, 5, 11, 6 and ends at 21 prey
+/ 6 predators after dipping to 1 predator on days 5-6. The stability
+test asserts viability on the first three sweep seeds (no
+cherry-picking; seeds 1 and 3 complete the horizon) and a negative
+test proves the fixture can fail. The co-evolution run's hall-of-fame
+evaluation gives predator win rates of 1.00, 0.00, 0.00 and 0.40
 against the frozen archive across the four snapshots, and prey rates
 of 1.00, 0.67, 0.75 and 0.60 (final split 0.40 predator / 0.60 prey;
 single duels in a 1200x700 arena remain detection-limited, and the
@@ -196,12 +201,12 @@ nulls moved as a family:
   leads uniform by +0.12 (p = 0.13) and mutation-only by +0.16
   (p = 0.064), with uniform and mutation-only indistinguishable;
 - the ecosystem's collapse rate rose (3/10 -> 7/10) once the newborn
-  energy subsidy was removed; the role-aware predator-sense fix then
-  traded predator starvation for prey overharvest (7/10 -> 6/10
-  collapse), and the solid 40 px obstacles moved the failure mode back
-  to predator starvation (6/10 -> 7/10). The fragile role is the
-  predator again, and the committed seed-1 run ends with the last
-  predator starving on day 6.
+  energy subsidy was removed; the role-aware predator-sense fix and the
+  solid 40 px obstacles moved the failure mode between predator
+  starvation and prey overharvest, and role-specific capture incentives
+  kept the rate at 7/10 but made every collapse a predator extinction.
+  The committed seed-1 run now survives the full 10-day horizon
+  (ending 21 prey / 6 predators) despite dipping to 1 predator mid-run.
 
 That last item deserves emphasis because it cuts against the earlier
 framing: the first Phase 9 iteration *improved* every stability
@@ -214,9 +219,11 @@ original observation was prey-centric, so predators spent their lives
 walking toward plants they cannot eat. Role-aware predator senses
 corrected that, the collapse rate fell to 6/10, and the failure mode
 moved from predator starvation to prey overharvest. The solid 40 px
-obstacles in this revision then removed the straight-line shortcut
-through obstacle clusters, and the rate moved back to 7/10 with
-predator starvation as the dominant failure again.
+obstacles in this revision removed the straight-line shortcut through
+obstacle clusters and the rate moved back to 7/10 with predator
+starvation dominant; the subsequent role-specific capture-incentive fix
+kept the rate at 7/10 but eliminated prey-extinction collapses in the
+committed sweep.
 
 What did *not* move: NEAT speciation still reads one species, and
 Holm correction at n = 10 still holds every D and E contrast. Both
@@ -248,14 +255,13 @@ were documented in place rather than quietly overwritten.
    species. A population with intermediate food availability (or a
    longer horizon before starvation) would give speciation a
    gradient to act on.
-3. **Metabolic cost as a factor.** 0.7/step is a load-bearing
-   experimental parameter: it sets the survival-vs-forging split
-   that every result above depends on. It deserves a sweep
-   (0.4 / 0.7 / 1.0) rather than a single point. The ecosystem's
-   0.25/step is the same knob set for a persistent world, and the
-   capture rate is the other candidate if ecosystem robustness
-   matters (its 7/10 collapse rate is the weakest number in this
-   report).
+3. **Ecosystem robustness and predator economics.** The 7/10 collapse
+   rate is unchanged but is now entirely predator starvation despite
+   stronger capture incentives, which points at predator count /
+   generations, capture normalization, and the 0.25/step ecosystem
+   clock as the next levers. 0.7/step remains the load-bearing
+   solo-experiment metabolic cost and still deserves a sweep
+   (0.4 / 0.7 / 1.0).
 4. **Dashboards.** The live view ships with tiered panels
    (`config.phase_tier` enforces MVP/Advanced separation so the MVP
    build cannot render a Phase 6/7-only metric), plus the Phase 9
@@ -273,14 +279,14 @@ were documented in place rather than quietly overwritten.
 .venv\Scripts\python.exe -m pip install -e . --no-deps
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# tests (306)
+# tests (307)
 .venv\Scripts\python.exe -m pytest tests/ -q
 
 # experiments (each writes JSON + SVG under experiments/)
 .venv\Scripts\python.exe experiments\run_generalization.py --seeds 10
 .venv\Scripts\python.exe experiments\run_experiment_d.py --seeds 10
 .venv\Scripts\python.exe experiments\run_crossover_experiment.py --seeds 10
-.venv\Scripts\python.exe experiments\run_coevolution.py --config configs\predator_prey.json --mode ecosystem --seed 4 --days 10
+.venv\Scripts\python.exe experiments\run_coevolution.py --config configs\predator_prey.json --mode ecosystem --seed 1 --days 10
 .venv\Scripts\python.exe experiments\run_coevolution.py --config configs\predator_prey.json --mode stability-sweep --seed 1 --seeds 10 --days 10
 .venv\Scripts\python.exe experiments\run_neat.py --config configs\neat_food_seeking.json --seed 1
 

@@ -110,7 +110,7 @@ def main():
         num_threads=1,
     ))
 
-    print(f"Starting Artificial Life Neuroevolution Simulation")
+    print("Starting Artificial Life Neuroevolution Simulation")
     print(f"Configuration: {args.config}")
     print(f"Mode: {args.mode}")
     print(f"Agent mode: {args.agent_mode}")
@@ -194,7 +194,6 @@ def main():
     simulation_speed = 1.0
     physics_dt = 1.0 / 60.0
     physics_accumulator = 0.0
-    render_dt = 1.0 / 30.0
 
     last_time = time.time()
 

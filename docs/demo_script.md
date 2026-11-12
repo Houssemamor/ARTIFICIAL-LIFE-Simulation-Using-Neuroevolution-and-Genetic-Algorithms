@@ -50,7 +50,9 @@ if live performance differs from the measured values.
   the inspector opens on the right (vitals, genome fingerprint,
   controller graph with live output activations).
 - Control bar (bottom): Pause / x1 / x10 / Save (snapshots the best
-  controller to `experiments/EXP-GUI/checkpoint.npz`) / Reset.
+  controller to `experiments/EXP-GUI/checkpoint.npz`) / Reset. Predators
+  are now evaluated with capture-emphasized fitness weights in the
+  co-evolution config; the committed ecosystem seed 1 survives 10 days.
 
 ## 3. Headless determinism (terminal, ~60 s)
 

@@ -257,11 +257,11 @@ function footer(slide, n) {
   title(s, "Results: Predator/Prey & Hall of Fame",
     "An oscillating arms race, explained rather than hidden");
   stat(s, 0.8, 2.3, "0.40 / 0.60", "final hall-of-fame win rate (predator / prey)", AMBER);
-  stat(s, 4.8, 2.3, "7 of 10", "random seeds collapse (5 predator, 2 prey)", TEXT);
-  stat(s, 8.8, 2.3, "7 days", "seed-1 run; last predator starves on day 6", GREEN);
+  stat(s, 4.8, 2.3, "7 of 10", "random seeds collapse (all predator extinctions)", TEXT);
+  stat(s, 8.8, 2.3, "10 days", "seed-1 ecosystem survives (ends 21 prey / 6 predators)", GREEN);
   bullets(s, [
     { text: "Within-generation fitness in a co-evolution is relative - the hall-of-fame win rate against FROZEN archives is the absolute measure", bold: true },
-    { text: "The first stability improvement was a bug: newborns silently ran the default 0.1 energy equation, not the parent's 0.25. Fixed, re-measured, and the collapse rate rose - the honest number", color: MUTED },
+    { text: "Role-aware senses and capture-weighted predator fitness improved pursuit, but predator starvation still drives every collapse", color: MUTED },
   ], { y: 4.4, h: 2.1, w: 11.9 });
   footer(s, 11);
 }
@@ -288,7 +288,7 @@ function footer(slide, n) {
   const rows = [
     ["Statistical power", "The best effects sit near but not past Holm at n=10. Re-run at n=20-30 is the top action.", AMBER],
     ["Bimodal landscape", "Enough leverage for the GA, not for speciation. Graded food availability is the route.", CYAN],
-    ["Fragile predators", "7 of 10 ecosystem seeds collapse (5 predator, 2 prey) with solid obstacles; the 0.25/step clock is the lever.", RED],
+    ["Fragile predators", "7 of 10 ecosystem seeds collapse (all predator extinctions) despite capture-weighted incentives; predator economics and the 0.25/step clock are levers.", RED],
     ["Metabolic cost is a factor", "0.7/step sets the survival-vs-forging split every result depends on - sweep 0.4/0.7/1.0.", GREEN],
   ];
   rows.forEach(([head, body, color], i) => {
@@ -309,7 +309,7 @@ function footer(slide, n) {
   s.addText("Artifacts, all reproducible", { x: 0.8, y: 1.4, w: 11.7, h: 0.9,
     fontFace: FONT_H, fontSize: 40, bold: true, color: TEXT, margin: 0 });
   s.addText([
-    { text: "306 tests green (local, Python 3.14.5)   ", options: { color: GREEN, fontSize: 15 } },
+    { text: "307 tests green (local, Python 3.14.5)   ", options: { color: GREEN, fontSize: 15 } },
     { text: "every number on these slides traces to a committed JSON or SVG", options: { color: MUTED, fontSize: 15 } },
   ], { x: 0.8, y: 2.4, w: 11.7, h: 0.5, fontFace: FONT_B, margin: 0 });
   s.addText([

@@ -4,109 +4,109 @@
   "generations": [
     {
       "generation": 1,
-      "prey_fitness_mean": 0.6852176121390586,
-      "prey_fitness_max": 2.4965719770188617,
-      "predator_fitness_mean": 0.7813818119108804,
-      "predator_fitness_max": 1.2429246814763795,
+      "prey_fitness_mean": 0.6845664944782673,
+      "prey_fitness_max": 2.3054782452574516,
+      "predator_fitness_mean": 0.9721331283689766,
+      "predator_fitness_max": 1.4603718007048874,
       "captures": 5,
       "prey_alive_end": 16,
       "predator_alive_end": 2
     },
     {
       "generation": 2,
-      "prey_fitness_mean": 0.8904701763793123,
-      "prey_fitness_max": 1.8963440588746696,
-      "predator_fitness_mean": 0.9161760953011489,
-      "predator_fitness_max": 1.2591665548339337,
+      "prey_fitness_mean": 0.9343858274143549,
+      "prey_fitness_max": 2.406671859951656,
+      "predator_fitness_mean": 0.8478841603603279,
+      "predator_fitness_max": 1.2043947278130718,
       "captures": 4,
       "prey_alive_end": 18,
-      "predator_alive_end": 3
-    },
-    {
-      "generation": 3,
-      "prey_fitness_mean": 0.9218487927758904,
-      "prey_fitness_max": 2.275242058757807,
-      "predator_fitness_mean": 1.379048643402193,
-      "predator_fitness_max": 1.530923064737261,
-      "captures": 8,
-      "prey_alive_end": 14,
       "predator_alive_end": 1
     },
     {
+      "generation": 3,
+      "prey_fitness_mean": 0.7829518063741623,
+      "prey_fitness_max": 2.3978283684783332,
+      "predator_fitness_mean": 1.2638493739247634,
+      "predator_fitness_max": 1.5574667270773939,
+      "captures": 7,
+      "prey_alive_end": 14,
+      "predator_alive_end": 3
+    },
+    {
       "generation": 4,
-      "prey_fitness_mean": 1.2718347040820481,
-      "prey_fitness_max": 2.70020818053679,
-      "predator_fitness_mean": 1.2444136372754724,
-      "predator_fitness_max": 1.8724960843276381,
-      "captures": 10,
-      "prey_alive_end": 11,
+      "prey_fitness_mean": 0.8768035166506754,
+      "prey_fitness_max": 2.7096772450864117,
+      "predator_fitness_mean": 1.1280838685617651,
+      "predator_fitness_max": 2.527595260199817,
+      "captures": 6,
+      "prey_alive_end": 13,
       "predator_alive_end": 3
     },
     {
       "generation": 5,
-      "prey_fitness_mean": 1.0812646401957144,
-      "prey_fitness_max": 3.0636517973521102,
-      "predator_fitness_mean": 1.4728143168035395,
-      "predator_fitness_max": 2.5944683281420833,
-      "captures": 10,
+      "prey_fitness_mean": 0.7386302823064606,
+      "prey_fitness_max": 2.1967873929231865,
+      "predator_fitness_mean": 1.3176398498648652,
+      "predator_fitness_max": 1.619381860278878,
+      "captures": 7,
+      "prey_alive_end": 8,
+      "predator_alive_end": 2
+    },
+    {
+      "generation": 6,
+      "prey_fitness_mean": 1.0170524710448285,
+      "prey_fitness_max": 2.8341771769220827,
+      "predator_fitness_mean": 0.902012263682879,
+      "predator_fitness_max": 1.3529488732388768,
+      "captures": 4,
+      "prey_alive_end": 12,
+      "predator_alive_end": 1
+    },
+    {
+      "generation": 7,
+      "prey_fitness_mean": 0.9654731449884816,
+      "prey_fitness_max": 2.574943071996195,
+      "predator_fitness_mean": 1.9701087985032881,
+      "predator_fitness_max": 2.6400497468418367,
+      "captures": 13,
       "prey_alive_end": 7,
       "predator_alive_end": 3
     },
     {
-      "generation": 6,
-      "prey_fitness_mean": 1.229070953208726,
-      "prey_fitness_max": 2.9684579469463572,
-      "predator_fitness_mean": 1.0331987073962328,
-      "predator_fitness_max": 1.612091084789467,
-      "captures": 7,
-      "prey_alive_end": 12,
-      "predator_alive_end": 2
-    },
-    {
-      "generation": 7,
-      "prey_fitness_mean": 1.328135509679606,
-      "prey_fitness_max": 3.250337301577565,
-      "predator_fitness_mean": 1.0866111151761775,
-      "predator_fitness_max": 1.6543002540685516,
-      "captures": 10,
-      "prey_alive_end": 11,
-      "predator_alive_end": 2
-    },
-    {
       "generation": 8,
-      "prey_fitness_mean": 0.7589824510960953,
-      "prey_fitness_max": 2.3476942393463625,
-      "predator_fitness_mean": 2.0057444360264505,
-      "predator_fitness_max": 2.5405223690069048,
-      "captures": 17,
-      "prey_alive_end": 5,
-      "predator_alive_end": 3
+      "prey_fitness_mean": 1.4076358200281698,
+      "prey_fitness_max": 3.3518716221407554,
+      "predator_fitness_mean": 0.7463099351370143,
+      "predator_fitness_max": 1.4144085216838054,
+      "captures": 4,
+      "prey_alive_end": 16,
+      "predator_alive_end": 1
     },
     {
       "generation": 9,
-      "prey_fitness_mean": 1.283297234484197,
-      "prey_fitness_max": 2.290430191482529,
-      "predator_fitness_mean": 1.0588213061957423,
-      "predator_fitness_max": 1.3363207997692579,
+      "prey_fitness_mean": 0.8489538110625237,
+      "prey_fitness_max": 2.1935079701252547,
+      "predator_fitness_mean": 1.5695087093844773,
+      "predator_fitness_max": 2.450174788402514,
       "captures": 8,
-      "prey_alive_end": 14,
+      "prey_alive_end": 10,
       "predator_alive_end": 2
     },
     {
       "generation": 10,
-      "prey_fitness_mean": 1.0250689823044468,
-      "prey_fitness_max": 2.433288802124116,
-      "predator_fitness_mean": 0.6656077624490323,
-      "predator_fitness_max": 0.7610392515680822,
-      "captures": 6,
-      "prey_alive_end": 10,
-      "predator_alive_end": 1
+      "prey_fitness_mean": 1.008928105300478,
+      "prey_fitness_max": 1.961027366137456,
+      "predator_fitness_mean": 1.4166623802338763,
+      "predator_fitness_max": 2.9827557640441924,
+      "captures": 9,
+      "prey_alive_end": 12,
+      "predator_alive_end": 0
     }
   ],
   "hof_evaluations": [
     {
       "generation": 4,
-      "predator_win_rate_vs_archive": 0.5,
+      "predator_win_rate_vs_archive": 1.0,
       "prey_win_rate_vs_archive": 1.0,
       "archive_size": 2
     },
@@ -118,7 +118,7 @@
     },
     {
       "generation": 8,
-      "predator_win_rate_vs_archive": 0.25,
+      "predator_win_rate_vs_archive": 0.0,
       "prey_win_rate_vs_archive": 0.75,
       "archive_size": 4
     },

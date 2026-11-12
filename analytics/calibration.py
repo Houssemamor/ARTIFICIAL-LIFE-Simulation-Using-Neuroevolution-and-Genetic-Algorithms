@@ -182,7 +182,6 @@ def run_calibration(
             config, ep_seed + episodes, "stand_still", steps_per_episode))
 
     random_means = np.mean(random_results, axis=0)
-    stand_still_means = np.mean(stand_still_results, axis=0)
 
     # Use random policy as the primary reference (more representative of actual behavior)
     survival_ref = max(random_means[0], 1.0)
