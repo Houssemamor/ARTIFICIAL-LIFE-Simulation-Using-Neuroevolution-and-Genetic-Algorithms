@@ -423,15 +423,74 @@ def run_coevolution_generation(
                        for agent in agents}
 
     captures_total = 0
+    # Shaping accumulators: prey rewarded for maintaining distance from
+    # nearest predator (fear/avoidance), predators rewarded for closing
+    # distance to nearest prey and mildly penalized for persistent turning
+    # (anti-circling pursuit bias).
+    max_world_dist = float(np.hypot(world.width, world.height))
+    threat_dist_sum = {a.id: 0.0 for a in prey_agents}
+    threat_steps = {a.id: 0 for a in prey_agents}
+    pursuit_close_sum = {a.id: 0.0 for a in predator_agents}
+    pursuit_steps = {a.id: 0 for a in predator_agents}
+    steer_abs_sum = {a.id: 0.0 for a in predator_agents}
+    steer_steps = {a.id: 0 for a in predator_agents}
+
     for _ in range(config.evolution.evaluation_steps):
         if not any(agent.is_alive for agent in agents):
             break
+
+        live_prey = [a for a in prey_agents if a.is_alive]
+        live_predators = [a for a in predator_agents if a.is_alive]
+
+        # Pre-step distances for shaping signals.
+        prey_to_pred = {}
+        for prey_agent in live_prey:
+            if live_predators:
+                prey_to_pred[prey_agent.id] = min(
+                    prey_agent.position.distance_to(pred.position)
+                    for pred in live_predators)
+        pred_to_prey = {}
+        for pred_agent in live_predators:
+            if live_prey:
+                pred_to_prey[pred_agent.id] = min(
+                    pred_agent.position.distance_to(prey.position)
+                    for prey in live_prey)
+
         step_simulation(world, agents, raycaster)
         captures_total += resolve_captures(
             agents,
             capture_radius=config.predation.capture_radius,
             energy_transfer=config.predation.capture_energy_transfer,
         )
+
+        # Post-step shaping accumulation using current live states.
+        live_prey_after = [a for a in prey_agents if a.is_alive]
+        live_predators_after = [a for a in predator_agents if a.is_alive]
+        for prey_agent in live_prey:
+            # Reward keeping distance from threats while alive; if no
+            # predators remain, no additional threat pressure this step.
+            if live_predators_after:
+                dist = min(
+                    prey_agent.position.distance_to(pred.position)
+                    for pred in live_predators_after)
+            elif prey_agent.id in prey_to_pred:
+                dist = prey_to_pred[prey_agent.id]
+            else:
+                dist = 0.0
+            threat_dist_sum[prey_agent.id] += dist
+            threat_steps[prey_agent.id] += 1
+
+        for pred_agent in live_predators:
+            steer_abs_sum[pred_agent.id] += abs(
+                float(getattr(pred_agent, 'last_steering', 0.0)))
+            steer_steps[pred_agent.id] += 1
+            if live_prey_after and pred_agent.id in pred_to_prey:
+                dist_after = min(
+                    pred_agent.position.distance_to(prey.position)
+                    for prey in live_prey_after)
+                pursuit_close_sum[pred_agent.id] += (
+                    pred_to_prey[pred_agent.id] - dist_after)
+                pursuit_steps[pred_agent.id] += 1
 
     # Fitness per agent; dead agents keep their pre-death achievements,
     # matching run_generation's dead-agent scoring policy. Exploration
@@ -445,9 +504,31 @@ def run_coevolution_generation(
             role_weights = config.fitness_weights_predator or fitness_weights
         else:
             role_weights = config.fitness_weights_prey or fitness_weights
-        agent.fitness = compute_fitness(
+        base_fitness = compute_fitness(
             agent, agent.age, agent.food_eaten, exploration, agent.collisions,
             calibration_scales, role_weights)
+
+        shaping_bonus = 0.0
+        if role == 'prey':
+            steps = threat_steps.get(agent.id, 0)
+            if steps > 0 and max_world_dist > 0.0:
+                mean_threat_dist = threat_dist_sum[agent.id] / steps
+                # Dense avoidance incentive: higher mean distance from
+                # predators while alive increases fitness.
+                shaping_bonus = 0.30 * (mean_threat_dist / max_world_dist)
+        else:
+            p_steps = pursuit_steps.get(agent.id, 0)
+            if p_steps > 0:
+                mean_close = pursuit_close_sum[agent.id] / p_steps
+                # Reward net closing progress toward prey (max speed ~5 px/step)
+                # and mildly penalize persistent turning/circling bias.
+                shaping_bonus += 0.35 * float(np.clip(mean_close / 5.0, -1.0, 1.0))
+            s_steps = steer_steps.get(agent.id, 0)
+            if s_steps > 0:
+                mean_abs_steer = steer_abs_sum[agent.id] / s_steps
+                shaping_bonus -= 0.05 * mean_abs_steer
+
+        agent.fitness = max(base_fitness + shaping_bonus, 0.0)
 
     prey_fitnesses = np.array([a.fitness for a in prey_agents])
     predator_fitnesses = np.array([a.fitness for a in predator_agents])

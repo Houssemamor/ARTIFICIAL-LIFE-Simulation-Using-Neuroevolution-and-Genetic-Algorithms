@@ -43,43 +43,43 @@
     },
     {
       "day": 5,
-      "prey_alive": 18,
-      "predator_alive": 5,
+      "prey_alive": 14,
+      "predator_alive": 4,
       "captures": 0,
-      "births": 23,
-      "total_agents": 162
+      "births": 22,
+      "total_agents": 161
     },
     {
       "day": 6,
-      "prey_alive": 9,
-      "predator_alive": 3,
-      "captures": 5,
-      "births": 11,
-      "total_agents": 173
+      "prey_alive": 15,
+      "predator_alive": 2,
+      "captures": 2,
+      "births": 19,
+      "total_agents": 180
     },
     {
       "day": 7,
-      "prey_alive": 13,
-      "predator_alive": 5,
-      "captures": 4,
-      "births": 22,
-      "total_agents": 195
+      "prey_alive": 20,
+      "predator_alive": 1,
+      "captures": 1,
+      "births": 25,
+      "total_agents": 205
     },
     {
       "day": 8,
-      "prey_alive": 5,
+      "prey_alive": 27,
       "predator_alive": 3,
-      "captures": 3,
-      "births": 5,
-      "total_agents": 200
+      "captures": 10,
+      "births": 32,
+      "total_agents": 237
     },
     {
       "day": 9,
-      "prey_alive": 2,
-      "predator_alive": 4,
-      "captures": 5,
-      "births": 10,
-      "total_agents": 210
+      "prey_alive": 19,
+      "predator_alive": 6,
+      "captures": 4,
+      "births": 23,
+      "total_agents": 260
     }
   ]
 }

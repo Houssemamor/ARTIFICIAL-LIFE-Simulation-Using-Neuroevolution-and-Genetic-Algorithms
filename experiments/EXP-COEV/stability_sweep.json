@@ -1,24 +1,24 @@
 {
   "days": 10,
   "n_seeds": 10,
-  "collapsed": 1,
+  "collapsed": 4,
   "per_seed": [
     {
       "seed": 1,
-      "min_prey_alive": 2,
-      "min_predator_alive": 3,
+      "min_prey_alive": 9,
+      "min_predator_alive": 1,
       "full_horizon": true,
       "no_extinction": true,
-      "prey_alive_end": 2,
-      "predator_alive_end": 4
+      "prey_alive_end": 19,
+      "predator_alive_end": 6
     },
     {
       "seed": 2,
-      "min_prey_alive": 13,
+      "min_prey_alive": 5,
       "min_predator_alive": 3,
       "full_horizon": true,
       "no_extinction": true,
-      "prey_alive_end": 13,
+      "prey_alive_end": 6,
       "predator_alive_end": 6
     },
     {
@@ -27,71 +27,71 @@
       "min_predator_alive": 2,
       "full_horizon": true,
       "no_extinction": true,
-      "prey_alive_end": 40,
+      "prey_alive_end": 31,
       "predator_alive_end": 6
     },
     {
       "seed": 4,
-      "min_prey_alive": 5,
+      "min_prey_alive": 4,
       "min_predator_alive": 0,
-      "full_horizon": false,
+      "full_horizon": true,
       "no_extinction": false,
-      "prey_alive_end": 6,
+      "prey_alive_end": 4,
       "predator_alive_end": 0
     },
     {
       "seed": 5,
-      "min_prey_alive": 1,
-      "min_predator_alive": 2,
+      "min_prey_alive": 0,
+      "min_predator_alive": 4,
       "full_horizon": true,
-      "no_extinction": true,
-      "prey_alive_end": 1,
-      "predator_alive_end": 2
+      "no_extinction": false,
+      "prey_alive_end": 0,
+      "predator_alive_end": 4
     },
     {
       "seed": 6,
       "min_prey_alive": 15,
-      "min_predator_alive": 1,
-      "full_horizon": true,
-      "no_extinction": true,
-      "prey_alive_end": 21,
-      "predator_alive_end": 6
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 31,
+      "predator_alive_end": 0
     },
     {
       "seed": 7,
       "min_prey_alive": 15,
-      "min_predator_alive": 5,
-      "full_horizon": true,
-      "no_extinction": true,
-      "prey_alive_end": 35,
-      "predator_alive_end": 5
-    },
-    {
-      "seed": 8,
-      "min_prey_alive": 15,
       "min_predator_alive": 2,
       "full_horizon": true,
       "no_extinction": true,
-      "prey_alive_end": 28,
+      "prey_alive_end": 26,
       "predator_alive_end": 2
     },
     {
+      "seed": 8,
+      "min_prey_alive": 1,
+      "min_predator_alive": 0,
+      "full_horizon": false,
+      "no_extinction": false,
+      "prey_alive_end": 1,
+      "predator_alive_end": 0
+    },
+    {
       "seed": 9,
-      "min_prey_alive": 13,
+      "min_prey_alive": 16,
       "min_predator_alive": 6,
       "full_horizon": true,
       "no_extinction": true,
-      "prey_alive_end": 15,
+      "prey_alive_end": 24,
       "predator_alive_end": 6
     },
     {
       "seed": 10,
-      "min_prey_alive": 6,
-      "min_predator_alive": 3,
+      "min_prey_alive": 12,
+      "min_predator_alive": 1,
       "full_horizon": true,
       "no_extinction": true,
-      "prey_alive_end": 13,
-      "predator_alive_end": 3
+      "prey_alive_end": 40,
+      "predator_alive_end": 5
     }
   ]
 }

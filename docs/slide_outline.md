@@ -68,12 +68,13 @@ weights remain the best default
 The oscillating arms race chart, explained, not hidden
 (`docs/coevolution_notes.md`): within-generation fitness is
 relative; the frozen-archive win rate is the absolute measure.
-Stability: 1 of 10 seeds collapses in the 6-predator/20-generation
-fixed-controller sweep after randomized initial headings (seed 4, predator
-extinction); 9 seeds survive the full horizon. Seed 1 survives 10 days
-(ending 2 prey / 4 predators), and the 20-generation coevolution run
-sustains captures (7-16 per generation) with predators 4-6 alive at
-evaluation end. HOF final win rates: predator 0.40, prey 0.90.
+Stability: 4 of 10 seeds collapse in the 6-predator/20-generation
+fixed-controller sweep after randomized headings and prey-avoidance/
+predator-pursuit shaping (3 predator extinctions, 1 prey extinction); 6
+seeds survive the full horizon. Seed 1 survives 10 days ending 19 prey / 6
+predators (mid-run predator dip to 1), and the 20-generation coevolution
+run sustains captures (4-17 per generation) with predators 4-6 alive at
+evaluation end. HOF final win rates: predator 0.30, prey 0.70.
 
 ## 12. Results: NEAT extension
 Complexity-over-generations plot (51 -> 107 mean, max 133); the
@@ -85,10 +86,10 @@ per-agent) and why the per-species prototype lost
 One shape, honestly: the landscape is now *bimodal*, not graded - a
 few well-fed foragers near fitness 2.0, most agents starving near
 0.3. That shape is enough for the GA but not for NEAT speciation
-(one species). The ecosystem is viable in the committed sweep after
-randomized initial headings (1/10 collapse, seed 4) but balance can be
-tight and HOF duels remain detection-limited. Every D/E contrast sits near
-but not past Holm at n = 10.
+(one species). After adding prey-avoidance/predator-pursuit shaping, the
+ecosystem remains viable but seed-sensitive (4/10 collapses, 6/10
+full-horizon) and HOF duels remain detection-limited despite sustained
+coevolution captures. Every D/E contrast sits near but not past Holm at n = 10.
 
 ## 14. Future work
 Re-run the solo experiments at n = 20-30; sweep metabolic cost

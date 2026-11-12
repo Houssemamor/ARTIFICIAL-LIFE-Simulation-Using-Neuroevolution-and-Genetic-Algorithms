@@ -141,6 +141,17 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
     # measured calibration scales the GA uses.
     calibration_scales = load_calibration_scales()
 
+    # Cumulative shaping stats across the ecosystem run so day-boundary
+    # fitness (and reproduction gating) reflects avoidance/pursuit, not
+    # only survival/captures totals.
+    max_world_dist = float(np.hypot(world.width, world.height))
+    threat_dist_sum = {a.id: 0.0 for a in agents}
+    threat_steps = {a.id: 0 for a in agents}
+    pursuit_close_sum = {a.id: 0.0 for a in agents}
+    pursuit_steps = {a.id: 0 for a in agents}
+    steer_abs_sum = {a.id: 0.0 for a in agents}
+    steer_steps = {a.id: 0 for a in agents}
+
     day_stats: List[dict] = []
     for day in range(days):
         captures_day = 0
@@ -149,12 +160,57 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
             live = [a for a in agents if a.is_alive]
             if not live:
                 break
+
+            live_prey = [a for a in live if a.role == 'prey']
+            live_predators = [a for a in live if a.role == 'predator']
+
+            prey_to_pred = {}
+            for prey_agent in live_prey:
+                if live_predators:
+                    prey_to_pred[prey_agent.id] = min(
+                        prey_agent.position.distance_to(pred.position)
+                        for pred in live_predators)
+            pred_to_prey = {}
+            for pred_agent in live_predators:
+                if live_prey:
+                    pred_to_prey[pred_agent.id] = min(
+                        pred_agent.position.distance_to(prey.position)
+                        for prey in live_prey)
+
             step_simulation(world, agents, raycaster)
             captures_day += resolve_captures(
                 agents,
                 capture_radius=config.predation.capture_radius,
                 energy_transfer=config.predation.capture_energy_transfer,
             )
+
+            # Accumulate shaping for agents that were alive at step start.
+            live_after = [a for a in agents if a.is_alive]
+            live_predators_after = [a for a in live_after if a.role == 'predator']
+            live_prey_after = [a for a in live_after if a.role == 'prey']
+            for prey_agent in live_prey:
+                if live_predators_after:
+                    dist = min(
+                        prey_agent.position.distance_to(pred.position)
+                        for pred in live_predators_after)
+                elif prey_agent.id in prey_to_pred:
+                    dist = prey_to_pred[prey_agent.id]
+                else:
+                    dist = 0.0
+                threat_dist_sum[prey_agent.id] = threat_dist_sum.get(prey_agent.id, 0.0) + dist
+                threat_steps[prey_agent.id] = threat_steps.get(prey_agent.id, 0) + 1
+            for pred_agent in live_predators:
+                steer_abs_sum[pred_agent.id] = steer_abs_sum.get(pred_agent.id, 0.0) + abs(
+                    float(getattr(pred_agent, 'last_steering', 0.0)))
+                steer_steps[pred_agent.id] = steer_steps.get(pred_agent.id, 0) + 1
+                if live_prey_after and pred_agent.id in pred_to_prey:
+                    dist_after = min(
+                        pred_agent.position.distance_to(prey.position)
+                        for prey in live_prey_after)
+                    pursuit_close_sum[pred_agent.id] = pursuit_close_sum.get(pred_agent.id, 0.0) + (
+                        pred_to_prey[pred_agent.id] - dist_after)
+                    pursuit_steps[pred_agent.id] = pursuit_steps.get(pred_agent.id, 0) + 1
+
             newborns, next_id = reproduction_pass(
                 agents, world, repro, next_id, rng)
             # A newborn's spawn position is its birth site: without this
@@ -163,6 +219,12 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
             for newborn in newborns:
                 spawn_positions[newborn.id] = (newborn.position.x,
                                                newborn.position.y)
+                threat_dist_sum[newborn.id] = 0.0
+                threat_steps[newborn.id] = 0
+                pursuit_close_sum[newborn.id] = 0.0
+                pursuit_steps[newborn.id] = 0
+                steer_abs_sum[newborn.id] = 0.0
+                steer_steps[newborn.id] = 0
             agents.extend(newborns)
             births_day += len(newborns)
 
@@ -179,9 +241,26 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
             else:
                 weights = (config.fitness_weights_prey
                            or config.fitness_weights)
-            agent.fitness = compute_fitness(
+            base_fitness = compute_fitness(
                 agent, agent.age, agent.food_eaten, exploration,
                 agent.collisions, calibration_scales, weights)
+
+            shaping_bonus = 0.0
+            if role == 'prey':
+                steps = threat_steps.get(agent.id, 0)
+                if steps > 0 and max_world_dist > 0.0:
+                    mean_threat_dist = threat_dist_sum.get(agent.id, 0.0) / steps
+                    shaping_bonus = 0.30 * (mean_threat_dist / max_world_dist)
+            else:
+                p_steps = pursuit_steps.get(agent.id, 0)
+                if p_steps > 0:
+                    mean_close = pursuit_close_sum.get(agent.id, 0.0) / p_steps
+                    shaping_bonus += 0.35 * float(np.clip(mean_close / 5.0, -1.0, 1.0))
+                s_steps = steer_steps.get(agent.id, 0)
+                if s_steps > 0:
+                    mean_abs_steer = steer_abs_sum.get(agent.id, 0.0) / s_steps
+                    shaping_bonus -= 0.05 * mean_abs_steer
+            agent.fitness = max(base_fitness + shaping_bonus, 0.0)
 
         prey_alive = sum(1 for a in agents if a.is_alive and a.role == 'prey')
         predator_alive = sum(1 for a in agents

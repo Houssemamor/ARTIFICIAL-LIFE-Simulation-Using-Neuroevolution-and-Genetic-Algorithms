@@ -39,14 +39,14 @@ exploration-weighting (+0.015), and survival-weighting is last by
 +0.18 (no pair survives Holm at n = 10). Crossover method
 still has no Holm-significant winner (blend leads uniform by +0.12,
 p = 0.13, and mutation-only by +0.16, p = 0.064). The ecosystem is viable
-but seed-dependent in balance (1 of 10 random seeds collapses in the
-6-predator/20-generation fixed-controller sweep - seed 4, predator
-extinction - after randomized initial headings), and NEAT topology grows
-(mean complexity 51 -> 107) with the batching question resolved by
-measurement (3.1x the per-agent reference). Role-specific capture
-incentives, a larger coevolution budget, and unbiased initial headings
-together produced strong in-episode pursuit and a much wider viability
-basin in the committed ecosystem sweep.
+but seed-sensitive in the fixed-controller sweep (4 of 10 seeds collapse in
+the 6-predator/20-generation regime - 3 predator extinctions, 1 prey
+extinction - after randomized headings and prey-avoidance/predator-pursuit
+shaping), and NEAT topology grows (mean complexity 51 -> 107) with the
+batching question resolved by measurement (3.1x the per-agent reference).
+Shaping improved the committed seed-1 ecosystem end balance (19 prey / 6
+predators) and sustained strong in-episode pursuit, while overall viability
+remains dependent on seed and population balance.
 
 ## 2. System
 
@@ -142,32 +142,31 @@ generations - 15-22x the strongest previous signal, and the Phase 3
 
 ### 4.3 Predator/prey and the hall of fame (Phase 6)
 
-Capture-collision resolution plus in-episode reproduction produce a
-viable ecosystem in the committed fixed-controller sweep: 1 of 10 seeds
-collapses within 10 days in the current 6-predator/20-generation regime
-with randomized initial headings. The single failure is seed 4 (predator
-extinction, days 8, min prey/predator 5/0, ending 6/0); the other nine
-seeds survive the full horizon. The result reflects six measured
-corrections: the newborn-energy fix, role-aware predator senses, solid
-40 px obstacles, role-specific capture-weighted fitness, the increase to
-6 predators / 20 coevolution generations, and randomized initial headings
-for prey, predators, and newborns. The committed seed-1 fixed-controller
-ecosystem run survives all 10 days (13/5, 19/6, 17/6, 20/6, 9/6, 18/5,
-9/3, 13/5, 5/3, 2/4; captures 9, 8, 6, 4, 9, 0, 5, 4, 3, 5), ending with
-low prey but no extinction. The stability test asserts viability on a
-fixed contiguous sweep sample (seeds 6-8 all complete the horizon) and a
-negative test proves the fixture can fail.
+Capture-collision resolution plus in-episode reproduction produce viable
+ecosystems across many seeds, but the committed fixed-controller sweep is
+seed-sensitive: 4 of 10 seeds collapse within 10 days in the current
+6-predator/20-generation regime with randomized headings and role-specific
+pursuit/avoidance shaping (3 predator extinctions, 1 prey extinction;
+6/10 seeds survive the full horizon). The committed seed-1 ecosystem run
+survives all 10 days (13/5, 19/6, 17/6, 20/6, 9/6, 14/4, 15/2, 20/1, 27/3,
+19/6; captures 9, 8, 6, 4, 9, 0, 2, 1, 10, 4), ending 19 prey / 6 predators
+with a mid-run predator dip to 1 alive at day 7 before recovery. The
+stability test asserts viability on a fixed contiguous sweep sample
+(seeds 1-3 all complete the horizon) and a negative test proves the
+fixture can fail.
 
-The 20-generation coevolution run shows strong in-episode pursuit:
-captures per generation are 7, 12, 8, 14, 11, 13, 13, 8, 10, 13, 15, 14,
-16, 10, 14, 13, 15, 16, 13, 15, and predators remain 4-6 alive at
+The 20-generation coevolution run shows strong in-episode pursuit under
+shaping: captures per generation are 7, 4, 11, 17, 13, 10, 13, 12, 14, 11,
+13, 15, 16, 11, 14, 14, 15, 15, 11, 12, and predators remain 4-6 alive at
 evaluation end in every generation (mostly 6/6). Hall-of-fame win rates
-against the frozen archive are predator/prey 0.50/0.50, 0.33/1.00,
-0.50/1.00, 0.00/0.80, 0.17/0.67, 0.14/0.86, 0.38/0.88, 0.44/1.00 and
-0.40/0.90 across the nine snapshots (final split 0.40 predator / 0.90
+against the frozen archive are predator/prey 0.50/0.00, 0.00/0.33,
+0.25/0.50, 0.60/1.00, 0.83/0.83, 0.71/0.86, 0.50/0.88, 0.11/0.89 and
+0.30/0.70 across the nine snapshots (final split 0.30 predator / 0.70
 prey). Single duels in a 1200x700 arena remain detection-limited, and the
 duel harness uses the same 0.25/step energy equation and legal spawns as
-the generation metrics (`docs/coevolution_notes.md`).
+the generation metrics (`docs/coevolution_notes.md`). Shaping was added to
+provide denser prey-avoidance and predator-closing/anti-circling signals
+without changing sensors, architecture, capture, or HOF win rules.
 
 ### 4.4 NEAT extension (Phase 7)
 
@@ -205,10 +204,13 @@ nulls moved as a family:
   leads uniform by +0.12 (p = 0.13) and mutation-only by +0.16
   (p = 0.064), with uniform and mutation-only indistinguishable;
 - in the 6-predator/20-generation regime, coevolution pursuit improved and
-  randomized initial headings widened the fixed-controller viability basin
-  sharply (8/10 -> 1/10 collapse, seed 4 predator extinction only). The
-  committed seed-1 ecosystem run survives 10 days (ending 2 prey / 4
-  predators), showing improved viability but a tight prey balance.
+  randomized initial headings previously widened fixed-controller viability
+  (8/10 -> 1/10 in that sweep). Adding prey-avoidance/predator-pursuit
+  shaping improved the committed seed-1 ecosystem end balance to 19 prey / 6
+  predators and sustained captures (7-17 per generation), but the shaped
+  fixed-controller sweep measured 4/10 collapses (3 predator, 1 prey). This
+  reinforces that pursuit incentives and ecosystem viability are related but
+  not identical outcomes.
 
 That last item deserves emphasis because it cuts against the earlier
 framing: the first Phase 9 iteration *improved* every stability
@@ -216,13 +218,14 @@ number, and the improvement was a bug. The stability artifact was
 regenerated after the newborn-energy fix, the fixture seeds were
 replaced with an unselected sample, and the integration test now
 asserts the honest measured property. Role-aware predator senses, solid
-40 px obstacles, capture-weighted incentives, and 6 predators / 20
-coevolution generations each changed pursuit and failure modes in
-different ways; randomized initial headings then removed a shared
-orientation bias and improved the committed 6-predator/20-generation
-fixed-controller sweep from 8/10 collapses to 1/10. The result is not
-"stability solved" - seed 1 survives with only 2 prey left - but it is a
-clear, measured sensitivity of ecosystem viability to initial conditions.
+40 px obstacles, capture-weighted incentives, 6 predators / 20
+coevolution generations, randomized headings, and pursuit/avoidance
+shaping each changed pursuit and failure modes in different ways.
+Randomized headings improved one sweep from 8/10 collapses to 1/10, while
+the shaped sweep measured 4/10 collapses but a much healthier seed-1 end
+balance (19 prey / 6 predators). The result is not "stability solved" - it
+is a measured sensitivity of ecosystem viability and balance to incentives
+and initial conditions.
 
 What did *not* move: NEAT speciation still reads one species, and
 Holm correction at n = 10 still holds every D and E contrast. Both
@@ -254,14 +257,16 @@ were documented in place rather than quietly overwritten.
    species. A population with intermediate food availability (or a
    longer horizon before starvation) would give speciation a
    gradient to act on.
-3. **Ecosystem balance and measurement.** Randomized initial headings
-   reduced fixed-controller collapses to 1/10 in the committed sweep, but
-   prey-predator balance can still be tight (seed 1 ends 2 prey / 4
-   predators) and single-duel HOF rates remain detection-limited relative
-   to in-episode captures. Capture normalization/pressure, population
-   economics, and richer HOF evaluation are the next levers; 0.7/step
-   remains the load-bearing solo-experiment metabolic cost and still
-   deserves a sweep (0.4 / 0.7 / 1.0).
+3. **Ecosystem balance, shaping, and measurement.** Prey-avoidance and
+   predator-pursuit shaping were added to address approach/circling
+   tendencies and improved the committed seed-1 ecosystem end balance to
+   19 prey / 6 predators, but the shaped fixed-controller sweep remains
+   seed-sensitive (4/10 collapses: 3 predator, 1 prey; 6/10 full-horizon).
+   Single-duel HOF rates remain detection-limited relative to in-episode
+   captures. Sensing cues (relative velocity/closing rate), capture
+   normalization/pressure, population economics, and richer HOF/pursuit
+   diagnostics are the next levers; 0.7/step remains the load-bearing
+   solo-experiment metabolic cost and still deserves a sweep (0.4 / 0.7 / 1.0).
 4. **Dashboards.** The live view ships with tiered panels
    (`config.phase_tier` enforces MVP/Advanced separation so the MVP
    build cannot render a Phase 6/7-only metric), plus the Phase 9
