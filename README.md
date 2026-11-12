@@ -141,16 +141,17 @@ Design decisions:
   JavaScript re-implementation would drift from the Python physics, sensors
   and controller and could not honestly claim to show the simulation. One
   recording is a single source of truth, needs no server, and adds about
-  756 KB to the page.
+  771 KB to the page.
 - **Co-evolution first, solo second.** Co-evolution is the headline result
   (two roles, captures, an arms race). The solo world isolates food-seeking
   as a clean baseline, but under the solid-obstacle calibration it is a
-  negative control: both the untrained and the evolved population starve
-  inside the 150-step replay, because the recalibrated fitness weights
-  exploration far above food intake. The card reports that result rather
-  than hiding it. Under the current 6-predator/20-generation coevolution
-  config, evolved predators show much stronger in-episode pursuit than the
-  earlier runs, while fixed-controller ecosystem robustness remains fragile.
+  negative control: the evolved population still starves inside the 150-step
+  replay while the untrained run may keep a lone survivor, because the
+  recalibrated fitness weights exploration far above food intake. The card
+  reports that result rather than hiding it. Under the current
+  6-predator/20-generation config with randomized initial headings, evolved
+  predators show strong in-episode pursuit and fixed-controller viability is
+  high in the committed sweep (9/10 full-horizon survivors).
 - **Untrained vs evolved on the same seed.** This is the only comparison that
   isolates the controller from the arena and the start positions.
 - **The featured agent is the replay's best performer** (most food, then
@@ -186,7 +187,7 @@ Measured on the development PC on 2026-10-30 in the CPU-deterministic tier
 |---|---|
 | Solo evolution, 12 generations x 40 agents | 15.7 s |
 | Co-evolution training, 20 generations x (24 prey + 6 predators) | (varies; ~2x prior 10-gen run) |
-| Showcase recording (both trainings + 8 replays) | 55.5 s |
+| Showcase recording (both trainings + 8 replays) | 60.7 s |
 | Generalization experiment | 68.8 s |
 | Experiment D (4 weightings) | 70.6 s |
 | Experiment E (3 crossover methods) | 56.7 s |
@@ -206,7 +207,7 @@ Notes:
   recording) and 352 MB (Experiment D). Only one core is used, so the
   experiments run comfortably on a laptop; a GPU is not required.
 - The full test suite (307 tests) runs in about 2 min 21 s.
-- The generated `dashboard.html` is about 836 KB (756 KB of it is the replay)
+- The generated `dashboard.html` is about 850 KB (771 KB of it is the replay)
   and needs no WebGL.
 
 ## Development Plan (summary)
@@ -236,16 +237,14 @@ Blend leads uniform by +0.12 (p = 0.13) and mutation-only by +0.16
 (p = 0.064); no pair survives Holm at n = 10, and uniform is
 indistinguishable from mutation-only (+0.04, p = 0.85).
 
-² The ecosystem is viable on a fixed contiguous sweep sample under fully
-deterministic runs, but with fixed (non-evolved) controllers 8 of 10
-random seeds collapse within 10 days - seven predator extinctions and
-one prey extinction - after the newborn-energy fix, role-aware predator
-senses, solid 40 px obstacles, role-specific capture incentives, and an
-increase to 6 predators / 20 coevolution generations (single-regime
-10-seed measurement under the final dynamics). The stability test
-asserts viability on seeds 6-8 (seeds 6 and 8 complete the horizon), a
-negative test proves the fixture can fail, and the full analysis lives
-in `docs/coevolution_notes.md`.
+² With randomized initial headings for prey, predators, and newborns
+(6 predators / 20 coevolution generations, role-specific capture incentives,
+role-aware senses, solid 40 px obstacles), the fixed-controller ecosystem is
+viable in the committed sweep: 9 of 10 seeds survive the full 10-day horizon
+and 1 seed collapses via predator extinction (seed 4). The stability test
+asserts viability on a fixed contiguous sample (seeds 6-8 all complete the
+horizon), a negative test proves the fixture can fail, and the full analysis
+lives in `docs/coevolution_notes.md`.
 
 ³ The NEAT implementation matches the Appendix C operators and formula
 (verified by unit tests), and topology grows on the benchmark (mean complexity
@@ -347,9 +346,9 @@ As of September 2026, the following components have been implemented:
 - ✅ `analytics/hall_of_fame.py` - frozen best-per-role archive + duel harness (`run_duel`, `win_rate_against_archive`)
 - ✅ `experiments/run_coevolution.py` - co-evolution mode (GA + HOF snapshots + frozen-opponent evaluations) and ecosystem mode (long-horizon stability harness)
 - ✅ `visualization/dashboard_advanced.py` + F9 GUI toggle - live ecosystem counters + hall-of-fame delta; predators drawn red-family
-- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: 8 of 10 random seeds collapse within 10 days (7 predator extinctions, 1 prey extinction, after the newborn-energy fix, role-aware predator senses, solid 40 px obstacles, role-specific capture incentives, and 6 predators / 20 coevolution generations), the test asserts viability on sweep seeds 6-8, and a negative test proves the fixture can fail
+- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: 1 of 10 random seeds collapses within 10 days (seed 4, predator extinction) after adding randomized initial headings on top of the newborn-energy fix, role-aware predator senses, solid 40 px obstacles, role-specific capture incentives, and 6 predators / 20 coevolution generations; the test asserts viability on sweep seeds 6-8 and a negative test proves the fixture can fail
 - ✅ `tests/unit/test_predation.py` (9), `tests/unit/test_reproduction.py` (8), `tests/unit/test_hall_of_fame.py` (7), `tests/integration/test_coevolution.py` (4), `tests/integration/test_predator_prey_stability.py` (3, incl. seed-reproducibility regression)
-- ⚠️ Caveat: the ecosystem is viable but fragile with fixed (non-evolved) controllers - see `docs/coevolution_notes.md` before interpreting ecosystem metrics; coevolution pursuit improved with 6 predators / 20 generations, but fixed-controller stability worsened to 8/10 collapses (the committed seed-1 ecosystem run ends on day 4). Predator count/carrying capacity, capture normalization/pressure, and the ecosystem metabolic clock (0.25/step) remain the next levers if robustness matters
+- ⚠️ Caveat: randomized initial headings materially improved fixed-controller viability (9/10 full-horizon survivors in the committed sweep), but balance can still be tight (seed 1 ends at 2 prey / 4 predators) and single-duel HOF rates remain detection-limited. See `docs/coevolution_notes.md`; capture normalization/pressure and population economics remain tuning levers if a wider margin is needed
 
 ### NEAT Topology Evolution (Phase 7 - Complete with caveat)
 - ✅ `evolution/neat/` package - `genome.py` (node + connection genes with innovations), `innovation.py` (global counter with per-generation reuse), `mutation.py` (`add_node` with weight-1.0 split init, `add_connection`, Gaussian weight mutation with re-enable), `crossover.py` (innovation-aligned: matching random from either parent, disjoint/excess from the fitter), `compatibility.py` (δ = c1·E/N + c2·D/N + c3·Ŵ, Appendix C constants), `speciation.py` (assignment, fitness sharing, stagnation removal with champion protection), `algorithm.py` (full generation loop)
@@ -377,11 +376,11 @@ re-run the solo experiments at n = 20-30 seeds to resolve the
 remaining near-threshold effects (equal-vs-survival weighting +0.18,
 blend-vs-uniform +0.12 and blend-vs-mutation +0.16), and sweep
 `metabolic_base_cost` (0.4 / 0.7 / 1.0) since it sets the
-survival-vs-forging split every result depends on. The ecosystem's
-8/10 collapse rate (7 predator extinctions, 1 prey extinction, despite
-stronger coevolution pursuit at 6 predators / 20 generations) points at
-predator count/carrying capacity, capture normalization/pressure, and
-the 0.25/step clock as the next robustness levers,
+survival-vs-forging split every result depends on. The ecosystem is now robust in the committed fixed-controller sweep
+(1/10 collapse, seed 4 predator extinction) after randomized initial
+headings, but seed 1 ends with only 2 prey alive and HOF predator duels
+remain detection-limited; capture normalization/pressure and population
+economics are the next tuning levers if a wider margin is needed,
 and a graded food landscape is what NEAT speciation needs. See
 [Plan](PLAN.md)
 and `docs/final_report.md`.

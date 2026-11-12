@@ -479,7 +479,7 @@ artificial-life-sim/
 
 ### Deliverables — Phase 6
 
-- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on a fixed contiguous sweep sample under deterministic pipelines; 8 of 10 random seeds collapse within 10 days (7 predator extinctions, 1 prey extinction) after the newborn-energy fix, role-aware predator senses, solid 40 px obstacles, role-specific capture incentives, and 6 predators / 20 coevolution generations (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; predator economics and the ecosystem clock remain the robustness levers)
+- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable in the committed fixed-controller sweep under deterministic pipelines; 1 of 10 random seeds collapses within 10 days (seed 4, predator extinction) after the newborn-energy fix, role-aware predator senses, solid 40 px obstacles, role-specific capture incentives, 6 predators / 20 coevolution generations, and randomized initial headings - full analysis in docs/coevolution_notes.md; prey-predator balance and HOF measurement remain tuning levers)
 - [x] A working hall-of-fame evaluation harness and dashboard panel (F9 GUI toggle; frozen-opponent win rates in analytics/hall_of_fame.py)
 - [x] A documented co-evolution caveat protecting later readers from misreading the metrics (docs/coevolution_notes.md)
 
@@ -582,7 +582,7 @@ artificial-life-sim/
 | Generalization | null (+0.001, p=0.846) | **null (-0.008, p=0.7695, r=-0.127, 4/10 seeds train-higher, CI [-0.043, +0.029])**; the earlier +0.047 penalty was regime-dependent |
 | Fitness weighting (D) | all conditions within 0.015 | **equal is the best point estimate but tied with exploration (+0.015)**; survival-weighting is last by +0.18 (p=0.16; no pair survives Holm at n=10) |
 | Crossover (E) | blend ≈ uniform | **no pair survives Holm**; blend leads uniform +0.12 (p=0.13) and mutation-only +0.16 (p=0.064) |
-| Ecosystem collapse rate | 5 of 10 seeds | **8 of 10** (7 predator extinctions, 1 prey extinction, in the 6-predator/20-generation fixed-controller sweep); coevolution pursuit/captures improved, but seed 1 ecosystem collapses day 4 and survivors are seeds 6 and 8 |
+| Ecosystem collapse rate | 5 of 10 seeds | **1 of 10** (seed 4 predator extinction) in the 6-predator/20-generation fixed-controller sweep with randomized initial headings; seed 1 survives 10 days (ends 2 prey / 4 predators) and coevolution shows sustained captures/HOF 0.40/0.90 |
 | NEAT topology | 51 → 108.6 | 51 → 107 (unchanged growth; 605 innovations, 1 species) |
 
 **Review-driven corrections to the dynamics themselves (the reason the first re-run's numbers were withdrawn):**
@@ -598,7 +598,7 @@ artificial-life-sim/
 - Web dashboard: FastAPI + Bootstrap/vanilla JS read-only viewer over `experiments/` (`webdash/`), the plan's Section 12.3 endpoints adapted to the artifacts that exist; packaged into the wheel.
 - `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` with an author-side recording checklist for the demo video.
 
-**Open after Phase 9 (documented, not hidden):** the three best effects sit near but not past Holm at n=10 (larger-n confirmations are the top next action); the ecosystem's predator role is fragile (8/10 fixed-controller collapse: 7 predator, 1 prey extinction, despite stronger 6-predator/20-generation coevolution pursuit; predator count/carrying capacity, capture normalization/pressure, and the 0.25/step ecosystem clock are levers); NEAT speciation still reads one species against the bimodal landscape; the metabolic cost itself deserves a sweep (0.4 / 0.7 / 1.0).
+**Open after Phase 9 (documented, not hidden):** the three best effects sit near but not past Holm at n=10 (larger-n confirmations are the top next action); ecosystem viability is high in the committed fixed-controller sweep after randomized initial headings (1/10 collapse, seed 4) but prey-predator balance can be tight (seed 1 ends 2/4) and HOF duels are detection-limited; capture normalization/pressure and richer evaluation remain levers. NEAT speciation still reads one species against the bimodal landscape; the metabolic cost itself deserves a sweep (0.4 / 0.7 / 1.0).
 
 ---
 

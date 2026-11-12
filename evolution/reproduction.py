@@ -94,6 +94,9 @@ def create_offspring(parent: Organism, offspring_id: int, world: World,
                          role=parent.role,
                          energy_config=parent.energy_config)
     offspring.genome = genome.astype(np.float32)
+    # Newborns start with a random heading so offspring do not inherit a
+    # shared orientation bias from the initial population state.
+    offspring.randomize_heading(rng)
 
     # Parent pays the energy cost after a successful birth. Floored at
     # 0: giving birth at the edge of starvation is fatal (the standard

@@ -256,12 +256,12 @@ function footer(slide, n) {
   const s = darkSlide();
   title(s, "Results: Predator/Prey & Hall of Fame",
     "An oscillating arms race, explained rather than hidden");
-  stat(s, 0.8, 2.3, "0.10 / 1.00", "final hall-of-fame win rate (predator / prey)", AMBER);
-  stat(s, 4.8, 2.3, "8 of 10", "random seeds collapse (7 predator, 1 prey)", TEXT);
-  stat(s, 8.8, 2.3, "4-6 / 6", "predators alive at coevolution eval end (20 gens)", GREEN);
+  stat(s, 0.8, 2.3, "0.40 / 0.90", "final hall-of-fame win rate (predator / prey)", GREEN);
+  stat(s, 4.8, 2.3, "1 of 10", "random seeds collapse (seed 4, predator extinction)", CYAN);
+  stat(s, 8.8, 2.3, "7-16", "captures per coevolution generation (20 gens)", AMBER);
   bullets(s, [
     { text: "Within-generation fitness in a co-evolution is relative - the hall-of-fame win rate against FROZEN archives is the absolute measure", bold: true },
-    { text: "6 predators + 20 generations improved pursuit/captures in coevolution, but fixed-controller stability worsened to 8/10 (seed 1 ecosystem collapsed day 4)", color: MUTED },
+    { text: "Randomized initial headings removed a shared facing-right bias: fixed-controller viability rose to 9/10 and pursuit/captures stayed strong (seed 1 ends 2 prey / 4 predators)", color: MUTED },
   ], { y: 4.4, h: 2.1, w: 11.9 });
   footer(s, 11);
 }
@@ -288,7 +288,7 @@ function footer(slide, n) {
   const rows = [
     ["Statistical power", "The best effects sit near but not past Holm at n=10. Re-run at n=20-30 is the top action.", AMBER],
     ["Bimodal landscape", "Enough leverage for the GA, not for speciation. Graded food availability is the route.", CYAN],
-    ["Fragile ecosystem", "8 of 10 fixed-controller seeds collapse (7 predator, 1 prey) despite stronger 6-predator/20-generation coevolution pursuit; predator economics and the 0.25/step clock are levers.", RED],
+    ["Tight balance", "1 of 10 fixed-controller seeds collapses after randomized headings (seed 4), but balance can be tight (seed 1 ends 2 prey / 4 predators) and HOF duels are detection-limited.", AMBER],
     ["Metabolic cost is a factor", "0.7/step sets the survival-vs-forging split every result depends on - sweep 0.4/0.7/1.0.", GREEN],
   ];
   rows.forEach(([head, body, color], i) => {

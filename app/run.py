@@ -137,6 +137,9 @@ def main():
             role = 'predator' if i < predator_count else 'prey'
             agent = Organism(i, x, y, initial_energy=100.0, role=role,
                              energy_config=energy_config)
+            # Randomize initial heading so agents do not share a common
+            # orientation at spawn; draws from the seeded global stream.
+            agent.randomize_heading(np.random)
             if args.agent_mode == 'neural':
                 agent.initialize_genome(genome_size=genome_size())
             else:

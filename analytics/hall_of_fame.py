@@ -134,6 +134,7 @@ def run_duel(predator_genome: np.ndarray, prey_genome: np.ndarray,
             rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(agent_id, x, y, initial_energy=100.0, role=role,
                          energy_config=energy_config)
+        agent.randomize_heading(rng)
         agent.genome = np.asarray(genome, dtype=np.float32).copy()
         return agent
 

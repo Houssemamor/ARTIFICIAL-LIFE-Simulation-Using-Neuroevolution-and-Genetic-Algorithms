@@ -1,17 +1,16 @@
 """
 Integration tests for the Phase 6 predator/prey ecosystem.
 
-The ecosystem is viability-marginal under the corrected dynamics
-(newborns inherit the parent's energy equation, food regrows every
-step, predators have role-aware senses, obstacles are solid 40 px
-bodies, and predators receive capture-weighted fitness): 8 of 10 seeds
-collapse within 10 days, seven via predator extinction and one via prey
-extinction (the committed experiments/EXP-COEV/stability_sweep.json).
-These tests therefore assert the honest property - the system is
-viable, not stable - on a fixed contiguous sample of three sweep seeds
-(6-8, no cherry-picking within the block): at least one must complete
-the full horizon with both roles alive, and no seed may end with both
-roles at zero. The 10-seed rate lives in the sweep artifact;
+With randomized initial headings (prey and predators no longer share a
+uniform facing-right spawn), role-aware predator senses, solid 40 px
+obstacles, capture-weighted predator fitness, and 6 predators / 20
+coevolution generations, the fixed-controller ecosystem is robust in the
+committed sweep: 1 of 10 seeds collapses within 10 days (seed 4, predator
+extinction; experiments/EXP-COEV/stability_sweep.json). These tests
+therefore assert the honest property - viability across a fixed contiguous
+sample of sweep seeds (6-8, no cherry-picking within the block): each must
+complete the full horizon with both roles alive, and no seed may end with
+both roles at zero. The 10-seed rate lives in the sweep artifact;
 docs/coevolution_notes.md carries the analysis.
 
 The negative test proves the fixture is not vacuous: extreme parameters
@@ -32,12 +31,12 @@ CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), "configs", "predator_prey.json")
 
 # Seeds 6, 7, 8: a fixed contiguous sample of the committed sweep. Under
-# the current dynamics seeds 6 and 8 complete the horizon and seed 7
-# loses the predator role. Runtime: each seed is a 10-day run (~30s).
-# Re-verify whenever dynamics-affecting parameters change (metabolic
-# cost, consumption radius, calibration scales, predation or reproduction
-# rates, newborn energy inheritance, obstacle geometry, predator count,
-# or the sensor encoding).
+# the current dynamics all three complete the horizon with both roles
+# alive. Runtime: each seed is a 10-day run (~30s). Re-verify whenever
+# dynamics-affecting parameters change (metabolic cost, consumption
+# radius, calibration scales, predation or reproduction rates, newborn
+# energy inheritance, obstacle geometry, predator count, initial
+# heading/orientation, or the sensor encoding).
 STABILITY_SEEDS = [6, 7, 8]
 
 

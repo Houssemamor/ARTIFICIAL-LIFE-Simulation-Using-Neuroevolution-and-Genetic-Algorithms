@@ -184,7 +184,9 @@ def benchmark_batching(config_path: str, seed: int = 1,
     for index in range(len(genomes)):
         x, y = world.random_free_position(
             rng, clearance=AGENT_SPAWN_CLEARANCE)
-        agents.append(Organism(index, x, y, initial_energy=100.0))
+        agent = Organism(index, x, y, initial_energy=100.0)
+        agent.randomize_heading(rng)
+        agents.append(agent)
 
     # A few species groups, as speciation would produce
     species_ids = [index % 5 for index in range(len(genomes))]

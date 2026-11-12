@@ -107,6 +107,7 @@ def evaluate_population(
             rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(index, x, y, initial_energy=100.0,
                          energy_config=energy_config)
+        agent.randomize_heading(rng)
         agents.append(agent)
     spawn_positions = {agent.id: (agent.position.x, agent.position.y)
                        for agent in agents}

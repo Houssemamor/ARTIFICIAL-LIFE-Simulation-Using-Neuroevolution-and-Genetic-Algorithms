@@ -68,12 +68,12 @@ weights remain the best default
 The oscillating arms race chart, explained, not hidden
 (`docs/coevolution_notes.md`): within-generation fitness is
 relative; the frozen-archive win rate is the absolute measure.
-Stability: 8 of 10 seeds collapse in the 6-predator/20-generation
-fixed-controller sweep (7 predator extinctions, 1 prey extinction).
-Survivors are seeds 6 and 8 (minima 15/4, 13/1); the committed seed-1
-ecosystem run collapses on day 4, while the 20-generation coevolution
-run sustains captures (5-18 per generation) and 4-6 predators alive at
-evaluation end.
+Stability: 1 of 10 seeds collapses in the 6-predator/20-generation
+fixed-controller sweep after randomized initial headings (seed 4, predator
+extinction); 9 seeds survive the full horizon. Seed 1 survives 10 days
+(ending 2 prey / 4 predators), and the 20-generation coevolution run
+sustains captures (7-16 per generation) with predators 4-6 alive at
+evaluation end. HOF final win rates: predator 0.40, prey 0.90.
 
 ## 12. Results: NEAT extension
 Complexity-over-generations plot (51 -> 107 mean, max 133); the
@@ -85,9 +85,10 @@ per-agent) and why the per-species prototype lost
 One shape, honestly: the landscape is now *bimodal*, not graded - a
 few well-fed foragers near fitness 2.0, most agents starving near
 0.3. That shape is enough for the GA but not for NEAT speciation
-(one species). The ecosystem is fragile (8/10 fixed-controller collapse:
-7 predator, 1 prey) despite stronger 6-predator/20-generation coevolution
-pursuit. Every D/E contrast sits near but not past Holm at n = 10.
+(one species). The ecosystem is viable in the committed sweep after
+randomized initial headings (1/10 collapse, seed 4) but balance can be
+tight and HOF duels remain detection-limited. Every D/E contrast sits near
+but not past Holm at n = 10.
 
 ## 14. Future work
 Re-run the solo experiments at n = 20-30; sweep metabolic cost

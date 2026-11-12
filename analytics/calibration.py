@@ -79,6 +79,7 @@ def run_calibration_episode(
             clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(i, x, y, initial_energy=100.0,
                          energy_config=energy_config)
+        agent.randomize_heading(np.random)
         agent.initialize_genome(genome_size=genome_size())
         agents.append(agent)
 

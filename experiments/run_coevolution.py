@@ -83,11 +83,13 @@ def make_mixed_population(config: BaselineConfig, world: World,
     for i in range(config.population.size):
         agent = Organism(i, *positions[i], role='prey',
                          energy_config=energy_config)
+        agent.randomize_heading(rng)
         agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
         agents.append(agent)
     for j in range(config.predation.predator_count):
         agent = Organism(len(agents), *positions[config.population.size + j],
                          role='predator', energy_config=energy_config)
+        agent.randomize_heading(rng)
         agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
         agents.append(agent)
     return agents
@@ -235,6 +237,7 @@ def run_coevolution(config: BaselineConfig, seed: int = 1) -> dict:
         for i in range(count):
             agent = Organism(i, *positions[i], role=role,
                              energy_config=energy_config)
+            agent.randomize_heading(rng)
             agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
             pop.append(agent)
         return pop

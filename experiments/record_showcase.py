@@ -59,13 +59,15 @@ RECORDING_VERSION = 2
 
 
 def _spawn_role(genomes: List[np.ndarray], role: str, start_id: int,
-                positions: List[tuple], energy_config) -> List[Organism]:
-    """One agent per genome at the given positions."""
+                positions: List[tuple], energy_config,
+                rng: np.random.Generator) -> List[Organism]:
+    """One agent per genome at the given positions with randomized heading."""
     agents = []
     for offset, genome in enumerate(genomes):
         x, y = positions[offset]
         agent = Organism(start_id + offset, x, y, initial_energy=100.0,
                          role=role, energy_config=energy_config)
+        agent.randomize_heading(rng)
         agent.genome = np.asarray(genome, dtype=np.float32).copy()
         agents.append(agent)
     return agents
@@ -95,6 +97,7 @@ def train_coevolution(config: BaselineConfig, seed: int):
         for i in range(count):
             agent = Organism(i, *positions[i], role=role,
                              energy_config=energy_config)
+            agent.randomize_heading(rng)
             agent.genome = rng.uniform(-1, 1, size).astype(np.float32)
             pop.append(agent)
         return pop
@@ -122,9 +125,9 @@ def replay_coevolution(config: BaselineConfig, prey_genomes: List[np.ndarray],
         positions = _spawn_positions(
             world, len(prey_genomes) + len(predator_genomes), rng)
         prey = _spawn_role(prey_genomes, 'prey', 0,
-                           positions[:len(prey_genomes)], energy_config)
+                           positions[:len(prey_genomes)], energy_config, rng)
         predators = _spawn_role(predator_genomes, 'predator', len(prey),
-                                positions[len(prey_genomes):], energy_config)
+                                positions[len(prey_genomes):], energy_config, rng)
         # Regrowth draws from the global stream; pin it so replays repeat.
         np.random.seed(replay_seed)
         return world, prey + predators

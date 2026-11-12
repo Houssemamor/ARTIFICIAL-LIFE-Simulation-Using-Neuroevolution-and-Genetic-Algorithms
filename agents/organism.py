@@ -57,7 +57,7 @@ class Organism:
         self.id = organism_id
         self.position = Vector2D(x, y)
         self.velocity = Vector2D(0.0, 0.0)
-        self.heading = 0.0  # radians, 0 = right
+        self.heading = 0.0  # radians, 0 = right; spawn sites randomize via randomize_heading
         self.energy = float(initial_energy)
         self.health = 100.0
         self.age = 0
@@ -102,6 +102,10 @@ class Organism:
         self.last_steering = 0.0  # -1 to 1, from network output
         self.last_acceleration = 0.0  # 0 to 1, from network output
         self.last_eat_signal = 0.0  # 0 to 1, from network output
+
+    def randomize_heading(self, rng) -> None:
+        """Set heading to a uniform random angle in [0, 2*pi) using rng."""
+        self.heading = float(rng.uniform(0.0, 2.0 * np.pi))
 
     @property
     def energy_config(self) -> EnergyConfig:

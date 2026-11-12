@@ -105,6 +105,9 @@ def make_population(config: BaselineConfig, run_seed: int) -> List[Organism]:
     for i, (x, y) in enumerate(positions):
         agent = Organism(i, x, y, initial_energy=100.0,
                          energy_config=energy_config)
+        # Draw heading from the seeded global stream before genome init so
+        # the random-state sequence remains explicit and reproducible.
+        agent.randomize_heading(np.random)
         agent.initialize_genome(genome_size=genome_size())
         population.append(agent)
     return population
@@ -116,15 +119,18 @@ def make_clone_population(config: BaselineConfig, genome: np.ndarray,
     np.random.seed(run_seed)
     positions = _spawn_positions(config, config.population.size)
     energy_config = energy_config_from_settings(config.energy)
-    return [_clone_agent(i, x, y, genome, energy_config)
+    return [_clone_agent(i, x, y, genome, energy_config, heading_rng=np.random)
             for i, (x, y) in enumerate(positions)]
 
 
 def _clone_agent(agent_id: int, x: float, y: float,
                  genome: np.ndarray,
-                 energy_config: Optional[EnergyConfig] = None) -> Organism:
+                 energy_config: Optional[EnergyConfig] = None,
+                 heading_rng=None) -> Organism:
     agent = Organism(agent_id, x, y, initial_energy=100.0,
                      energy_config=energy_config)
+    if heading_rng is not None:
+        agent.randomize_heading(heading_rng)
     agent.genome = genome.copy()
     return agent
 

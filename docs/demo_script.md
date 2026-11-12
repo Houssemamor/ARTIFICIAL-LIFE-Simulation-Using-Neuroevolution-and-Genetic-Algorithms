@@ -52,9 +52,9 @@ if live performance differs from the measured values.
 - Control bar (bottom): Pause / x1 / x10 / Save (snapshots the best
   controller to `experiments/EXP-GUI/checkpoint.npz`) / Reset. Predators
   are now evaluated with capture-emphasized fitness weights in the
-  6-predator/20-generation co-evolution config; evolved pursuit is
-  stronger, but fixed-controller ecosystem stability remains fragile
-  (8/10 collapses in the committed sweep).
+  6-predator/20-generation co-evolution config, and initial headings are
+  randomized; evolved pursuit is strong and fixed-controller viability is
+  high in the committed sweep (1/10 collapse, seed 4).
 
 ## 3. Headless determinism (terminal, ~60 s)
 

@@ -296,6 +296,7 @@ def run_generation(
             rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(i, x, y, initial_energy=100.0,
                          energy_config=energy_config)
+        agent.randomize_heading(rng)
         agent.genome = next_genomes[i]
         new_population.append(agent)
 
@@ -348,6 +349,7 @@ def _spawn_role_agents(genomes: List[np.ndarray], world: World, role: str,
             rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(next_id, x, y, initial_energy=100.0, role=role,
                          energy_config=energy_config)
+        agent.randomize_heading(rng)
         agent.genome = genome.copy()
         spawned.append(agent)
         next_id += 1
