@@ -22,29 +22,32 @@ batched inference under variable topology.
 Headline results, all measured under one final dynamics baseline
 (Phase 9: energy-limited - `metabolic_base_cost` 0.7/step, food
 regrowth 0.3/step applied in every evaluation loop, live exploration
-component, newborn energy inheritance; calibration re-measured at
-survival 133.94, food 1.0, exploration 77.76, collision 1.20). The
+component, newborn energy inheritance, 40 px solid obstacles;
+calibration re-measured at survival 146.44, food 1.44, exploration
+61.26, collision 11.17). The
 batched fixed-topology evaluator runs at 10,762 steps/s with 250
 agents (557x the per-agent reference, 358x the 30-FPS real-time
-gate). The GA improves fitness by **+0.28 to +0.50 mean over 12
+gate). The GA improves fitness by **+0.51 to +0.72 mean over 12
 generations** - the strongest learning signal the project has
-measured. Performance transfers to unseen layouts with a
-consistent-direction train-higher gap of +0.047 (paired p = 0.1055,
-r = +0.60, 7/10 seeds; bootstrap CI [+0.002, +0.089]). Fitness
-weighting now has leverage, but it points *away* from
-specialization: equal weighting leads every specialized condition by
-+0.07 to +0.12 (no pair survives Holm at n = 10). Crossover method
-does not matter at this scale (blend vs uniform +0.001, p = 0.92),
-though both beat mutation-only by ~+0.08. The ecosystem is viable
-but fragile (6 of 10 random seeds collapse - five via prey
-extinction, one via predator; captures climb 5 -> 22/day in survivors),
-and NEAT topology grows (mean complexity 51 -> 102) with the batching
-question resolved by measurement (2.9x the per-agent reference).
+measured. Performance on unseen layouts is statistically
+indistinguishable from training layouts (gap -0.008, paired
+p = 0.7695, r = -0.127, 4/10 seeds train-higher; bootstrap CI
+[-0.043, +0.029]); the earlier +0.047 penalty was regime-dependent.
+Fitness weighting now has leverage, but no re-weighting is
+measurably better: equal has the best point estimate, tied with
+exploration-weighting (+0.015), and survival-weighting is last by
++0.18 (no pair survives Holm at n = 10). Crossover method
+still has no Holm-significant winner (blend leads uniform by +0.12,
+p = 0.13, and mutation-only by +0.16, p = 0.064). The ecosystem is viable
+but fragile (7 of 10 random seeds collapse - five via predator
+extinction, two via prey), and NEAT topology grows (mean complexity
+51 -> 107) with the batching question resolved by measurement (3.1x
+the per-agent reference).
 
 ## 2. System
 
-**World.** A 1200x700 continuous world with food, point obstacles,
-and bounded agents. The engine is step-based: observe -> batched
+**World.** A 1200x700 continuous world with food, 40 px solid
+obstacles, and bounded agents. The engine is step-based: observe -> batched
 inference -> act -> physics -> metabolism. A fixed-step accumulator
 decouples simulation rate from render rate, which is what makes both
 the throughput benchmark and the demo story possible.
@@ -105,58 +108,65 @@ speedup is fiction.
 
 | Measure | Value |
 |---|---|
-| Train / unseen means | 0.8977 / 0.8510 |
-| Gap (train - unseen), 95% bootstrap CI | +0.0467 [+0.002, +0.089] |
-| Paired Wilcoxon p / matched-pairs r | 0.1055 / +0.60 |
+| Train / unseen means | 1.2620 / 1.2703 |
+| Gap (train - unseen), 95% bootstrap CI | -0.0083 [-0.043, +0.029] |
+| Paired Wilcoxon p / matched-pairs r | 0.7695 / -0.127 |
 
-A consistent-direction generalization *penalty* (7 of 10 seeds favor
-train; the bootstrap CI barely excludes zero) - enabled by
-controllers that learn a real food-seeking policy. The paired test
-misses 0.05 at n = 10; the first recommendation is a larger-n
-confirmation (`docs/generalization_results.md`).
+A clean null: frozen controllers score 0.008 *higher* on held-out
+layouts, the interval spans zero, and only 4 of 10 seeds favor train.
+The earlier +0.047 train-higher gap was measured before the obstacles
+became solid and before the collision/exploration recalibration; it
+does not reproduce under the shipped dynamics
+(`docs/generalization_results.md`).
 
 ### 4.2 Fitness weighting (Experiment D) and crossover (Experiment E)
 
 D1-D4 (equal, resource, exploration, survival weights) span
-0.8367-0.9532: **equal weighting leads every specialized condition by
-+0.07 to +0.12** (r = +0.24 to +0.35; no pair survives Holm at
+1.1750-1.3562: **equal weighting has the best point estimate, but it
+is tied with exploration-weighting (+0.015)**. Survival-weighting is
+last by +0.18 (r = +0.53, p = 0.160; no pair survives Holm at
 n = 10). Resource- and exploration-weighting are indistinguishable
-from each other (diff -0.0002, r = -0.02). E (blend / uniform /
-mutation-only) spans 0.8094-0.8917, with blend and uniform
-statistically identical (+0.0014, p = 0.92) and both ahead of
-mutation-only by ~+0.08 (r up to +0.49, short of significance). The
-fitness-over-generations curve rises **+0.28 to +0.50** mean over 12
-generations - 7-9x the strongest previous signal, and the Phase 3
+from each other (-0.058, r = -0.09). E (blend / uniform /
+mutation-only) spans 1.1315-1.2929, with no pair surviving Holm:
+blend leads uniform by +0.1218 (p = 0.131, r = +0.56) and
+mutation-only by +0.1614 (p = 0.064, r = +0.67), while uniform and
+mutation-only are indistinguishable (+0.0396, p = 0.846). The
+fitness-over-generations curve rises **+0.51 to +0.72** mean over 12
+generations - 15-22x the strongest previous signal, and the Phase 3
 "fitness improves" exit expectation cleared decisively
 (`docs/experiment_d_results.md`, `docs/crossover_results.md`).
 
 ### 4.3 Predator/prey and the hall of fame (Phase 6)
 
 Capture-collision resolution plus in-episode reproduction produce a
-viable-but-fragile ecosystem: 6 of 10 random seeds collapse within 10
-days. The number reflects two corrections: the
-newborn-energy fix (offspring now run the parent's 0.25/step
-equation instead of a silent 0.1 subsidy), and the role-aware
-predator senses that replaced the original prey-centric observation.
-The survivors settle at carrying capacity with captures per
-day climbing 5 -> 22 as the population cycles. Five of the six
-failures are prey extinctions (overharvest); one is a predator
-extinction. The stability test asserts viability on the first three
-sweep seeds (no cherry-picking) and a negative test proves the fixture
-can fail. The co-evolution run's hall-of-fame evaluation shows prey
-winning every archived duel in the final evaluation (predator win
-rate 0.00-0.25 across snapshots; single duels in a 1200x700 arena
-remain detection-limited, and the duel harness now uses the same
-0.25/step energy equation as the generation metrics)
-(`docs/coevolution_notes.md`).
+viable-but-fragile ecosystem: 7 of 10 random seeds collapse within 10
+days. The number reflects three corrections: the newborn-energy fix
+(offspring now run the parent's 0.25/step equation instead of a
+silent 0.1 subsidy), the role-aware predator senses that replaced the
+original prey-centric observation, and the solid 40 px obstacles that
+stopped agents driving through walls. Five of the seven failures are
+predator extinctions (seeds 1, 2, 6, 8, 10) and two are prey
+extinctions (seeds 7, 9); the three survivors (seeds 3, 4, 5) finish
+the horizon with per-seed minima of 7/1, 2/3 and 14/3 prey/predator.
+The committed seed-1 ecosystem run survives seven days with captures
+6, 10, 1, 7, 5, 0, 0 before the last predator starves on day 6. The
+stability test asserts viability on the first three sweep seeds (no
+cherry-picking; seed 3 completes the horizon) and a negative test
+proves the fixture can fail. The co-evolution run's hall-of-fame
+evaluation gives predator win rates of 0.50, 0.00, 0.25 and 0.40
+against the frozen archive across the four snapshots, and prey rates
+of 1.00, 0.67, 0.75 and 0.60 (final split 0.40 predator / 0.60 prey;
+single duels in a 1200x700 arena remain detection-limited, and the
+duel harness uses the same 0.25/step energy equation and legal spawns
+as the generation metrics) (`docs/coevolution_notes.md`).
 
 ### 4.4 NEAT extension (Phase 7)
 
-Topology grows: mean complexity 51 -> 102, max 51 -> 117 over 30
+Topology grows: mean complexity 51 -> 107, max 51 -> 133 over 30
 generations (`experiments/EXP-NEAT/complexity_over_generations.svg`).
 The batching question is resolved by measurement: population-wide
-depth-layered padded batching runs at 249 steps/s against 85 for the
-per-agent reference (2.9x; the per-species prototype reached 221),
+depth-layered padded batching runs at 301 steps/s against 97 for the
+per-agent reference (3.1x; the per-species prototype reached 299),
 with compile-once-per-episode amortization. The evolutionary run
 keeps a single species: the mechanism is unit-proven, but the
 landscape is sharply bimodal (a few well-fed foragers near fitness
@@ -174,21 +184,24 @@ experiment read null. The Phase 9 fix - raising
 component - replaced that inert landscape with a live one, and the
 nulls moved as a family:
 
-- the GA's improvement signal grew 7-9x (+0.033 -> +0.28/+0.50);
-- generalization produced a consistent-direction penalty (+0.047,
-  CI barely excluding zero) - controllers overfit their training
-  layouts slightly;
+- the GA's improvement signal grew 15-22x (+0.033 -> +0.51/+0.72);
+- generalization returned a null (-0.008, p = 0.77) - no measurable
+  layout overfitting under the shipped dynamics;
 - fitness weighting acquired leverage, and the leverage favors the
-  status quo: equal weighting leads every specialization (+0.07 to
-  +0.12). The re-weighting experiments are now genuinely informative
-  - they say the balanced weights are already near-optimal;
-- crossover method remains indistinguishable (blend = uniform), with
-  both ahead of mutation-only by ~+0.08;
+  status quo only partly: equal is the best point estimate and is
+  tied with exploration-weighting (+0.015), while survival-weighting
+  is last by +0.18 (p = 0.16). The re-weighting experiments are now
+  genuinely informative - down-weighting food is the one clear loser;
+- crossover method still has no corrected-significant winner: blend
+  leads uniform by +0.12 (p = 0.13) and mutation-only by +0.16
+  (p = 0.064), with uniform and mutation-only indistinguishable;
 - the ecosystem's collapse rate rose (3/10 -> 7/10) once the newborn
-  energy subsidy was removed, and the role-aware predator-sense fix
-  then traded predator starvation for prey overharvest (7/10 -> 6/10
-  collapse): viable runs show captures climbing 5 -> 22/day, and the
-  fragile role is now the prey.
+  energy subsidy was removed; the role-aware predator-sense fix then
+  traded predator starvation for prey overharvest (7/10 -> 6/10
+  collapse), and the solid 40 px obstacles moved the failure mode back
+  to predator starvation (6/10 -> 7/10). The fragile role is the
+  predator again, and the committed seed-1 run ends with the last
+  predator starving on day 6.
 
 That last item deserves emphasis because it cuts against the earlier
 framing: the first Phase 9 iteration *improved* every stability
@@ -200,7 +213,10 @@ stability). A second, independent confound surfaced later: the
 original observation was prey-centric, so predators spent their lives
 walking toward plants they cannot eat. Role-aware predator senses
 corrected that, the collapse rate fell to 6/10, and the failure mode
-moved from predator starvation to prey overharvest.
+moved from predator starvation to prey overharvest. The solid 40 px
+obstacles in this revision then removed the straight-line shortcut
+through obstacle clusters, and the rate moved back to 7/10 with
+predator starvation as the dominant failure again.
 
 What did *not* move: NEAT speciation still reads one species, and
 Holm correction at n = 10 still holds every D and E contrast. Both
@@ -219,12 +235,12 @@ were documented in place rather than quietly overwritten.
 
 ## 6. Limitations and future work
 
-1. **Statistical power.** The most interesting effects (the +0.047
-   generalization gap, the +0.12 equal-vs-survival weighting gap,
-   the +0.08 crossover-vs-mutation gap) sit just below or just
-   above Holm-corrected significance at n = 10. Re-running the three
-   solo experiments at n = 20-30 is the single highest-value next
-   action - the effects are sized to resolve with more seeds.
+1. **Statistical power.** The most interesting effects (the +0.18
+   equal-vs-survival weighting gap, the +0.12 blend-vs-uniform and
+   +0.16 blend-vs-mutation gaps) sit just below or just above
+   Holm-corrected significance at n = 10. Re-running the solo
+   experiments at n = 20-30 is the single highest-value next action -
+   the effects are sized to resolve with more seeds.
 2. **Bimodal fitness landscape.** The energy-limited dynamics
    separate foragers from starvers rather than grading between them
    (a few near fitness 2.0, most near 0.3). That is enough leverage
@@ -238,7 +254,7 @@ were documented in place rather than quietly overwritten.
    (0.4 / 0.7 / 1.0) rather than a single point. The ecosystem's
    0.25/step is the same knob set for a persistent world, and the
    capture rate is the other candidate if ecosystem robustness
-   matters (its 6/10 collapse rate is the weakest number in this
+   matters (its 7/10 collapse rate is the weakest number in this
    report).
 4. **Dashboards.** The live view ships with tiered panels
    (`config.phase_tier` enforces MVP/Advanced separation so the MVP
@@ -257,7 +273,7 @@ were documented in place rather than quietly overwritten.
 .venv\Scripts\python.exe -m pip install -e . --no-deps
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# tests (295)
+# tests (306)
 .venv\Scripts\python.exe -m pytest tests/ -q
 
 # experiments (each writes JSON + SVG under experiments/)

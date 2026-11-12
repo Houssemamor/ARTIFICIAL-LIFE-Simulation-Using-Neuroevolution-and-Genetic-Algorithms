@@ -159,6 +159,7 @@ def benchmark_batching(config_path: str, seed: int = 1,
     from agents.sensors import RayCaster
     from agents.organism import Organism
     from simulation.environment import World
+    from simulation.geometry import AGENT_SPAWN_CLEARANCE
     from neural.sparse_inference import (compile_population, run_compiled,
                                          forward_single)
     from evolution.neat.mutation import add_node
@@ -181,8 +182,8 @@ def benchmark_batching(config_path: str, seed: int = 1,
     raycaster = RayCaster()
     agents = []
     for index in range(len(genomes)):
-        x = rng.uniform(world.boundary_margin, world.width - world.boundary_margin)
-        y = rng.uniform(world.boundary_margin, world.height - world.boundary_margin)
+        x, y = world.random_free_position(
+            rng, clearance=AGENT_SPAWN_CLEARANCE)
         agents.append(Organism(index, x, y, initial_energy=100.0))
 
     # A few species groups, as speciation would produce

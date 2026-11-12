@@ -5,11 +5,11 @@ unmodified on held-out layouts B1-B3, quantify the train-vs-unseen gap.
 
 **Status:** confirmatory run complete (10 seeds) under the
 **energy-limited dynamics** (metabolic cost 0.7/step, food regrowth
-0.3/step, live exploration component). No generalization *penalty*
-claim is retired: the run shows a borderline **train > unseen
-gap of +0.047** (paired p = 0.1055, r = +0.60, 7 of 10 seeds positive,
-bootstrap CI [+0.002, +0.089]) - the direction is consistent and the
-CI excludes zero, but the paired test does not clear 0.05 at n = 10.
+0.3/step, live exploration component, 40 px solid obstacles). The
+earlier train-higher gap does **not** reproduce: train 1.2620 vs
+unseen 1.2703, gap **-0.0083** (paired p = 0.7695, r = -0.127,
+4 of 10 seeds train-higher, bootstrap CI [-0.043, +0.029]). This is a
+clean null, not a penalty.
 
 ## Method
 
@@ -38,52 +38,58 @@ Raw results: `experiments/EXP-GEN/stats_summary.json`
 come from the full re-run after the dynamics fix: `metabolic_base_cost`
 0.7/step, food regrowth 0.3/step actually applied by the evaluation
 loop (an earlier iteration had the regrowth inert - a code review
-caught it), and the exploration component computed per agent.
-Calibration was re-measured against these dynamics (survival 133.94,
-food 1.0, exploration 77.76, collision 1.20). All reported experiments
-share this baseline.
+caught it), the exploration component computed per agent, and 40 px
+obstacles that are now solid. Calibration was re-measured against
+these dynamics (survival 146.44, food 1.44, exploration 61.26,
+collision 11.17). All reported experiments share this baseline.
 
 | Measure | Value |
 |---------|-------|
-| Train score (mean over 10 seeds) | 0.8977 |
-| Unseen score (mean over 10 seeds) | 0.8510 |
-| Gap (train - unseen) | +0.0467 |
-| Gap 95% bootstrap CI | [+0.002, +0.089] |
-| Wilcoxon signed-rank p-value (two-sided) | 0.1055 |
-| Matched-pairs rank-biserial | +0.600 |
+| Train score (mean over 10 seeds) | 1.2620 |
+| Unseen score (mean over 10 seeds) | 1.2703 |
+| Gap (train - unseen) | -0.0083 |
+| Gap 95% bootstrap CI | [-0.043, +0.029] |
+| Wilcoxon signed-rank p-value (two-sided) | 0.7695 |
+| Matched-pairs rank-biserial | -0.127 |
 
-Per-seed gaps: 7 of 10 favor train (+0.032 to +0.144; three seeds
-favor unseen).
+Per-seed gaps: 4 of 10 favor train (+0.001 to +0.094; six seeds
+favor unseen, by -0.002 to -0.086).
 
 ## Interpretation
 
-**A consistent-direction generalization penalty, in the expected
-direction.** Frozen controllers score ~0.047 lower on held-out
-layouts than on their training layouts (p = 0.1055 at n = 10, effect
-size +0.60, 7/10 seeds consistent, bootstrap CI barely excluding
-zero). The controllers learn a real food-seeking policy under the
-energy-limited landscape, and what transfers is a skill that
-imperfectly fits a new placement.
+**No measurable generalization gap under the shipped dynamics.** Frozen
+controllers score 0.008 *higher* on held-out layouts than on their
+training layouts (p = 0.77 at n = 10, effect size -0.13, 4/10 seeds
+train-higher, bootstrap CI spanning zero). The point estimate and the
+interval both say the same thing: this run cannot distinguish train
+from unseen performance.
 
-**Read it as evidence of overfitting at this sample size, not proof.**
-The paired test misses 0.05; n = 10 seeds cannot resolve an effect of
-this size cleanly (a larger-n confirmatory run is the first thing
-this result asks for). The direction is biologically expected:
-controllers tuned to one obstacle/food placement transfer imperfectly
-to new ones.
+**The previous +0.047 penalty was regime-dependent.** It was measured
+before obstacles became solid and before the collision/exploration
+recalibration. Solid walls lengthen paths around obstacle clusters,
+and the recalibrated weights reward exploration far more heavily than
+food intake, so the controllers are less tuned to a particular
+food/obstacle placement. That is a plausible mechanism, not a measured
+one; the honest claim is that the penalty did not survive the dynamics
+change.
 
 **History of this question, for calibration of expectations:** the
 5 px dynamics gave a reverse gap (unseen easier, p = 0.0645,
 r = -0.67); the 12 px dynamics at legacy metabolic cost gave a clean
-null (+0.001, p = 0.846); the energy-limited dynamics give the
-expected train > unseen penalty. Three dynamics regimes, three
-different answers - which is itself the strongest argument for
-treating any single run's generalization number as regime-dependent.
+null (+0.001, p = 0.846); the first energy-limited run gave a
+borderline train-higher gap (+0.047, p = 0.1055); the solid-obstacle
+recalibration returns a null (-0.008, p = 0.77). Four dynamics
+regimes, four different answers - which is itself the strongest
+argument for treating any single run's generalization number as
+regime-dependent.
 
 ## Recommendations
 
-- Re-run with more seeds (n = 20+) to resolve the +0.047 effect.
-- Compare the gap between the train layouts and a *random-layout*
-  control to separate true overfitting from layout-difficulty drift.
+- Do not spend n = 20-30 chasing the +0.047 penalty: it is not present
+  under the shipped dynamics. The near-threshold effects worth
+  confirming are now the weighting and crossover contrasts.
+- If layout generalization is a priority, make layout diversity the
+  experimental factor (train on one cluster, test on a distant one)
+  rather than adding seeds to a null.
 - Keep the energy-limited dynamics as the default experiment regime;
   the null/penalty distinction depends on it.

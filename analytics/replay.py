@@ -25,6 +25,7 @@ from neural.genome import unpack_genome
 from neural.network import ARCHITECTURE
 from simulation.engine import resolve_captures, step_simulation
 from simulation.environment import World
+from simulation.geometry import OBSTACLE_SIZE
 
 # Labels for the fixed 12-value observation (order is part of the genome
 # compatibility contract, see agents/sensors.py). The food and threat
@@ -45,7 +46,8 @@ INPUT_LABELS_BY_ROLE: Dict[str, List[str]] = {
 OUTPUT_LABELS: List[str] = ["steer", "accelerate", "eat / capture"]
 
 # Obstacles are drawn as squares of this side length (see the renderer).
-OBSTACLE_SIZE = 10
+# The value is read from the shared geometry module so the recording
+# metadata, the renderer and the solid collision body always agree.
 
 
 def _sigmoid(values: np.ndarray) -> np.ndarray:

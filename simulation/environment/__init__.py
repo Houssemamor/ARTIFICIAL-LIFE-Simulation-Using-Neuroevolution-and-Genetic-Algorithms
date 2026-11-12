@@ -7,6 +7,24 @@ Contains the World, Food, and Obstacle classes.
 import numpy as np
 from typing import List, Optional
 
+from simulation.geometry import (
+    FOOD_SPAWN_CLEARANCE,
+    OBSTACLE_HALF_SIZE,
+    OBSTACLE_SIZE,
+)
+
+# Edge-to-edge gap kept between spawned obstacles. Without it the larger
+# solid bodies can touch and leave no corridor for an 8 px agent.
+OBSTACLE_MIN_GAP: float = 12.0
+
+# Rejection-sampling budget for obstacle placement. The configured
+# worlds use a few percent of their area, so this is generous; the
+# fallback keeps a requested count exact even in an over-packed world.
+OBSTACLE_SPAWN_ATTEMPTS: int = 200
+
+# Rejection-sampling budget for free positions (food and agents).
+FREE_POSITION_ATTEMPTS: int = 200
+
 
 class Food:
     """Represents a food item in the world."""
@@ -92,8 +110,10 @@ class World:
         self.food_regrowth_per_step = world_config.get('food_regrowth_per_step', 0.0)
         self._food_regrowth_pending = 0.0
 
-        self.spawn_food(food_count)
+        # Obstacles first: food placement rejects positions inside them,
+        # so the solids must exist before the food pass runs.
         self.spawn_obstacles(obstacle_count)
+        self.spawn_food(food_count)
 
     def regrow_food(self, rate: float) -> int:
         """
@@ -121,11 +141,9 @@ class World:
         while (self._food_regrowth_pending >= 1.0
                and len(self.food) < target):
             self._food_regrowth_pending -= 1.0
-            x = np.random.uniform(self.boundary_margin,
-                                  self.width - self.boundary_margin)
-            y = np.random.uniform(self.boundary_margin,
-                                  self.height - self.boundary_margin)
-            self.food.append(Food(float(x), float(y)))
+            x, y = self.random_free_position(
+                clearance=FOOD_SPAWN_CLEARANCE)
+            self.food.append(Food(x, y))
             spawned += 1
         # Do not bank excess accumulation once the target is reached
         if len(self.food) >= target:
@@ -134,33 +152,126 @@ class World:
 
     def spawn_food(self, count: int) -> None:
         """
-        Spawn food at random positions in the world.
+        Spawn food at random positions clear of every obstacle.
+
+        Food inside a solid obstacle would be permanently unreachable and
+        would consume a slot in the regrowth target.
 
         Args:
             count (int): Number of food items to spawn
         """
         self.food = []
         for _ in range(count):
-            x = np.random.uniform(self.boundary_margin,
-                                  self.width - self.boundary_margin)
-            y = np.random.uniform(self.boundary_margin,
-                                  self.height - self.boundary_margin)
-            self.food.append(Food(float(x), float(y)))
+            x, y = self.random_free_position(
+                clearance=FOOD_SPAWN_CLEARANCE)
+            self.food.append(Food(x, y))
 
     def spawn_obstacles(self, count: int) -> None:
         """
         Spawn obstacles at random positions in the world.
 
+        Each 40 px square is kept fully inside the boundary margin and
+        separated from the others by OBSTACLE_MIN_GAP so agents always
+        have a corridor between two solids. The count is exact: if the
+        world is too packed to satisfy the gap after the sampling
+        budget, the last candidate is used anyway.
+
         Args:
             count (int): Number of obstacles to spawn
         """
         self.obstacles = []
+        half = OBSTACLE_HALF_SIZE
+        margin = self.boundary_margin
+        # Centre range that keeps the whole square inside the margin.
+        # Degenerate worlds smaller than the obstacle collapse to the
+        # centre instead of raising from uniform(low > high).
+        low_x = min(margin + half, self.width / 2.0)
+        high_x = max(self.width - margin - half, self.width / 2.0)
+        low_y = min(margin + half, self.height / 2.0)
+        high_y = max(self.height - margin - half, self.height / 2.0)
+
         for _ in range(count):
-            x = np.random.uniform(self.boundary_margin,
-                                  self.width - self.boundary_margin)
-            y = np.random.uniform(self.boundary_margin,
-                                  self.height - self.boundary_margin)
-            self.obstacles.append(Obstacle(float(x), float(y)))
+            x = float(np.random.uniform(low_x, high_x))
+            y = float(np.random.uniform(low_y, high_y))
+            for _ in range(OBSTACLE_SPAWN_ATTEMPTS):
+                if not self._overlaps_obstacle(x, y):
+                    break
+                x = float(np.random.uniform(low_x, high_x))
+                y = float(np.random.uniform(low_y, high_y))
+            self.obstacles.append(Obstacle(x, y))
+
+    def _overlaps_obstacle(self, x: float, y: float,
+                           gap: float = OBSTACLE_MIN_GAP) -> bool:
+        """True if a square centred at (x, y) would violate `gap`."""
+        # Two squares are closer than the gap when their centre
+        # separation is below one full side plus the gap on both axes.
+        threshold = OBSTACLE_SIZE + gap
+        for obstacle in self.obstacles:
+            if (abs(x - obstacle.x) < threshold
+                    and abs(y - obstacle.y) < threshold):
+                return True
+        return False
+
+    def is_position_clear(self, x: float, y: float,
+                          clearance: float = 0.0) -> bool:
+        """
+        Check whether a point is in bounds and outside every obstacle.
+
+        Args:
+            x, y: Point to test.
+            clearance: Extra distance required from the obstacle faces.
+                Used to keep an agent body or a food sprite from
+                overlapping a solid.
+
+        Returns:
+            bool: True when the position is a legal spawn point.
+        """
+        if not self.is_inside_boundaries(x, y):
+            return False
+        reach = OBSTACLE_HALF_SIZE + clearance
+        for obstacle in self.obstacles:
+            if abs(x - obstacle.x) <= reach and abs(y - obstacle.y) <= reach:
+                return False
+        return True
+
+    def random_free_position(self, rng=None, clearance: float = 0.0,
+                             max_attempts: int = FREE_POSITION_ATTEMPTS
+                             ) -> tuple[float, float]:
+        """
+        Rejection-sample an in-bounds position outside every obstacle.
+
+        Args:
+            rng: numpy Generator or the numpy.random module. None uses
+                the global stream, preserving layout_seed determinism.
+            clearance: Extra distance required from obstacle faces.
+            max_attempts: Sampling budget before falling back to the
+                last candidate.
+
+        Returns:
+            (x, y) tuple. The fallback can overlap an obstacle only when
+            the world is too packed for the requested clearance.
+        """
+        generator = rng if rng is not None else np.random
+        margin = self.boundary_margin
+        x = float(generator.uniform(margin, self.width - margin))
+        y = float(generator.uniform(margin, self.height - margin))
+        for _ in range(max_attempts):
+            if self.is_position_clear(x, y, clearance):
+                break
+            x = float(generator.uniform(margin, self.width - margin))
+            y = float(generator.uniform(margin, self.height - margin))
+        return x, y
+
+    def clear_position(self, x: float, y: float, clearance: float = 0.0,
+                       rng=None) -> tuple[float, float]:
+        """
+        Return (x, y) unchanged when it is a legal spawn, otherwise a
+        free replacement. Used to relocate pre-built agents before an
+        evaluation starts.
+        """
+        if self.is_position_clear(x, y, clearance):
+            return float(x), float(y)
+        return self.random_free_position(rng, clearance)
 
     def is_inside_boundaries(self, x: float, y: float) -> bool:
         """

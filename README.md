@@ -21,7 +21,7 @@ v2.0 adds two secondary questions:
 
 ## System at a Glance
 
-- **World:** 2D continuous space (1200 x 700), food, obstacles, boundaries.
+- **World:** 2D continuous space (1200 x 700), food, 40 px solid obstacles, boundaries.
 - **Agents:** 100-250 organisms with 7 ray-based sensors (-90..+90 degrees).
 - **Controller:** Fixed-topology MLP, `12-32-16-3`, ReLU hidden, tanh/sigmoid outputs (steering / accel / eat). Phases 1-6 only.
 - **Evolution:** Real-coded GA - tournament selection + elitism, crossover (blend default, compared against uniform and mutation-only), Gaussian mutation.
@@ -91,7 +91,7 @@ python -m experiments.run --config configs/baseline.json --mode headless --devic
 ## Running Tests
 
 ```bash
-# Full suite (295 tests)
+# Full suite (306 tests)
 pytest tests/ -q
 
 # Specific test groups
@@ -126,7 +126,7 @@ no Python needed to view it.
 Build it:
 
 ```bash
-python experiments/record_showcase.py   # train and record (~34 s, see below)
+python experiments/record_showcase.py   # train and record (~36 s, see below)
 python webdash/build_static.py          # writes dashboard.html
 ```
 
@@ -141,11 +141,14 @@ Design decisions:
   JavaScript re-implementation would drift from the Python physics, sensors
   and controller and could not honestly claim to show the simulation. One
   recording is a single source of truth, needs no server, and adds about
-  757 KB to the page.
+  735 KB to the page.
 - **Co-evolution first, solo second.** Co-evolution is the headline result
   (two roles, captures, an arms race). The solo world isolates food-seeking
-  as a clean baseline, but its evolved effect is small (2 of 10 agents alive
-  at the end of the recorded run), so it should not lead the page.
+  as a clean baseline, but under the solid-obstacle calibration it is a
+  negative control: both the untrained and the evolved population starve
+  inside the 150-step replay, because the recalibrated fitness weights
+  exploration far above food intake. The card reports that result rather
+  than hiding it; the incentive fix is tracked in the plan.
 - **Untrained vs evolved on the same seed.** This is the only comparison that
   isolates the controller from the arena and the start positions.
 - **The featured agent is the replay's best performer** (most food, then
@@ -181,7 +184,7 @@ Measured on the development PC on 2026-10-30 in the CPU-deterministic tier
 |---|---|
 | Solo evolution, 12 generations x 40 agents | 15.7 s |
 | Co-evolution training, 10 generations x (24 prey + 3 predators) | 12.3 s |
-| Showcase recording (both trainings + 8 replays) | 33.7 s |
+| Showcase recording (both trainings + 8 replays) | 36.2 s |
 | Generalization experiment | 68.8 s |
 | Experiment D (4 weightings) | 70.6 s |
 | Experiment E (3 crossover methods) | 56.7 s |
@@ -200,8 +203,8 @@ Notes:
 - Peak working set measured for two representative runs: 351 MB (showcase
   recording) and 352 MB (Experiment D). Only one core is used, so the
   experiments run comfortably on a laptop; a GPU is not required.
-- The full test suite (295 tests) runs in about 1 min 29 s.
-- The generated `dashboard.html` is about 834 KB (757 KB of it is the replay)
+- The full test suite (306 tests) runs in about 1 min 54 s.
+- The generated `dashboard.html` is about 812 KB (735 KB of it is the replay)
   and needs no WebGL.
 
 ## Development Plan (summary)
@@ -225,24 +228,26 @@ See [Plan](PLAN.md) for the first-steps plan.
 ¹ Crossover variants were compared (Experiment E, `docs/crossover_results.md`)
 and the fitness-over-generations plot was produced
 (`experiments/EXP-E/fitness_curve.svg`). Under the final dynamics the
-GA improves fitness (+0.28 to +0.50 mean over 12
-generations), closing the Phase 3 "fitness improves" expectation; the
-crossover methods themselves remain statistically indistinguishable
-(blend vs uniform +0.001, p = 0.92).
+GA improves fitness (+0.51 to +0.72 mean over 12
+generations), closing the Phase 3 "fitness improves" expectation.
+Blend leads uniform by +0.12 (p = 0.13) and mutation-only by +0.16
+(p = 0.064); no pair survives Holm at n = 10, and uniform is
+indistinguishable from mutation-only (+0.04, p = 0.85).
 
 ² The ecosystem is viable on an unselected three-seed sample under fully
-deterministic runs, but with fixed (non-evolved) controllers 6 of 10
-random seeds collapse within 10 days - five of the six failures are
-prey extinctions, one is a predator extinction - after the
-newborn-energy fix removed an inherited-dynamics subsidy and predators
-received role-aware senses (single-regime 10-seed measurement under the
-final dynamics). The stability test asserts viability on seeds 1-3, a
-negative test proves the fixture can fail, and the full analysis lives
-in `docs/coevolution_notes.md`.
+deterministic runs, but with fixed (non-evolved) controllers 7 of 10
+random seeds collapse within 10 days - five of the seven failures are
+predator extinctions, two are prey extinctions - after the
+newborn-energy fix removed an inherited-dynamics subsidy, predators
+received role-aware senses, and obstacles became solid 40 px bodies
+(single-regime 10-seed measurement under the final dynamics). The
+stability test asserts viability on seeds 1-3 (seed 3 completes the
+horizon), a negative test proves the fixture can fail, and the full
+analysis lives in `docs/coevolution_notes.md`.
 
 ³ The NEAT implementation matches the Appendix C operators and formula
 (verified by unit tests), and topology grows on the benchmark (mean complexity
-51 → 102 over 30 generations). The evolutionary run keeps a single species:
+51 → 107 over 30 generations). The evolutionary run keeps a single species:
 the energy-limited landscape is bimodal (a few foragers near fitness 2.0, most
 agents starving near 0.3), which still yields one compatibility cluster at the
 threshold. Speciation machinery is proven on constructed diverse populations.
@@ -324,9 +329,9 @@ As of September 2026, the following components have been implemented:
 - ✅ `experiments/run_generalization.py` - train A1-A3, evaluate frozen genomes on B1-B3, paired Wilcoxon + bootstrap CIs + matched-pairs effect size
 - ✅ `experiments/run_experiment_d.py` - D1-D4 x 10 seeds through the paired comparison pipeline (Wilcoxon + Holm-Bonferroni)
 - ✅ `experiments/run_crossover_experiment.py` - Experiment E (blend/uniform/mutation-only) through the same paired pipeline; writes the fitness-over-generations SVG
-- ✅ `docs/generalization_results.md` - consistent-direction generalization penalty: train-higher by +0.047 (p=0.1055, r=+0.60, 7/10 seeds, bootstrap CI [+0.002, +0.089]) under the energy-limited dynamics
-- ✅ `docs/experiment_d_results.md` - equal weighting leads every specialization by +0.07 to +0.12 (no pair survives Holm at n=10); the balanced weights are already near-optimal
-- ✅ `docs/crossover_results.md` - no pairs survive Holm; blend and uniform are indistinguishable (+0.001, p=0.92) and both +0.08 over mutation-only, while the fitness curve rises +0.28 to +0.50 over 12 generations (Phase 3 expectation decisively met)
+- ✅ `docs/generalization_results.md` - no measurable generalization gap under the solid-obstacle dynamics: train 1.2620 vs unseen 1.2703, gap -0.008 (p=0.7695, r=-0.127, 4/10 seeds train-higher, CI [-0.043, +0.029]); the earlier +0.047 penalty was regime-dependent
+- ✅ `docs/experiment_d_results.md` - no pair survives Holm at n=10; equal has the best point estimate but is tied with exploration-weighting (+0.015), while survival-weighting is last by +0.18 (p=0.16); down-weighting food is the one clear loser
+- ✅ `docs/crossover_results.md` - no pair survives Holm; blend leads uniform by +0.12 (p=0.13) and mutation-only by +0.16 (p=0.064), while uniform and mutation-only are indistinguishable (+0.04, p=0.85); the fitness curve rises +0.51 to +0.72 over 12 generations (Phase 3 expectation decisively met)
 - ✅ `tests/integration/test_experiment_runners.py` - runner smoke tests (8 tests)
 - ✅ `WorldConfig.layout_seed` + `EvolutionConfig.evaluation_steps` schema extensions
 - ✅ Determinism enforced at every entry point (GUI, headless, all experiment runners) via `set_deterministic_seeds`
@@ -340,14 +345,14 @@ As of September 2026, the following components have been implemented:
 - ✅ `analytics/hall_of_fame.py` - frozen best-per-role archive + duel harness (`run_duel`, `win_rate_against_archive`)
 - ✅ `experiments/run_coevolution.py` - co-evolution mode (GA + HOF snapshots + frozen-opponent evaluations) and ecosystem mode (long-horizon stability harness)
 - ✅ `visualization/dashboard_advanced.py` + F9 GUI toggle - live ecosystem counters + hall-of-fame delta; predators drawn red-family
-- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: 6 of 10 random seeds collapse within 10 days (5 prey extinctions, 1 predator, after the newborn-energy fix and the role-aware predator senses), the test asserts viability on unselected seeds 1-3, and a negative test proves the fixture can fail
+- ✅ `docs/coevolution_notes.md` - the arms-race caveat; honest stability analysis: 7 of 10 random seeds collapse within 10 days (5 predator extinctions, 2 prey, after the newborn-energy fix, role-aware predator senses and solid 40 px obstacles), the test asserts viability on unselected seeds 1-3, and a negative test proves the fixture can fail
 - ✅ `tests/unit/test_predation.py` (9), `tests/unit/test_reproduction.py` (8), `tests/unit/test_hall_of_fame.py` (7), `tests/integration/test_coevolution.py` (4), `tests/integration/test_predator_prey_stability.py` (3, incl. seed-reproducibility regression)
 - ⚠️ Caveat: the ecosystem is viable but fragile with fixed (non-evolved) controllers - see `docs/coevolution_notes.md` before interpreting ecosystem metrics; the capture rate and the ecosystem metabolic clock (0.25/step) are the first levers if robustness matters
 
 ### NEAT Topology Evolution (Phase 7 - Complete with caveat)
 - ✅ `evolution/neat/` package - `genome.py` (node + connection genes with innovations), `innovation.py` (global counter with per-generation reuse), `mutation.py` (`add_node` with weight-1.0 split init, `add_connection`, Gaussian weight mutation with re-enable), `crossover.py` (innovation-aligned: matching random from either parent, disjoint/excess from the fitter), `compatibility.py` (δ = c1·E/N + c2·D/N + c3·Ŵ, Appendix C constants), `speciation.py` (assignment, fitness sharing, stagnation removal with champion protection), `algorithm.py` (full generation loop)
-- ✅ `neural/sparse_inference.py` - the batching question resolved: population-wide depth-layered padded/masked batch, **2.9x the per-agent reference** (249 vs 85 steps/s at 100 genomes), verified equivalent to per-agent on minimal, variable-depth, and orphaned-node genomes
-- ✅ `experiments/run_neat.py` + `configs/neat_food_seeking.json` - 30-generation food-seeking benchmark; topology grows (mean complexity 51 → 102, max 51 → 117; 571 innovations); complexity SVG + summary JSON
+- ✅ `neural/sparse_inference.py` - the batching question resolved: population-wide depth-layered padded/masked batch, **3.1x the per-agent reference** (301 vs 97 steps/s at 100 genomes), verified equivalent to per-agent on minimal, variable-depth, and orphaned-node genomes
+- ✅ `experiments/run_neat.py` + `configs/neat_food_seeking.json` - 30-generation food-seeking benchmark; topology grows (mean complexity 51 → 107, max 51 → 133; 605 innovations); complexity SVG + summary JSON
 - ✅ `docs/neat_extension_report.md` - batching decision with measured numbers, benchmark results, and the Appendix C provenance caveat
 - ✅ `tests/unit/test_neat_primitives.py` (20), `tests/unit/test_sparse_inference.py` (6), `tests/integration/test_neat_speciation.py` (3)
 - ⚠️ Caveat: the evolutionary run keeps a single species - the mechanism is unit-proven, but the landscape is bimodal (few foragers near fitness 2.0, most near 0.3), which still yields one compatibility cluster (`docs/neat_extension_report.md`)
@@ -358,22 +363,22 @@ As of September 2026, the following components have been implemented:
 - ✅ Section 12 build-out (Phase 9): control bar (Pause/x1/x10/Save/Reset) + best-agent inspector (vitals, seven-ray overlay, controller graph with live activations) - `visualization/control_bar.py`, `visualization/best_agent_inspector.py`
 - ✅ Web dashboard - FastAPI + Bootstrap/vanilla JS read-only viewer over the committed artifacts (`webdash/`; low-resource machines: `python webdash/build_static.py` writes one offline `dashboard.html`; live mode: `uvicorn webdash.backend.main:app`)
 - ✅ Showcase dashboard - offline replay of the real simulation (predator/prey primary, solo food seeker secondary), step-by-step network activations, and findings computed from the artifacts (`experiments/record_showcase.py`, `webdash/findings.py`)
-- ✅ Packaging verified - editable install, both entry points, 295-test suite, lint gate clean
+- ✅ Packaging verified - editable install, both entry points, 306-test suite, lint gate clean
 - ✅ `docs/presentation_deck.pptx` (14 slides, measured numbers, speaker notes) + `docs/demo_script.md` (rehearsable, with the author-side video checklist) + `docs/slide_outline.md`
-- ✅ Energy-limited dynamics (Phase 9): `metabolic_base_cost` config-tunable (0.7/step in experiments, legacy pacing in the GUI), food regrowth applied in every evaluation loop, live exploration component, newborn energy inheritance; every experiment re-run - +0.28 to +0.50 fitness gain, consistent-direction generalization penalty, equal-weighting leads its specializations
+- ✅ Energy-limited dynamics (Phase 9): `metabolic_base_cost` config-tunable (0.7/step in experiments, legacy pacing in the GUI), food regrowth applied in every evaluation loop, live exploration component, newborn energy inheritance; every experiment re-run - +0.51 to +0.72 fitness gain, a generalization null, equal-weighting remains the best default
 
 ## Next Steps
 
 All eight plan phases plus the Phase 9 dynamics fix are complete. The
 highest-leverage next action, consistent across every result document:
-re-run the solo experiments at n = 20-30 seeds to resolve the three
-near-threshold effects (generalization +0.047, equal-vs-survival
-weighting +0.12, crossover-vs-mutation-only +0.08), and sweep
+re-run the solo experiments at n = 20-30 seeds to resolve the
+remaining near-threshold effects (equal-vs-survival weighting +0.18,
+blend-vs-uniform +0.12 and blend-vs-mutation +0.16), and sweep
 `metabolic_base_cost` (0.4 / 0.7 / 1.0) since it sets the
 survival-vs-forging split every result depends on. The ecosystem's
-6/10 collapse rate (now mostly prey overharvest) points at the capture
-rate and its own clock (0.25/step) as the next robustness levers, and a
-graded food landscape is what NEAT speciation needs. See [Plan](PLAN.md)
+7/10 collapse rate (5 predator, 2 prey) points at the capture rate and
+its own clock (0.25/step) as the next robustness levers, and a graded
+food landscape is what NEAT speciation needs. See [Plan](PLAN.md)
 and `docs/final_report.md`.
 
 Agents process sensory information through neural networks, convert

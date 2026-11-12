@@ -38,6 +38,7 @@ from evolution.neat.speciation import Species, assign_species
 from neural.sparse_inference import compile_population, run_compiled
 from simulation.environment import World
 from simulation.engine import resolve_collisions
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 from simulation.world_config import BaselineConfig, NeatConfig
 
 EAT_SIGNAL_THRESHOLD = 0.5
@@ -100,11 +101,10 @@ def evaluate_population(
 
     population_size = len(genomes)
     agents: List[Organism] = []
-    margin = world.boundary_margin
     energy_config = energy_config_from_settings(config.energy)
     for index in range(population_size):
-        x = rng.uniform(margin, world.width - margin)
-        y = rng.uniform(margin, world.height - margin)
+        x, y = world.random_free_position(
+            rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(index, x, y, initial_energy=100.0,
                          energy_config=energy_config)
         agents.append(agent)

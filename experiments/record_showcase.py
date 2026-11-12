@@ -49,6 +49,7 @@ from experiments.experiment_runner import (load_calibration_scales,  # noqa: E40
 from experiments.run_coevolution import (_build_world, _spawn_positions,  # noqa: E402
                                          apply_seed_determinism)
 from neural.genome import genome_size  # noqa: E402
+from simulation.geometry import AGENT_SPAWN_CLEARANCE  # noqa: E402
 from simulation.world_config import BaselineConfig, load_config  # noqa: E402
 
 COEV_CONFIG = "configs/predator_prey.json"
@@ -141,6 +142,12 @@ def replay_solo(config: BaselineConfig, genome: np.ndarray, steps: int,
         apply_seed_determinism(replay_seed)
         world = _build_world(config)
         clones = make_clone_population(config, genome, replay_seed)
+        # make_clone_population draws positions before the world exists,
+        # so relocate any clone that landed inside a solid obstacle.
+        for agent in clones:
+            agent.position.x, agent.position.y = world.clear_position(
+                agent.position.x, agent.position.y,
+                AGENT_SPAWN_CLEARANCE, np.random)
         np.random.seed(replay_seed)
         return world, clones
 

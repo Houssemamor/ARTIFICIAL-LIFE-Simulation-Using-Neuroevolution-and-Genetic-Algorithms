@@ -38,39 +38,45 @@ tensors or the speedup is fiction.
 
 ## 7. Fitness design
 Calibration before weighting: measured component scales (survival
-133.94, food 1.0, exploration 77.76, collision 1.20) then normalized
-weighted sum. The scale-domination risk this fixed.
+146.44, food 1.44, exploration 61.26, collision 11.17) then normalized
+weighted sum. The scale-domination risk this fixed, and the collision
+jump from 1.20 shows the cost of making the 40 px obstacles solid.
 
 ## 8. Live demo
 `docs/demo_script.md` - GUI MVP tier, ecosystem advanced tier,
 headless determinism, the experiments, topology growth.
 
 ## 9. Results: generalization (Exp A/B)
-Train vs. unseen layouts under the final dynamics: +0.047 gap
-(paired p = 0.1055, r = +0.60, 7/10 seeds, CI [+0.002, +0.089]) - a
-consistent-direction penalty, not yet resolved at n = 10; see
-`docs/generalization_results.md` for the paired numbers (CI + effect
-size, no bare means).
+Train vs. unseen layouts under the final dynamics: no measurable gap
+(-0.008; paired p = 0.7695, r = -0.127, 4/10 seeds train-higher,
+CI [-0.043, +0.029]). The earlier +0.047 penalty did not survive the
+solid-obstacle recalibration; see `docs/generalization_results.md`.
 
 ## 10. Results: fitness weighting and crossover (Exp D/E)
-Equal weighting leads every specialization by +0.07 to +0.12 (no pair
-survives Holm); blend and uniform crossover are indistinguishable
-(+0.001, p = 0.92), both +0.08 over mutation-only. The landscape is
-live (the GA improves +0.28 to +0.50 over 12 generations) - the
-weighting result says the balanced weights are already near-optimal
+Equal weighting has the best point estimate but is tied with
+exploration-weighting (+0.015); survival-weighting is last by +0.18
+(p = 0.16; no pair survives Holm). Crossover has no
+corrected-significant winner either:
+blend leads uniform by +0.12 (p = 0.13) and mutation-only by +0.16
+(p = 0.064), while uniform and mutation-only are indistinguishable
+(+0.04, p = 0.85). The landscape is live (the GA improves +0.51 to
++0.72 over 12 generations) - the weighting result says the balanced
+weights remain the best default
 (`docs/experiment_d_results.md`, `docs/crossover_results.md`).
 
 ## 11. Results: predator/prey and hall-of-fame
 The oscillating arms race chart, explained, not hidden
 (`docs/coevolution_notes.md`): within-generation fitness is
 relative; the frozen-archive win rate is the absolute measure.
-Stability: 6 of 10 seeds collapse (5 prey extinctions,
-1 predator) after the newborn-energy fix and the role-aware
-predator-sense fix; viable runs climb 5 -> 22 captures/day.
+Stability: 7 of 10 seeds collapse (5 predator extinctions,
+2 prey) after the newborn-energy fix, the role-aware predator-sense
+fix and solid 40 px obstacles. The three survivors finish the horizon;
+the committed seed-1 run captures 6, 10, 1, 7, 5, 0, 0 and loses its
+last predator on day 6.
 
 ## 12. Results: NEAT extension
-Complexity-over-generations plot (51 -> 102 mean, max 117); the
-batching decision (population-wide depth-layered padding, 2.9x
+Complexity-over-generations plot (51 -> 107 mean, max 133); the
+batching decision (population-wide depth-layered padding, 3.1x
 per-agent) and why the per-species prototype lost
 (`docs/neat_extension_report.md`).
 
@@ -78,8 +84,8 @@ per-agent) and why the per-species prototype lost
 One shape, honestly: the landscape is now *bimodal*, not graded - a
 few well-fed foragers near fitness 2.0, most agents starving near
 0.3. That shape is enough for the GA but not for NEAT speciation
-(one species). The ecosystem is fragile (6/10 collapse, now mostly
-prey overharvest). Every D/E contrast sits near but not past Holm at
+(one species). The ecosystem is fragile (7/10 collapse, mostly
+predator starvation). Every D/E contrast sits near but not past Holm at
 n = 10.
 
 ## 14. Future work

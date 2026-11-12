@@ -189,6 +189,11 @@ class BaselineConfig(BaseModel):
     # Additional fields from the design document's Section 18.2 example
     crossover_method: str = Field("blend", pattern="^(blend|uniform|none)$")
     fitness_weights: Dict[str, float] = Field(default_factory=lambda: {"survival": 0.4, "food": 0.3, "exploration": 0.2, "collision": 0.1})
+    # Phase 6 predator-pursuit incentive fix: role-specific fitness weights.
+    # When present they override fitness_weights for the given role; missing
+    # keys fall back to fitness_weights so legacy configs remain valid.
+    fitness_weights_prey: Optional[Dict[str, float]] = None
+    fitness_weights_predator: Optional[Dict[str, float]] = None
     seed: Dict[str, Optional[int]] = Field(default_factory=lambda: {"torch": None, "numpy": None, "random": None})
     reproducibility_tier: str = Field("cpu-deterministic", pattern="^(cpu-deterministic|non-deterministic)$")
     # Phase 6 sections. None = absent in legacy configs, which keeps
@@ -214,6 +219,17 @@ class BaselineConfig(BaseModel):
         total = sum(v.values())
         if abs(total - 1.0) > 1e-6:
             raise ValueError(f'Fitness weights must sum to 1.0, got {total}')
+        return v
+
+    @validator('fitness_weights_prey', 'fitness_weights_predator')
+    def role_weights_sum_to_one(cls, v):
+        """Role-specific overrides, when set, must be normalized like the base."""
+        if v is None:
+            return v
+        total = sum(v.values())
+        if abs(total - 1.0) > 1e-6:
+            raise ValueError(
+                f'Role fitness weights must sum to 1.0, got {total}')
         return v
 
 

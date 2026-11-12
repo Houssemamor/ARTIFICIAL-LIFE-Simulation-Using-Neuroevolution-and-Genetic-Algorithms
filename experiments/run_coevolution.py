@@ -30,6 +30,7 @@ import numpy as np
 from simulation.determinism import set_deterministic_seeds, DeterminismConfig
 from simulation.environment import World
 from simulation.engine import step_simulation, resolve_captures
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 from simulation.world_config import load_config, BaselineConfig, ReproductionConfig
 from agents.organism import Organism
 from agents.energy import energy_config_from_settings
@@ -57,10 +58,9 @@ def apply_seed_determinism(run_seed: int) -> None:
 
 def _spawn_positions(world: World, count: int,
                      rng: np.random.Generator) -> List[tuple]:
-    """Uniform in-bounds spawn positions (no corner-line artifact)."""
-    m = world.boundary_margin
-    return [(float(rng.uniform(m, world.width - m)),
-             float(rng.uniform(m, world.height - m))) for _ in range(count)]
+    """Uniform in-bounds spawn positions clear of solid obstacles."""
+    return [world.random_free_position(rng, clearance=AGENT_SPAWN_CLEARANCE)
+            for _ in range(count)]
 
 
 def _build_world(config: BaselineConfig) -> World:
@@ -170,9 +170,16 @@ def run_ecosystem_days(config: BaselineConfig, days: int,
             spawn_x, spawn_y = spawn_positions[agent.id]
             exploration = float(np.hypot(agent.position.x - spawn_x,
                                          agent.position.y - spawn_y))
+            role = getattr(agent, 'role', 'prey')
+            if role == 'predator':
+                weights = (config.fitness_weights_predator
+                           or config.fitness_weights)
+            else:
+                weights = (config.fitness_weights_prey
+                           or config.fitness_weights)
             agent.fitness = compute_fitness(
                 agent, agent.age, agent.food_eaten, exploration,
-                agent.collisions, calibration_scales, config.fitness_weights)
+                agent.collisions, calibration_scales, weights)
 
         prey_alive = sum(1 for a in agents if a.is_alive and a.role == 'prey')
         predator_alive = sum(1 for a in agents

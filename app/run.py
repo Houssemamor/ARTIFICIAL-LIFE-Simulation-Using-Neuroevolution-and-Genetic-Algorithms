@@ -24,6 +24,7 @@ from simulation.world_config import load_config
 from simulation.determinism import DeterminismConfig, set_deterministic_seeds
 from simulation.environment import World
 from simulation.engine import step_simulation, resolve_captures
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 from agents.organism import Organism
 from agents.energy import energy_config_from_settings
 from agents.sensors import RayCaster
@@ -131,10 +132,8 @@ def main():
         """Fresh population from the active config (initial spawn and Reset)."""
         built: List[Organism] = []
         for i in range(population_size + predator_count):
-            x = np.random.uniform(world.boundary_margin,
-                                  world.width - world.boundary_margin)
-            y = np.random.uniform(world.boundary_margin,
-                                  world.height - world.boundary_margin)
+            x, y = world.random_free_position(
+                clearance=AGENT_SPAWN_CLEARANCE)
             role = 'predator' if i < predator_count else 'prey'
             agent = Organism(i, x, y, initial_energy=100.0, role=role,
                              energy_config=energy_config)

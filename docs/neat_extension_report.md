@@ -24,9 +24,9 @@ on average, 4 depth layers):
 
 | Strategy | steps/s | vs per-agent |
 |---|---|---|
-| Population-wide depth-layered padded/masked batch | **249** | **2.94x** |
-| Per-species batches (5 groups) | 221 | 2.61x |
-| Per-agent topological loop | 85 | 1.0x |
+| Population-wide depth-layered padded/masked batch | **301** | **3.11x** |
+| Per-species batches (5 groups) | 299 | 3.10x |
+| Per-agent topological loop | 97 | 1.0x |
 
 For reference, the fixed-topology Phase 1.5 baseline ran 10,762
 steps/s at 250 agents; variable-topology batching is ~40x slower than
@@ -48,7 +48,7 @@ evaluation episode, so the padded blocks are compiled once
 (`run_compiled`) with row indexing for the shrinking live set.
 Benchmarking the convenience wrapper (compile + run per step) instead
 of the compiled path made batching look 2.5x slower than the per-agent
-loop; the compiled path is the algorithm's actual usage and is 2.9x
+loop; the compiled path is the algorithm's actual usage and is 3.1x
 faster. Both batched strategies are verified against the per-agent
 reference in `tests/unit/test_sparse_inference.py`.
 
@@ -59,14 +59,14 @@ genomes, 150-step shared-world episodes (`experiments/run_neat.py`):
 
 | Quantity | Gen 1 | Gen 30 |
 |---|---|---|
-| Mean complexity (nodes + enabled genes) | 51.0 | 102.0 |
-| Max complexity | 51 | 117 |
-| Mean fitness | 0.481 | 0.429 |
-| Max fitness | 2.21 | 1.59 |
-| Live agents at episode end | 17 | 5 |
+| Mean complexity (nodes + enabled genes) | 51.0 | 107.2 |
+| Max complexity | 51 | 133 |
+| Mean fitness | 0.645 | 0.728 |
+| Max fitness | 1.77 | 1.70 |
+| Live agents at episode end | 15 | 14 |
 | Species count | 1 | 1 |
-| Distinct innovations created | - | 571 |
-| Final champion complexity | - | 58 |
+| Distinct innovations created | - | 605 |
+| Final champion complexity | - | 51 |
 
 **Topology grows**: mean complexity more than doubles, and the
 complexity-over-generations plot
@@ -81,7 +81,7 @@ and weight-wise divergent genomes split into separate species under
 the Appendix C formula - but this run never generates such divergence.
 Under the energy-limited dynamics the landscape is sharply *bimodal*:
 a few well-fed foragers reach fitness near 2.0 while most of the
-population starves near 0.3 (only 8-12 of 100 agents are alive at
+population starves near 0.3 (only 5-15 of 100 agents are alive at
 the end of an episode). A pool split between starving and surviving
 still yields a single compatibility cluster within 30 generations -
 the Appendix C threshold (3.0) needs weight divergence the bimodality
@@ -114,7 +114,7 @@ near 1.6-2.2 and the live-agent count falls from 17 to 5: under the
 energy-limited dynamics most agents starve inside the episode and the
 population carries a few well-fed foragers. The NEAT machinery is
 correct, and the landscape now has genuine selective signal (the
-sibling GA improves by +0.28 to +0.50 over 12 generations on the same
+sibling GA improves by +0.51 to +0.72 over 12 generations on the same
 world; see `docs/crossover_results.md`) - what the signal selects
 *for* is survival of the already-fortunate, and that is not yet rich
 enough behavior to pin speciation apart.

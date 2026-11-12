@@ -10,6 +10,7 @@ import pygame
 import numpy as np
 
 from simulation.environment import World
+from simulation.geometry import OBSTACLE_HALF_SIZE, OBSTACLE_SIZE
 from agents.organism import Organism
 
 
@@ -71,14 +72,15 @@ class Renderer:
             pos = (int(food.x), int(food.y))
             pygame.draw.circle(self.screen, (0, 200, 0), pos, 4)
 
-        # Draw obstacles (gray rectangles)
+        # Draw obstacles (gray rectangles). The side length comes from
+        # simulation.geometry, the same constant the collision body and
+        # the ray caster use, so the drawing cannot drift from physics.
         for obstacle in world.obstacles:
-            # Obstacles are 10x10 pixels
             rect = pygame.Rect(
-                int(obstacle.x - 5),
-                int(obstacle.y - 5),
-                10,
-                10
+                int(obstacle.x - OBSTACLE_HALF_SIZE),
+                int(obstacle.y - OBSTACLE_HALF_SIZE),
+                int(OBSTACLE_SIZE),
+                int(OBSTACLE_SIZE)
             )
             pygame.draw.rect(self.screen, (100, 100, 100), rect)
 

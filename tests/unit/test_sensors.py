@@ -124,20 +124,55 @@ class TestRayCasting:
         """Closest object in a ray wins over farther ones."""
         agent = _agent(heading=0.0)
         empty_world.food = [Food(300.0, 100.0)]  # 200 px ahead
-        empty_world.obstacles = [Obstacle(150.0, 100.0)]  # 50 px ahead
+        empty_world.obstacles = [Obstacle(150.0, 100.0)]
+        # The obstacle's near face is 20 px from its centre, so the ray
+        # reports 30 px, not the 50 px centre distance.
         obs = raycaster.observe_agent(agent, empty_world, [])
-        assert np.isclose(obs[3], 50.0 / MAX_RANGE)
+        assert np.isclose(obs[3], 30.0 / MAX_RANGE)
+
+    def test_obstacle_ray_reports_near_face(self, empty_world: World,
+                                            raycaster: RayCaster) -> None:
+        """The ray distance matches the solid square's entry point."""
+        from simulation.geometry import OBSTACLE_HALF_SIZE
+        agent = _agent(heading=0.0)
+        empty_world.obstacles = [Obstacle(200.0, 100.0)]
+        obs = raycaster.observe_agent(agent, empty_world, [])
+        expected = 100.0 - OBSTACLE_HALF_SIZE
+        assert np.isclose(obs[3], expected / MAX_RANGE)
+
+    def test_obstacle_just_outside_square_is_not_a_hit(
+            self, empty_world: World, raycaster: RayCaster) -> None:
+        """A ray passing the corner gap must not see the obstacle."""
+        from simulation.geometry import OBSTACLE_HALF_SIZE
+        agent = _agent(heading=0.0)
+        # Centre 25 px below the ray: outside the 20 px half side, so the
+        # square is missed even though an old 5.5 px circle tolerance
+        # plus a 20 px body would have reported it.
+        offset = OBSTACLE_HALF_SIZE + 5.0
+        empty_world.obstacles = [Obstacle(200.0, 100.0 + offset)]
+        obs = raycaster.observe_agent(agent, empty_world, [])
+        assert np.allclose(obs[:7], 1.0)
+
+    def test_obstacle_just_inside_square_is_a_hit(
+            self, empty_world: World, raycaster: RayCaster) -> None:
+        """A ray inside the half side still hits the near face."""
+        from simulation.geometry import OBSTACLE_HALF_SIZE
+        agent = _agent(heading=0.0)
+        empty_world.obstacles = [Obstacle(200.0, 100.0 + OBSTACLE_HALF_SIZE - 5.0)]
+        obs = raycaster.observe_agent(agent, empty_world, [])
+        assert np.isclose(obs[3], 80.0 / MAX_RANGE)
 
     def test_obstacle_beyond_back_ray(self, empty_world: World,
                                       raycaster: RayCaster) -> None:
         """Obstacle behind the agent does not saturate the forward ray."""
         agent = _agent(heading=0.0)
         empty_world.obstacles = [Obstacle(100.0, 300.0)]
-        # That obstacle is straight down from the agent: 200 px on the +90
-        # (down) ray, so the -90 (up) and 0 (right) rays see nothing.
+        # That obstacle is straight down from the agent. Its near face is
+        # 180 px away on the +90 (down) ray, so the -90 (up) and 0
+        # (right) rays see nothing.
         obs = raycaster.observe_agent(agent, empty_world, [])
         assert np.isclose(obs[0], 1.0)  # forward ray clear
-        assert np.isclose(obs[6], 200.0 / MAX_RANGE)  # down ray hit
+        assert np.isclose(obs[6], 180.0 / MAX_RANGE)  # down ray hit
 
 
 class TestPopulationObservation:

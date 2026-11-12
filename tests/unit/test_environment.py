@@ -8,7 +8,10 @@ import os
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from simulation.environment import World, Food, Obstacle
+from simulation.environment import (OBSTACLE_MIN_GAP, World, Food,
+                                    Obstacle)
+from simulation.geometry import (FOOD_SPAWN_CLEARANCE, OBSTACLE_HALF_SIZE,
+                                 OBSTACLE_SIZE)
 
 
 def test_world_creation():
@@ -50,20 +53,63 @@ def test_world_load_from_config():
 
 def test_spawn_food_and_obstacles():
     """Test spawning food and obstacles."""
-    world = World(width=200, height=200)  # Small world for easier testing
-    world.spawn_food(10)
+    world = World(width=300, height=300)  # Small world for easier testing
+    # Obstacles first: food placement rejects positions inside them.
     world.spawn_obstacles(5)
+    world.spawn_food(10)
     assert len(world.food) == 10
     assert len(world.obstacles) == 5
 
-    # Check positions are within bounds
+    # Check positions are within bounds. Obstacle centres keep the whole
+    # square inside the boundary margin.
     margin = world.boundary_margin
     for food in world.food:
         assert margin <= food.x <= world.width - margin
         assert margin <= food.y <= world.height - margin
     for obstacle in world.obstacles:
-        assert margin <= obstacle.x <= world.width - margin
-        assert margin <= obstacle.y <= world.height - margin
+        assert margin + OBSTACLE_HALF_SIZE <= obstacle.x
+        assert obstacle.x <= world.width - margin - OBSTACLE_HALF_SIZE
+        assert margin + OBSTACLE_HALF_SIZE <= obstacle.y
+        assert obstacle.y <= world.height - margin - OBSTACLE_HALF_SIZE
+
+
+def test_obstacles_do_not_overlap():
+    """Spawned solids keep the corridor gap so agents can pass between."""
+    world = World(width=600, height=400)
+    world.spawn_obstacles(8)
+    threshold = OBSTACLE_SIZE + OBSTACLE_MIN_GAP
+    for index, first in enumerate(world.obstacles):
+        for second in world.obstacles[index + 1:]:
+            assert not (abs(first.x - second.x) < threshold
+                        and abs(first.y - second.y) < threshold)
+
+
+def test_food_spawns_clear_of_obstacles():
+    """Food inside a solid would be permanently unreachable."""
+    world = World(width=600, height=400)
+    world.spawn_obstacles(8)
+    world.spawn_food(80)
+    for food in world.food:
+        assert world.is_position_clear(food.x, food.y,
+                                       FOOD_SPAWN_CLEARANCE)
+
+
+def test_position_clearance_and_free_position():
+    """The free-position helpers reject points inside a solid."""
+    world = World(width=400, height=300)
+    world.obstacles = [Obstacle(200.0, 150.0)]
+    assert not world.is_position_clear(200.0, 150.0)
+    assert not world.is_position_clear(200.0 + OBSTACLE_HALF_SIZE, 150.0)
+    assert world.is_position_clear(200.0 + OBSTACLE_HALF_SIZE + 1.0, 150.0)
+
+    x, y = world.random_free_position(clearance=5.0)
+    assert world.is_position_clear(x, y, 5.0)
+
+    # An already-clear position is returned unchanged; an embedded one
+    # is replaced with a legal spawn.
+    assert world.clear_position(10.0, 10.0, 5.0) == (10.0, 10.0)
+    moved = world.clear_position(200.0, 150.0, 5.0)
+    assert world.is_position_clear(moved[0], moved[1], 5.0)
 
 
 def test_is_inside_boundaries():

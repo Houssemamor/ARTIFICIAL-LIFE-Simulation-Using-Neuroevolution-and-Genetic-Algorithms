@@ -11,8 +11,6 @@ import os
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 
@@ -88,6 +86,21 @@ def test_generalization_percentage_comes_from_the_data(tmp_path):
     assert "20%" in finding["takeaway"]
     assert any(f["value"] == "1 of 2" for f in finding["facts"])
     assert finding["verdict"]["level"] == "null"
+
+
+def test_generalization_negative_gap_reports_unseen_as_higher(tmp_path):
+    # gap_mean is train - unseen, so a negative gap means unseen scored
+    # higher. The prose must not invert that into a "lower" claim.
+    _write(tmp_path, "EXP-GEN", "stats_summary.json", {
+        "n_seeds": 2, "train_mean": 1.0, "unseen_mean": 1.1, "gap_mean": -0.1,
+        "gap_ci95": [-0.2, 0.0], "train_ci95": [0.9, 1.1],
+        "unseen_ci95": [1.0, 1.2], "p_value": 0.5,
+        "per_seed": [{"train_score": 1.0, "unseen_score": 1.1},
+                     {"train_score": 1.1, "unseen_score": 1.0}]})
+    finding = build_findings(tmp_path)[0]
+    assert "10% higher" in finding["takeaway"]
+    assert "lower" not in finding["takeaway"]
+    assert "indistinguishable" in finding["verdict"]["text"]
 
 
 def test_committed_artifacts_produce_all_five_honest_cards():

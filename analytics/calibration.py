@@ -20,6 +20,7 @@ from agents.energy import EnergyConfig, energy_config_from_settings
 from neural.batched_inference import batched_forward, stack_population_weights
 from neural.genome import genome_size
 from simulation.environment import World
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 from simulation.world_config import load_config, BaselineConfig
 
 
@@ -74,8 +75,8 @@ def run_calibration_episode(
     population_size = config.population.size
     agents = []
     for i in range(population_size):
-        x = np.random.uniform(world.boundary_margin, world.width - world.boundary_margin)
-        y = np.random.uniform(world.boundary_margin, world.height - world.boundary_margin)
+        x, y = world.random_free_position(
+            clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(i, x, y, initial_energy=100.0,
                          energy_config=energy_config)
         agent.initialize_genome(genome_size=genome_size())

@@ -21,6 +21,7 @@ import numpy as np
 from agents.organism import Organism
 from simulation.world_config import ReproductionConfig
 from simulation.environment import World
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 
 
 def is_eligible(agent: Organism, config: ReproductionConfig) -> bool:
@@ -79,6 +80,12 @@ def create_offspring(parent: Organism, offspring_id: int, world: World,
                       margin, world.width - margin))
     y = float(np.clip(parent.position.y + offset[1],
                       margin, world.height - margin))
+    # The parent is outside every solid, but an 8 px jitter can land the
+    # newborn inside one. Fall back to the parent's legal position rather
+    # than letting the newborn start embedded in an obstacle.
+    if not world.is_position_clear(x, y, AGENT_SPAWN_CLEARANCE):
+        x = parent.position.x
+        y = parent.position.y
 
     # energy_config is inherited from the parent: a newborn that fell
     # back to the module default would run a different energy equation

@@ -70,8 +70,8 @@ function footer(slide, n) {
   s.addText([
     { text: "10,762", options: { fontSize: 26, bold: true, color: CYAN } },
     { text: " steps/s at 250 agents    ", options: { fontSize: 14, color: TEXT } },
-    { text: "+0.41", options: { fontSize: 26, bold: true, color: GREEN } },
-    { text: " fitness gain / 12 gens", options: { fontSize: 14, color: TEXT } },
+    { text: "+0.61", options: { fontSize: 26, bold: true, color: GREEN } },
+    { text: " fitness gain / 12 gens (mean of 3 arms)", options: { fontSize: 14, color: TEXT } },
   ], { x: 1.0, y: 4.85, w: 5.0, h: 0.6, fontFace: FONT_B, margin: 0 });
   s.addNotes("Project framing: a complete neuroevolution stack - sensors, batched inference, energy economy, GA/NEAT, and a confirmatory experiment program with paired statistics.");
 }
@@ -129,7 +129,7 @@ function footer(slide, n) {
     { text: "Fitness calibration before weighting - measured component scales, never hand-picked coefficients", sub: true },
     { text: "A confirmatory experiment program: seed-blocked designs, paired Wilcoxon + Holm, effect sizes + CIs", sub: true },
     { text: "Co-evolution measured against FROZEN checkpoints (hall-of-fame), not just same-generation fitness", sub: true },
-    { text: "Batched inference under variable topology - the NEAT open question, resolved by measurement (2.9x)", sub: true },
+    { text: "Batched inference under variable topology - the NEAT open question, resolved by measurement (3.1x)", sub: true },
   ]);
   footer(s, 4);
 }
@@ -170,7 +170,7 @@ function footer(slide, n) {
   bullets(s, [
     { text: "The load-bearing detail: the flat genome layout (W then b per layer) must match the batched tensor slices", bold: true },
     { text: "Without that alignment the 358x is fiction - and it silently was, until Phase 1.5 caught it" },
-    { text: "NEAT breaks the trick (variable topology). Resolved by depth-layered padded batching: 249 steps/s, 2.9x per-agent (Phase 7)" },
+    { text: "NEAT breaks the trick (variable topology). Resolved by depth-layered padded batching: 301 steps/s, 3.1x per-agent (Phase 7)" },
   ], { y: 4.4, h: 2.2, w: 11.9 });
   footer(s, 6);
 }
@@ -182,10 +182,10 @@ function footer(slide, n) {
     "The project's central methodological decision");
   bullets(s, [
     { text: "Measure each component's natural scale with random-policy and stand-still probes; only then lock coefficients", bold: true },
-    { text: "Survival 133.94 steps | food 1.0 item | exploration 77.76 px | collision 1.20 contacts (energy-limited dynamics)", color: CYAN },
+    { text: "Survival 146.44 steps | food 1.44 items | exploration 61.26 px | collision 11.17 contacts (solid 40 px obstacles)", color: CYAN },
     { text: "Why it mattered: under survival-saturated dynamics, ~90% of every fitness was the survival term - every experiment read null" },
     { text: "The fix (Phase 9): metabolic cost 0.7/step so starvation bites inside the 150-step window, food regrowth, exploration computed" },
-    { text: "The nulls moved as a family - improvement signal grew 7-9x, generalization produced a consistent-direction penalty", color: GREEN, bold: true },
+    { text: "The nulls moved as a family - improvement signal grew 15-22x, generalization returned to a null, and weighting/crossover contrasts sharpened", color: GREEN, bold: true },
   ]);
   s.addShape(pres.ShapeType.roundRect, { x: 9.3, y: 5.3, w: 3.3, h: 1.2,
     fill: { color: PANEL }, line: { color: RED, width: 1.5 }, rectRadius: 0.06 });
@@ -223,14 +223,14 @@ function footer(slide, n) {
 {
   const s = darkSlide();
   title(s, "Results: Generalization (Experiments A/B)",
-    "A consistent-direction transfer penalty - train-higher by +0.047");
-  stat(s, 0.8, 2.3, "+0.047", "gap (train - unseen), 95% CI [+0.002, +0.089]", AMBER);
-  stat(s, 4.8, 2.3, "p=0.106", "paired Wilcoxon, n=10 seeds", TEXT);
-  stat(s, 8.8, 2.3, "r=+0.60", "matched-pairs effect, 7/10 seeds favor train", AMBER);
+    "No measurable train-vs-unseen gap under the shipped dynamics");
+  stat(s, 0.8, 2.3, "-0.008", "gap (train - unseen), 95% CI [-0.043, +0.029]", AMBER);
+  stat(s, 4.8, 2.3, "p=0.77", "paired Wilcoxon, n=10 seeds", TEXT);
+  stat(s, 8.8, 2.3, "r=-0.13", "matched-pairs effect, 4/10 seeds favor train", AMBER);
   bullets(s, [
-    { text: "Frozen controllers transfer slightly worse to unseen layouts - the expected direction, not yet resolved at n=10" },
+    { text: "Frozen controllers score the same on unseen layouts - the earlier +0.047 penalty did not survive solid obstacles and the recalibration" },
     { text: "History matters: 5 px dynamics gave a reverse gap (p=0.065, r=-0.67); 12 px legacy metabolic gave a clean null (p=0.85)", color: MUTED },
-    { text: "The first recommendation: re-run at n=20-30. The effect is sized to resolve", color: CYAN, bold: true },
+    { text: "Four dynamics regimes, four answers: the honest claim is a null, not a transfer penalty", color: CYAN, bold: true },
   ], { y: 4.4, h: 2.1, w: 11.9 });
   footer(s, 9);
 }
@@ -239,14 +239,14 @@ function footer(slide, n) {
 {
   const s = darkSlide();
   title(s, "Results: Weighting & Crossover (D, E)",
-    "A live landscape with a null verdict: the status-quo weights win");
-  stat(s, 0.8, 2.3, "+0.07-0.12", "EQUAL-weighted lead over every specialization", GREEN);
-  stat(s, 4.8, 2.3, "p=0.92", "blend vs uniform: indistinguishable (r=+0.06)", TEXT);
-  stat(s, 8.8, 2.3, "+0.50", "fitness gain, blend, 12 generations", CYAN);
+    "A live landscape with no corrected-significant winner");
+  stat(s, 0.8, 2.3, "+0.18", "EQUAL lead over survival-weighting (p=0.16, n.s.)", GREEN);
+  stat(s, 4.8, 2.3, "+0.12", "blend lead over uniform (p=0.13, n.s.)", TEXT);
+  stat(s, 8.8, 2.3, "+0.72", "fitness gain, blend, 12 generations", CYAN);
   bullets(s, [
     { text: "Under survival-saturated dynamics all four weightings sat within 0.015 of each other by construction" },
-    { text: "Now the conditions separate - and the separation favors equal weighting: down-weighting food (survival) costs the most on a replenished landscape", bold: true },
-    { text: "Every comparison shows p-value + effect size + interval together - significance is never quoted alone", color: MUTED },
+    { text: "Now the conditions separate, but the only clear ordering is that survival-weighting is last (+0.18); equal and exploration are tied", bold: true },
+    { text: "Crossover: blend leads both alternatives (+0.12 vs uniform, +0.16 vs mutation-only), but no pair survives Holm at n=10", color: MUTED },
   ], { y: 4.4, h: 2.1, w: 11.9 });
   footer(s, 10);
 }
@@ -256,9 +256,9 @@ function footer(slide, n) {
   const s = darkSlide();
   title(s, "Results: Predator/Prey & Hall of Fame",
     "An oscillating arms race, explained rather than hidden");
-  stat(s, 0.8, 2.3, "5 -> 22", "captures per day in a viable run (seed 4)", AMBER);
-  stat(s, 4.8, 2.3, "7 of 10", "random seeds collapse (predator extinction)", TEXT);
-  stat(s, 8.8, 2.3, "13-28 / 6", "prey / predators at carrying capacity", GREEN);
+  stat(s, 0.8, 2.3, "0.40 / 0.60", "final hall-of-fame win rate (predator / prey)", AMBER);
+  stat(s, 4.8, 2.3, "7 of 10", "random seeds collapse (5 predator, 2 prey)", TEXT);
+  stat(s, 8.8, 2.3, "7 days", "seed-1 run; last predator starves on day 6", GREEN);
   bullets(s, [
     { text: "Within-generation fitness in a co-evolution is relative - the hall-of-fame win rate against FROZEN archives is the absolute measure", bold: true },
     { text: "The first stability improvement was a bug: newborns silently ran the default 0.1 energy equation, not the parent's 0.25. Fixed, re-measured, and the collapse rate rose - the honest number", color: MUTED },
@@ -271,9 +271,9 @@ function footer(slide, n) {
   const s = darkSlide();
   title(s, "NEAT Extension: Topology Evolves",
     "The plan's open batching question, resolved by measurement");
-  stat(s, 0.8, 2.3, "51 -> 102", "mean complexity over 30 generations", CYAN);
-  stat(s, 4.8, 2.3, "2.9x", "batched vs per-agent (249 vs 85 steps/s)", GREEN);
-  stat(s, 8.8, 2.3, "571", "innovations created, full Appendix C spec", AMBER);
+  stat(s, 0.8, 2.3, "51 -> 107", "mean complexity over 30 generations", CYAN);
+  stat(s, 4.8, 2.3, "3.1x", "batched vs per-agent (301 vs 97 steps/s)", GREEN);
+  stat(s, 8.8, 2.3, "605", "innovations created, full Appendix C spec", AMBER);
   bullets(s, [
     { text: "Literature-accurate: innovation reuse, aligned crossover, compatibility distance (c1=1, c2=1, c3=0.4, threshold 3.0), fitness sharing, stagnation removal" },
     { text: "The honest negative: the evolutionary run keeps ONE species. The mechanism is unit-proven; the bimodal landscape (foragers vs starvers) doesn't split lineages in 30 generations", color: RED },
@@ -288,7 +288,7 @@ function footer(slide, n) {
   const rows = [
     ["Statistical power", "The best effects sit near but not past Holm at n=10. Re-run at n=20-30 is the top action.", AMBER],
     ["Bimodal landscape", "Enough leverage for the GA, not for speciation. Graded food availability is the route.", CYAN],
-    ["Fragile predators", "7 of 10 ecosystem seeds collapse after the newborn-energy fix; the 0.25/step ecosystem clock is the lever.", RED],
+    ["Fragile predators", "7 of 10 ecosystem seeds collapse (5 predator, 2 prey) with solid obstacles; the 0.25/step clock is the lever.", RED],
     ["Metabolic cost is a factor", "0.7/step sets the survival-vs-forging split every result depends on - sweep 0.4/0.7/1.0.", GREEN],
   ];
   rows.forEach(([head, body, color], i) => {
@@ -309,7 +309,7 @@ function footer(slide, n) {
   s.addText("Artifacts, all reproducible", { x: 0.8, y: 1.4, w: 11.7, h: 0.9,
     fontFace: FONT_H, fontSize: 40, bold: true, color: TEXT, margin: 0 });
   s.addText([
-    { text: "251 tests green (3 Python versions on Ubuntu in CI)   ", options: { color: GREEN, fontSize: 15 } },
+    { text: "306 tests green (local, Python 3.14.5)   ", options: { color: GREEN, fontSize: 15 } },
     { text: "every number on these slides traces to a committed JSON or SVG", options: { color: MUTED, fontSize: 15 } },
   ], { x: 0.8, y: 2.4, w: 11.7, h: 0.5, fontFace: FONT_B, margin: 0 });
   s.addText([

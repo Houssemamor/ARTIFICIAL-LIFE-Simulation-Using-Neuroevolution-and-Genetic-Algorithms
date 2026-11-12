@@ -67,6 +67,26 @@ def _generalization(directory: Path) -> Optional[Dict]:
                 if row["train_score"] > row["unseen_score"])
     level = _verdict_for_p(s["p_value"])
     percent = 100.0 * s["gap_mean"] / s["train_mean"] if s["train_mean"] else 0.0
+    # The gap is train - unseen, so a negative value means unseen scored
+    # HIGHER. The prose must follow the sign instead of assuming a penalty.
+    if abs(percent) < 0.5:
+        takeaway = ("Unseen layouts scored the same as training layouts "
+                    "on average.")
+    else:
+        direction = "lower" if percent > 0 else "higher"
+        takeaway = (f"Unseen layouts scored {abs(percent):.0f}% {direction} "
+                    "on average than training layouts.")
+    if level == "positive":
+        verdict = "The gap is statistically significant."
+    elif level == "mixed":
+        verdict = (f"Unseen layouts scored lower in {worse} of "
+                   f"{len(per_seed)} seeds; the gap is a trend that does "
+                   f"not clear the significance threshold "
+                   f"(p={_fmt(s['p_value'], 2)}).")
+    else:
+        verdict = (f"Train and unseen scores are statistically "
+                   f"indistinguishable (p={_fmt(s['p_value'], 2)}); unseen "
+                   f"was worse in {worse} of {len(per_seed)} seeds.")
     return _finding(
         "EXP-GEN", "Generalization to unseen worlds",
         "Do controllers evolved on a few training layouts still work on "
@@ -94,11 +114,8 @@ def _generalization(directory: Path) -> Optional[Dict]:
              "lo": s["unseen_ci95"][0], "hi": s["unseen_ci95"][1]},
         ]},
         level,
-        ("The gap is statistically significant." if level == "positive" else
-         f"Unseen layouts scored lower in {worse} of {len(per_seed)} "
-         f"seeds, but the gap is not significant (p={_fmt(s['p_value'], 2)})."),
-        f"Unseen layouts scored {percent:.0f}% lower on average than "
-        "training layouts.",
+        verdict,
+        takeaway,
     )
 
 

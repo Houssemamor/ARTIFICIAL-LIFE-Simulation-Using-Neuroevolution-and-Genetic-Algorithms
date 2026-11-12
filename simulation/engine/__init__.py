@@ -10,12 +10,18 @@ import torch
 
 from agents.sensors import RayCaster
 from neural.batched_inference import batched_forward, stack_population_weights
+from simulation.geometry import (
+    AGENT_BODY_SIZE,
+    AGENT_HALF_SIZE,
+    OBSTACLE_HALF_SIZE,
+    OBSTACLE_SIZE,
+)
 from simulation.physics import AABB, SpatialHash, Vector2D
 
-# Collision body sizes in pixels, matching the renderer's drawn sizes
-# (renderer.py draws agents as 8 px triangles and obstacles as 10 px squares)
-AGENT_BODY_SIZE = 8.0
-OBSTACLE_BODY_SIZE = 10.0
+# Separation passes per step. One pass resolves a single obstacle; the
+# extra passes settle an agent wedged between two solids without looping
+# forever if the layout is degenerate (overlapping obstacles).
+OBSTACLE_SEPARATION_PASSES = 3
 
 # Eat gate: an eat event fires only when the network output exceeds this
 # threshold, per design doc Section 11.4.
@@ -100,12 +106,61 @@ def step_simulation(world, agents, agent_raycaster: RayCaster,
     return collisions
 
 
+def _separate_agent_from_obstacle(agent, obstacle, world) -> bool:
+    """
+    Push an agent out of one solid obstacle along its least-penetration
+    axis. Returns True when a correction was applied.
+
+    The obstacle and agent are axis-aligned squares, so the overlap on
+    each axis is (half_obstacle + half_agent) - |centre offset|. Moving
+    along the smaller overlap is the shortest way back to a legal pose
+    and matches how the square is drawn and sensed.
+
+    Args:
+        agent: Live Organism to move.
+        obstacle: Obstacle providing the square centre.
+        world: World used to keep the corrected centre in bounds.
+    """
+    dx = agent.position.x - obstacle.x
+    dy = agent.position.y - obstacle.y
+    overlap_x = (OBSTACLE_HALF_SIZE + AGENT_HALF_SIZE) - abs(dx)
+    overlap_y = (OBSTACLE_HALF_SIZE + AGENT_HALF_SIZE) - abs(dy)
+    if overlap_x <= 0.0 or overlap_y <= 0.0:
+        return False
+
+    if overlap_x <= overlap_y:
+        # dx == 0 is a direct hit on the centre line: push +x
+        # deterministically so two runs cannot diverge on float noise.
+        direction = 1.0 if dx >= 0.0 else -1.0
+        agent.position.x += direction * overlap_x
+        agent.velocity.x = 0.0
+    else:
+        direction = 1.0 if dy >= 0.0 else -1.0
+        agent.position.y += direction * overlap_y
+        agent.velocity.y = 0.0
+
+    # A correction near a wall must not push the agent outside the arena.
+    # Spawn placement keeps a margin between obstacles and walls, so this
+    # clamp is a safety net rather than part of normal resolution.
+    margin = getattr(world, 'boundary_margin', 10.0)
+    agent.position.x = min(max(agent.position.x, margin),
+                           world.width - margin)
+    agent.position.y = min(max(agent.position.y, margin),
+                           world.height - margin)
+    return True
+
+
 def resolve_collisions(agents, world) -> int:
     """
-    Detect contacts between live agents and obstacles/other agents, and apply
-    the plan's collision penalty: an energy cost per contact with no velocity
-    reflection (the recommended baseline - avoids the instability of velocity
-    reflection; see PLAN.md Phase 1 step 3).
+    Make obstacles solid, then detect contacts between live agents and
+    obstacles/other agents and apply the plan's collision penalty.
+
+    Obstacle contacts first push the agent out of the square body; the
+    penalty remains an energy cost per contact with no velocity
+    reflection (the recommended baseline - avoids the instability of
+    velocity reflection; see PLAN.md Phase 1 step 3). Agent-agent
+    contacts keep the original penalty-only behavior; only obstacles are
+    positional solids.
 
     Rebuilds a SpatialHash over all bodies each step instead of updating
     positions incrementally: with ~260 objects at 60 Hz the rebuild is cheap,
@@ -128,6 +183,13 @@ def resolve_collisions(agents, world) -> int:
     if not live_agents:
         return 0
 
+    # Solid-body resolution happens before contact detection so the
+    # penalties below describe the final, legal poses.
+    for _ in range(OBSTACLE_SEPARATION_PASSES):
+        for agent in live_agents:
+            for obstacle in world.obstacles:
+                _separate_agent_from_obstacle(agent, obstacle, world)
+
     spatial_hash = SpatialHash(cell_size=16.0)
     # Map spatial-hash ids back to the sim objects they belong to, so query
     # hits can be resolved to a specific agent or obstacle
@@ -135,7 +197,7 @@ def resolve_collisions(agents, world) -> int:
 
     for obstacle in world.obstacles:
         body = AABB.from_center_size(obstacle.x, obstacle.y,
-                                     OBSTACLE_BODY_SIZE, OBSTACLE_BODY_SIZE)
+                                     OBSTACLE_SIZE, OBSTACLE_SIZE)
         obj_id = spatial_hash.add_object(Vector2D(obstacle.x, obstacle.y), body)
         id_map[obj_id] = obstacle
 

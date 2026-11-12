@@ -17,6 +17,7 @@ from agents.energy import EnergyConfig, energy_config_from_settings
 from neural.batched_inference import batched_forward, stack_population_weights
 from simulation.environment import World
 from simulation.engine import resolve_collisions, step_simulation, resolve_captures
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 from simulation.world_config import BaselineConfig
 from evolution.selection import select_parents
 from evolution.crossover import crossover_population
@@ -203,6 +204,15 @@ def run_generation(
     world = World(config.world.width, config.world.height)
     world.load_from_config(config.model_dump())
 
+    # Obstacles are solid, so a caller-supplied population may contain
+    # agents whose pre-built spawn overlaps one (make_population draws
+    # before the world exists). Relocate them before the exploration
+    # origins are recorded, otherwise the episode starts inside a wall.
+    for agent in population:
+        agent.position.x, agent.position.y = world.clear_position(
+            agent.position.x, agent.position.y,
+            AGENT_SPAWN_CLEARANCE, rng)
+
     population_size = config.population.size
     max_steps = config.evolution.evaluation_steps
 
@@ -282,12 +292,8 @@ def run_generation(
     # Create new population
     new_population = []
     for i in range(population_size):
-        x = rng.uniform(
-            world.boundary_margin, world.width - world.boundary_margin
-        )
-        y = rng.uniform(
-            world.boundary_margin, world.height - world.boundary_margin
-        )
+        x, y = world.random_free_position(
+            rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(i, x, y, initial_energy=100.0,
                          energy_config=energy_config)
         agent.genome = next_genomes[i]
@@ -329,16 +335,17 @@ def _spawn_role_agents(genomes: List[np.ndarray], world: World, role: str,
                        ) -> tuple[list, int]:
     """
     Build fresh evaluation agents for one role, one per genome, at
-    uniformly random in-bounds positions (the fix from the Phase 5
-    review: uniform spawns, no corner-line artifact).
+    uniformly random in-bounds positions clear of solid obstacles (the
+    fix from the Phase 5 review: uniform spawns, no corner-line
+    artifact).
 
     Returns the spawned agents and the next unused agent id.
     """
     spawned = []
     next_id = start_id
     for genome in genomes:
-        x = rng.uniform(world.boundary_margin, world.width - world.boundary_margin)
-        y = rng.uniform(world.boundary_margin, world.height - world.boundary_margin)
+        x, y = world.random_free_position(
+            rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(next_id, x, y, initial_energy=100.0, role=role,
                          energy_config=energy_config)
         agent.genome = genome.copy()
@@ -431,9 +438,14 @@ def run_coevolution_generation(
         spawn_x, spawn_y = spawn_positions[agent.id]
         exploration = float(np.hypot(agent.position.x - spawn_x,
                                      agent.position.y - spawn_y))
+        role = getattr(agent, 'role', 'prey')
+        if role == 'predator':
+            role_weights = config.fitness_weights_predator or fitness_weights
+        else:
+            role_weights = config.fitness_weights_prey or fitness_weights
         agent.fitness = compute_fitness(
             agent, agent.age, agent.food_eaten, exploration, agent.collisions,
-            calibration_scales, fitness_weights)
+            calibration_scales, role_weights)
 
     prey_fitnesses = np.array([a.fitness for a in prey_agents])
     predator_fitnesses = np.array([a.fitness for a in predator_agents])

@@ -24,6 +24,7 @@ from agents.energy import energy_config_from_settings
 from agents.organism import Organism
 from agents.sensors import RayCaster
 from simulation.environment import World
+from simulation.geometry import AGENT_SPAWN_CLEARANCE
 from simulation.engine import step_simulation, resolve_captures
 from simulation.world_config import BaselineConfig
 
@@ -127,8 +128,10 @@ def run_duel(predator_genome: np.ndarray, prey_genome: np.ndarray,
     energy_config = energy_config_from_settings(config.energy)
 
     def _spawn(genome: np.ndarray, role: str, agent_id: int) -> Organism:
-        x = rng.uniform(world.boundary_margin, world.width - world.boundary_margin)
-        y = rng.uniform(world.boundary_margin, world.height - world.boundary_margin)
+        # Solid obstacles: sample a legal spawn rather than a raw uniform
+        # position that can start the duel inside a 40 px square.
+        x, y = world.random_free_position(
+            rng, clearance=AGENT_SPAWN_CLEARANCE)
         agent = Organism(agent_id, x, y, initial_energy=100.0, role=role,
                          energy_config=energy_config)
         agent.genome = np.asarray(genome, dtype=np.float32).copy()

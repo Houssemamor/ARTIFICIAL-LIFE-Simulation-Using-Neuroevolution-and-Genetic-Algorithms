@@ -347,7 +347,7 @@ artificial-life-sim/
 - [x] A calibration pipeline producing `configs/calibration.json`, so fitness weights are never chosen blind
 - [x] A working genetic algorithm with three interchangeable, tested crossover methods
 - [x] Smoke-test evidence (a fitness-over-generations plot) that fitness improves
-  - Satisfied by the Phase 8 freeze re-run under the final dynamics: mean fitness rises +0.28 to +0.50 over 12 generations in all three arms of Experiment E (energy-limited dynamics, Phase 9) (`experiments/EXP-E/fitness_curve.svg`, `docs/crossover_results.md`). The earlier flat curve was measured at the 5 px consumption radius; the earlier steep rise remains a rejected corner-spawn artifact.
+  - Satisfied by the Phase 8 freeze re-run under the final dynamics: mean fitness rises +0.51 to +0.72 over 12 generations in all three arms of Experiment E (energy-limited dynamics, Phase 9) (`experiments/EXP-E/fitness_curve.svg`, `docs/crossover_results.md`). The earlier flat curve was measured at the 5 px consumption radius; the earlier steep rise remains a rejected corner-spawn artifact.
 
 ---
 
@@ -479,7 +479,7 @@ artificial-life-sim/
 
 ### Deliverables — Phase 6
 
-- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days (5 predator extinctions, 2 prey) after the newborn-energy fix (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; the ecosystem clock is the robustness lever)
+- [x] Viable predator/prey ecosystem with explicit reproduction (caveat: viable on the unselected first three sweep seeds under deterministic pipelines; 7 of 10 random seeds collapse within 10 days (5 predator extinctions, 2 prey) after the newborn-energy fix, the role-aware predator senses and the solid 40 px obstacles (energy-limited dynamics, Phase 9) - full analysis in docs/coevolution_notes.md; the ecosystem clock is the robustness lever)
 - [x] A working hall-of-fame evaluation harness and dashboard panel (F9 GUI toggle; frozen-opponent win rates in analytics/hall_of_fame.py)
 - [x] A documented co-evolution caveat protecting later readers from misreading the metrics (docs/coevolution_notes.md)
 
@@ -526,7 +526,7 @@ artificial-life-sim/
 
 - [x] A complete, literature-accurate NEAT implementation (innovation tracking, speciation, fitness sharing, complexification) - all primitives unit-tested against the Appendix C formula and operators; the evolutionary run keeps a single species because the energy-limited landscape is bimodal, which still yields one compatibility cluster at the threshold (mechanism verified on constructed diverse populations, outcome measured - docs/neat_extension_report.md)
 - [x] A resolved and documented answer to the batched-inference-under-variable-topology question - population-wide depth-layered padded batching, 3.1x the per-agent reference, benchmarked both ways (docs/neat_extension_report.md)
-- [x] A complexity-over-generations plot showing structure is actually evolving, not just weights (mean complexity 51 → 102 over 30 generations; experiments/EXP-NEAT/complexity_over_generations.svg)
+- [x] A complexity-over-generations plot showing structure is actually evolving, not just weights (mean complexity 51 → 107 over 30 generations; experiments/EXP-NEAT/complexity_over_generations.svg)
 
 ---
 
@@ -578,12 +578,12 @@ artificial-life-sim/
 
 | Result | Before (survival-saturated) | After (energy-limited, corrected) |
 |---|---|---|
-| GA improvement, 12 generations | +0.033 to +0.044 | **+0.28 to +0.50** |
-| Generalization | null (+0.001, p=0.846) | **consistent-direction penalty (+0.047, p=0.1055, r=+0.60, 7/10 seeds, CI [+0.002, +0.089])** |
-| Fitness weighting (D) | all conditions within 0.015 | **equal weighting leads every specialization by +0.07 to +0.12** (no pair survives Holm at n=10) |
-| Crossover (E) | blend ≈ uniform | **blend = uniform (+0.001, p=0.92)**; both +0.08 over mutation-only |
-| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (5 predator extinctions, 2 prey, after the newborn-energy fix); captures climb 5→22/day in viable runs |
-| NEAT topology | 51 → 108.6 | 51 → 102 (unchanged growth; 571 innovations, 1 species) |
+| GA improvement, 12 generations | +0.033 to +0.044 | **+0.51 to +0.72** |
+| Generalization | null (+0.001, p=0.846) | **null (-0.008, p=0.7695, r=-0.127, 4/10 seeds train-higher, CI [-0.043, +0.029])**; the earlier +0.047 penalty was regime-dependent |
+| Fitness weighting (D) | all conditions within 0.015 | **equal is the best point estimate but tied with exploration (+0.015)**; survival-weighting is last by +0.18 (p=0.16; no pair survives Holm at n=10) |
+| Crossover (E) | blend ≈ uniform | **no pair survives Holm**; blend leads uniform +0.12 (p=0.13) and mutation-only +0.16 (p=0.064) |
+| Ecosystem collapse rate | 5 of 10 seeds | **7 of 10** (5 predator extinctions, 2 prey, after the newborn-energy fix and solid 40 px obstacles); the committed seed-1 run captures 6, 10, 1, 7, 5, 0, 0 and loses its last predator on day 6 |
+| NEAT topology | 51 → 108.6 | 51 → 107 (unchanged growth; 605 innovations, 1 species) |
 
 **Review-driven corrections to the dynamics themselves (the reason the first re-run's numbers were withdrawn):**
 

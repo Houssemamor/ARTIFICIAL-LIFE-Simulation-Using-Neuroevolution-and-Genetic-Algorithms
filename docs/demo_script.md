@@ -76,7 +76,7 @@ p-value - never the p-value alone (the Phase 4.5 design constraint).
 
 Open `experiments/EXP-NEAT/complexity_over_generations.svg`.
 
-- Mean complexity 51 -> 102 over 30 generations: structure is
+- Mean complexity 51 -> 107 over 30 generations: structure is
   evolving, not just weights.
 - Say honestly: the run keeps a single species because the landscape
   is bimodal rather than graded (a few well-fed foragers near fitness
@@ -85,7 +85,7 @@ Open `experiments/EXP-NEAT/complexity_over_generations.svg`.
   speciation machinery is unit-proven on constructed diverse
   populations (`docs/neat_extension_report.md`).
 - Optional: `experiments/run_neat.py --config configs/neat_food_seeking.json --benchmark-only` reprints the
-  batching decision numbers (249 vs 85 steps/s, 2.9x).
+  batching decision numbers (301 vs 97 steps/s, 3.1x).
 
 ## 6. Back to the deck
 

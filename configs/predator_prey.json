@@ -48,6 +48,18 @@
     "exploration": 0.2,
     "collision": 0.1
   },
+  "fitness_weights_prey": {
+    "survival": 0.45,
+    "food": 0.25,
+    "exploration": 0.2,
+    "collision": 0.1
+  },
+  "fitness_weights_predator": {
+    "survival": 0.2,
+    "food": 0.55,
+    "exploration": 0.2,
+    "collision": 0.05
+  },
   "predation": {
     "predator_count": 3,
     "capture_radius": 30.0,

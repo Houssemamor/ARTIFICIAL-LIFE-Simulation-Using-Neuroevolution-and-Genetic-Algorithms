@@ -29,6 +29,8 @@ import math
 
 import numpy as np
 
+from simulation.geometry import OBSTACLE_HALF_SIZE
+
 # Seven rays at fixed offsets relative to heading (design doc Section 11.2).
 # +x axis is heading 0; screen coordinates put +y downward, so "up" is -90 deg.
 RAY_ANGLES_DEG: list[float] = [-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0]
@@ -38,10 +40,11 @@ RAY_ANGLES_DEG: list[float] = [-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0]
 # must navigate to find anything.
 MAX_RANGE: float = 200.0
 
-# Hit radii treating food as a point, obstacles as squares of 10px (circle
-# inscribed radius ~5), agents as 8px triangles (inscribed radius ~4).
+# Hit radii treating food as a point and agents as 8px triangles (inscribed
+# radius ~4). Obstacles are not approximated by a circle: their rays use
+# the exact square body from simulation.geometry, the same body the
+# collision engine treats as solid.
 FOOD_RADIUS: float = 2.0
-OBSTACLE_RADIUS: float = 5.5
 AGENT_RADIUS: float = 4.0
 
 # Max speed used to normalize the speed feature; matches the Phase 1
@@ -93,6 +96,54 @@ def _ray_circle_hit(ray_dir_x: float, ray_dir_y: float,
     return dot
 
 
+def _ray_aabb_hit(ray_dir_x: float, ray_dir_y: float,
+                  center_x: float, center_y: float,
+                  half_size: float) -> float:
+    """
+    Distance along a unit ray to an axis-aligned square's near face.
+
+    Slab method: intersect the ray with the x and y slabs of the square
+    and keep the overlapping interval. This is the exact geometry of the
+    solid collision body, so a ray can never report an obstacle the
+    physics engine would let an agent pass through (the bug the old
+    5.5 px circle approximation caused).
+
+    Args:
+        ray_dir_x, ray_dir_y: unit ray direction.
+        center_x, center_y: square centre offset from the ray origin.
+        half_size: half the square's side length.
+
+    Returns:
+        Distance to the entry point, 0.0 when the origin is inside the
+        square, or math.inf when the ray misses or points away.
+    """
+    t_min = -math.inf
+    t_max = math.inf
+    for direction, center in ((ray_dir_x, center_x),
+                              (ray_dir_y, center_y)):
+        low = center - half_size
+        high = center + half_size
+        if abs(direction) < 1e-12:
+            # Parallel to this slab: it only intersects when the ray
+            # line already lies inside the slab.
+            if not (low <= 0.0 <= high):
+                return math.inf
+            continue
+        t1 = low / direction
+        t2 = high / direction
+        if t1 > t2:
+            t1, t2 = t2, t1
+        t_min = max(t_min, t1)
+        t_max = min(t_max, t2)
+        if t_min > t_max:
+            return math.inf
+    if t_max < 0.0:
+        return math.inf
+    if t_min > 0.0:
+        return t_min
+    return 0.0
+
+
 def _raycast_ray(agent_x: float, agent_y: float,
                  ray_dir_x: float, ray_dir_y: float,
                  food_targets: list, obstacles: list,
@@ -110,7 +161,9 @@ def _raycast_ray(agent_x: float, agent_y: float,
 
     Returns:
         Normalized distance [0,1] to the nearest object hit along this ray,
-        with 1.0 meaning nothing within MAX_RANGE.
+        with 1.0 meaning nothing within MAX_RANGE. Food and agents report
+        their centre distance; obstacles report the entry point of their
+        square body.
     """
     nearest_raw = MAX_RANGE
 
@@ -125,8 +178,10 @@ def _raycast_ray(agent_x: float, agent_y: float,
     for obstacle in obstacles:
         dx = obstacle.x - agent_x
         dy = obstacle.y - agent_y
-        dist = _ray_circle_hit(ray_dir_x, ray_dir_y, dx, dy, OBSTACLE_RADIUS)
-        if 0.0 < dist < nearest_raw:
+        dist = _ray_aabb_hit(ray_dir_x, ray_dir_y, dx, dy,
+                             OBSTACLE_HALF_SIZE)
+        # 0.0 is valid here: the origin is inside the solid body.
+        if 0.0 <= dist < nearest_raw:
             nearest_raw = dist
 
     for threat in live_agents:

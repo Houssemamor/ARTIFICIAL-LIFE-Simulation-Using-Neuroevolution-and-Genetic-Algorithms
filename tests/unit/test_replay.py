@@ -35,15 +35,15 @@ def _prepare(num_prey=6, num_predators=1, seed=3):
     def prepare():
         np.random.seed(seed)
         world = World(300, 200)
-        world.spawn_food(15)
         world.spawn_obstacles(3)
+        world.spawn_food(15)
         world.food_regrowth_per_step = 0.2
         agents = []
         rng = np.random.default_rng(seed)
         for i in range(num_prey + num_predators):
             role = 'prey' if i < num_prey else 'predator'
-            agent = Organism(i, float(rng.uniform(20, 280)),
-                             float(rng.uniform(20, 180)), role=role)
+            x, y = world.random_free_position(rng, clearance=5.0)
+            agent = Organism(i, x, y, role=role)
             agent.genome = _genome(100 + i)
             agents.append(agent)
         np.random.seed(seed)
