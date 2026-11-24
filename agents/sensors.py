@@ -25,6 +25,7 @@ encoding, so the prey-only experiments remain reproducible.
 
 from __future__ import annotations
 
+import builtins
 import math
 
 import numpy as np
@@ -34,6 +35,10 @@ from simulation.geometry import OBSTACLE_HALF_SIZE
 # Seven rays at fixed offsets relative to heading (design doc Section 11.2).
 # +x axis is heading 0; screen coordinates put +y downward, so "up" is -90 deg.
 RAY_ANGLES_DEG: list[float] = [-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0]
+# Precomputed with the same math.radians the scalar oracle uses, so the
+# vectorised path does not drift in the last floating-point bits.
+RAY_ANGLES_RAD: np.ndarray = np.array(
+    [math.radians(angle) for angle in RAY_ANGLES_DEG], dtype=np.float64)
 
 # Maximum sensing range in pixels; beyond this a ray reports saturated 1.0.
 # Chosen as a documented constant well inside the 1200x700 world so agents
@@ -233,6 +238,214 @@ def _bearing_to_nearest(agent_x: float, agent_y: float, heading: float,
     return delta / math.pi
 
 
+# Rows processed per vectorised batch. Keeps the (rows, rays, objects)
+# temporaries at a few MB even for large populations.
+_VECTOR_CHUNK_ROWS = 32
+
+
+def _nearest_bearings(observer_xy: np.ndarray, headings: np.ndarray,
+                      candidate_xy: np.ndarray, valid: np.ndarray) -> np.ndarray:
+    """
+    Vectorised equivalent of _bearing_to_nearest for every observer at once.
+
+    np.argmin returns the first minimum, matching the strict '<' comparison
+    in the scalar reference when two candidates are equidistant.
+    """
+    count = observer_xy.shape[0]
+    candidate_count = candidate_xy.shape[0]
+    if candidate_count == 0:
+        return np.zeros(count, dtype=np.float64)
+
+    delta_x = candidate_xy[None, :, 0] - observer_xy[:, None, 0]
+    delta_y = candidate_xy[None, :, 1] - observer_xy[:, None, 1]
+    distance_sq = np.where(valid, delta_x * delta_x + delta_y * delta_y, np.inf)
+    indices = np.argmin(distance_sq, axis=1)
+    rows = np.arange(count)
+    found = np.isfinite(distance_sq[rows, indices])
+    angle = np.arctan2(delta_y[rows, indices], delta_x[rows, indices])
+    # Same wrap as _clamp_angle: (angle + pi) % (2pi) - pi.
+    wrapped = np.mod(angle - headings + math.pi, 2.0 * math.pi) - math.pi
+    return np.where(found, wrapped / math.pi, 0.0)
+
+
+def _circle_ray_distances(observer_xy: np.ndarray, directions: np.ndarray,
+                          centers: np.ndarray, radius: float,
+                          valid: np.ndarray) -> np.ndarray:
+    """
+    Nearest circle-hit distance per observer and ray; MAX_RANGE when none.
+
+    Mirrors _ray_circle_hit exactly: dot > 0 and squared perpendicular
+    distance <= radius^2, reporting the centre's projection onto the ray.
+    """
+    count = observer_xy.shape[0]
+    best = np.full((count, len(RAY_ANGLES_DEG)), MAX_RANGE, dtype=np.float64)
+    if centers.shape[0] == 0:
+        return best
+
+    for start in range(0, count, _VECTOR_CHUNK_ROWS):
+        end = min(start + _VECTOR_CHUNK_ROWS, count)
+        delta_x = (centers[None, None, :, 0]
+                   - observer_xy[start:end, None, None, 0])
+        delta_y = (centers[None, None, :, 1]
+                   - observer_xy[start:end, None, None, 1])
+        ray = directions[start:end]
+        dot = delta_x * ray[:, :, None, 0] + delta_y * ray[:, :, None, 1]
+        closest_sq = delta_x * delta_x + delta_y * delta_y - dot * dot
+        hit = ((dot > 0.0) & (closest_sq <= radius * radius)
+               & valid[start:end, None, :])
+        distances = np.where(hit, dot, np.inf)
+        # Minimum over hits equals the scalar loop's strict '<' update: when
+        # two hits tie the reported distance is the same either way.
+        best[start:end] = np.minimum(best[start:end], distances.min(axis=2))
+    return best
+
+
+def _aabb_ray_distances(observer_xy: np.ndarray, directions: np.ndarray,
+                        centers: np.ndarray, half_size: float,
+                        valid: np.ndarray) -> np.ndarray:
+    """
+    Nearest square-body hit distance per observer and ray; MAX_RANGE if none.
+
+    Slab method with the same ordering and boundary rules as _ray_aabb_hit,
+    including a ray origin already inside the square (distance 0).
+    """
+    count = observer_xy.shape[0]
+    best = np.full((count, len(RAY_ANGLES_DEG)), MAX_RANGE, dtype=np.float64)
+    if centers.shape[0] == 0:
+        return best
+
+    for start in range(0, count, _VECTOR_CHUNK_ROWS):
+        end = min(start + _VECTOR_CHUNK_ROWS, count)
+        delta_x = (centers[None, None, :, 0]
+                   - observer_xy[start:end, None, None, 0])
+        delta_y = (centers[None, None, :, 1]
+                   - observer_xy[start:end, None, None, 1])
+        ray = directions[start:end]
+        shape = (end - start, len(RAY_ANGLES_DEG), centers.shape[0])
+        t_min = np.full(shape, -np.inf)
+        t_max = np.full(shape, np.inf)
+        missed = np.zeros(shape, dtype=bool)
+
+        for axis in (0, 1):
+            component = ray[:, :, axis][:, :, None]
+            center = delta_x if axis == 0 else delta_y
+            low = center - half_size
+            high = center + half_size
+            parallel = np.abs(component) < 1e-12
+            inside = (low <= 0.0) & (0.0 <= high)
+            missed |= parallel & ~inside
+            # Substituting a non-zero denominator for parallel rays is safe:
+            # those entries are masked out of t_min/t_max immediately below.
+            safe = np.where(parallel, 1.0, component)
+            first = low / safe
+            second = high / safe
+            swapped = first > second
+            entry = np.where(swapped, second, first)
+            exit_ = np.where(swapped, first, second)
+            t_min = np.where(parallel, t_min, np.maximum(t_min, entry))
+            t_max = np.where(parallel, t_max, np.minimum(t_max, exit_))
+            missed |= t_min > t_max
+
+        distances = np.where(t_max < 0.0, np.inf,
+                             np.where(t_min > 0.0, t_min, 0.0))
+        distances = np.where(missed | ~valid[start:end, None, :],
+                             np.inf, distances)
+        best[start:end] = np.minimum(best[start:end], distances.min(axis=2))
+    return best
+
+
+def _observe_population_vectorized(agents: list, world) -> np.ndarray:
+    """
+    Population-wide observation, equivalent to observe_agent for every agent.
+
+    The scalar path is retained as the test oracle. Cost is O(rows x rays x
+    objects) NumPy work per step instead of O(rows x rays x objects) Python
+    loop iterations, which is the dominant cost of a GA generation.
+    """
+    count = len(agents)
+    observations = np.zeros((count, OBSERVATION_DIM), dtype=np.float32)
+    if count == 0:
+        return observations
+
+    live = [agent for agent in agents if agent.is_alive]
+    live_count = len(live)
+    observer_xy = np.array([[a.position.x, a.position.y] for a in agents],
+                           dtype=np.float64).reshape(count, 2)
+    headings = np.array([a.heading for a in agents], dtype=np.float64)
+    velocities = np.array([[a.velocity.x, a.velocity.y] for a in agents],
+                          dtype=np.float64).reshape(count, 2)
+    roles = [getattr(a, "role", "prey") for a in agents]
+    is_predator = np.array([role == "predator" for role in roles], dtype=bool)
+
+    live_xy = np.array([[a.position.x, a.position.y] for a in live],
+                       dtype=np.float64).reshape(live_count, 2)
+    live_roles = [getattr(a, "role", "prey") for a in live]
+    live_is_prey = np.array([r == "prey" for r in live_roles], dtype=bool)
+    live_is_predator = ~live_is_prey
+
+    food_xy = np.array([[f.x, f.y] for f in world.food],
+                       dtype=np.float64).reshape(len(world.food), 2)
+    obstacle_xy = np.array([[o.x, o.y] for o in world.obstacles],
+                           dtype=np.float64).reshape(len(world.obstacles), 2)
+
+    # Identity-based self exclusion matches "t is not agent" in the scalar
+    # path, including the case where the observer itself is not in live.
+    live_positions = {builtins.id(a): index for index, a in enumerate(live)}
+    visible = np.ones((count, live_count), dtype=bool)
+    for index, agent in enumerate(agents):
+        own = live_positions.get(builtins.id(agent))
+        if own is not None:
+            visible[index, own] = False
+
+    all_food_valid = np.ones((count, food_xy.shape[0]), dtype=bool)
+    all_obstacle_valid = np.ones((count, obstacle_xy.shape[0]), dtype=bool)
+
+    prey_food_bearing = _nearest_bearings(
+        observer_xy, headings, food_xy, all_food_valid)
+    predator_food_bearing = _nearest_bearings(
+        observer_xy, headings, live_xy, visible & live_is_prey[None, :])
+    prey_threat_bearing = _nearest_bearings(
+        observer_xy, headings, live_xy, visible)
+    predator_threat_bearing = _nearest_bearings(
+        observer_xy, headings, live_xy, visible & live_is_predator[None, :])
+    obstacle_bearing = _nearest_bearings(
+        observer_xy, headings, obstacle_xy, all_obstacle_valid)
+
+    bearings = np.column_stack([
+        np.where(is_predator, predator_food_bearing, prey_food_bearing),
+        np.where(is_predator, predator_threat_bearing, prey_threat_bearing),
+        obstacle_bearing,
+    ])
+    observations[:, 7:10] = bearings.astype(np.float32)
+
+    ray_angles = headings[:, None] + RAY_ANGLES_RAD[None, :]
+    ray_directions = np.stack([np.cos(ray_angles), np.sin(ray_angles)], axis=-1)
+
+    nearest = np.full((count, len(RAY_ANGLES_DEG)), MAX_RANGE, dtype=np.float64)
+    food_distance = _circle_ray_distances(
+        observer_xy, ray_directions, food_xy, FOOD_RADIUS, all_food_valid)
+    # A predator cannot perceive plants, so its food rays never see them.
+    nearest = np.where(is_predator[:, None], nearest,
+                       np.minimum(nearest, food_distance))
+    obstacle_distance = _aabb_ray_distances(
+        observer_xy, ray_directions, obstacle_xy, OBSTACLE_HALF_SIZE,
+        all_obstacle_valid)
+    nearest = np.minimum(nearest, obstacle_distance)
+    agent_distance = _circle_ray_distances(
+        observer_xy, ray_directions, live_xy, AGENT_RADIUS, visible)
+    nearest = np.minimum(nearest, agent_distance)
+
+    observations[:, 0:7] = np.where(
+        nearest < MAX_RANGE, nearest / MAX_RANGE, 1.0).astype(np.float32)
+    energies = np.array([a.energy for a in agents], dtype=np.float64)
+    observations[:, 10] = np.clip(
+        energies / INITIAL_ENERGY, 0.0, 1.0).astype(np.float32)
+    speed = np.sqrt(velocities[:, 0] * velocities[:, 0]
+                    + velocities[:, 1] * velocities[:, 1])
+    observations[:, 11] = np.clip(speed / MAX_SPEED, 0.0, 1.0).astype(np.float32)
+    return observations
+
+
 class RayCaster:
     """
     Computes the fixed 12-dim observation for a population of agents.
@@ -317,9 +530,6 @@ class RayCaster:
             float32 (N, OBSERVATION_DIM) matrix, one row per agent in the
             same order as `agents`.
         """
-        live_agents = [agent for agent in agents if agent.is_alive]
-        observations = np.stack([
-            self.observe_agent(agent, world, live_agents)
-            for agent in agents
-        ]).astype(np.float32)
-        return observations
+        # Batched path is the production implementation; observe_agent stays
+        # as the scalar oracle used by the differential equivalence tests.
+        return _observe_population_vectorized(agents, world)

@@ -22,6 +22,48 @@ StackedWeights = tuple[torch.Tensor, torch.Tensor, torch.Tensor,
                        torch.Tensor, torch.Tensor, torch.Tensor]
 
 
+def resolve_device(requested: str | torch.device = "auto") -> torch.device:
+    """
+    Resolve a configured device name into the torch.device used for tensors.
+
+    Strategy: one resolver is shared by the runner (tier tagging) and this
+    module (tensor placement), so the two cannot disagree about where a run
+    executed. "auto" prefers CUDA when present; an explicit "cuda" without
+    CUDA support fails loudly rather than running CPU work under a GPU label.
+
+    Args:
+        requested: "cpu", "cuda", "auto", or an existing torch.device.
+
+    Returns:
+        The concrete torch.device ("cpu" or "cuda").
+
+    Raises:
+        ValueError: If the name is not one of the accepted values.
+        RuntimeError: If CUDA was requested but is unavailable.
+    """
+    if isinstance(requested, torch.device):
+        target = requested
+    else:
+        name = requested.strip().lower()
+        if name == "cpu":
+            target = torch.device("cpu")
+        elif name == "cuda":
+            target = torch.device("cuda")
+        elif name == "auto":
+            target = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            raise ValueError(
+                f"Unsupported device {requested!r}; expected 'cpu', 'cuda', or 'auto'"
+            )
+
+    if target.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA was requested but torch.cuda.is_available() is False; "
+            "use --device cpu or --device auto"
+        )
+    return target
+
+
 def _genome_slices() -> list[tuple[int, int, int, int]]:
     """
     Compute (start, weight_end, bias_end, bias_end) offset triples per layer.
@@ -41,12 +83,18 @@ def _genome_slices() -> list[tuple[int, int, int, int]]:
     return slices  # type: ignore[return-value]
 
 
-def stack_population_weights(genomes: np.ndarray) -> StackedWeights:
+def stack_population_weights(
+    genomes: np.ndarray,
+    device: str | torch.device | None = None,
+) -> StackedWeights:
     """
     Pack a population of flat genomes into stacked weight/bias tensors.
 
     Args:
         genomes: numpy float32 array of shape (N, total_params).
+        device: Target device. None keeps the historical CPU-only behaviour
+            so callers that have not opted into device selection stay on the
+            cpu-deterministic tier.
 
     Returns:
         Tuple (W1, b1, W2, b2, W3, b3) where Wi is (N, in_i, out_i) and
@@ -63,7 +111,9 @@ def stack_population_weights(genomes: np.ndarray) -> StackedWeights:
             f"{ARCHITECTURE} total params {sum(w + b for w, b in param_counts())}"
         )
 
-    devices = torch.device("cpu")
+    # None is an explicit CPU request, not "auto": every legacy caller and
+    # cpu-deterministic run must stay on CPU when running on a GPU machine.
+    target_device = resolve_device("cpu" if device is None else device)
     population_size = genomes.shape[0]
     stacked: list[torch.Tensor] = []
 
@@ -71,11 +121,11 @@ def stack_population_weights(genomes: np.ndarray) -> StackedWeights:
         in_dim = ARCHITECTURE[index]
         out_dim = ARCHITECTURE[index + 1]
         weights_flat = torch.as_tensor(genomes[:, offset:weight_end],
-                                       dtype=torch.float32, device=devices)
+                                       dtype=torch.float32, device=target_device)
         # (N, in*out) -> (N, in, out); contiguous ensures bmm's layout contract
         weights = weights_flat.reshape(population_size, in_dim, out_dim).contiguous()
         biases = torch.as_tensor(genomes[:, weight_end:layer_end],
-                                 dtype=torch.float32, device=devices)
+                                 dtype=torch.float32, device=target_device)
         stacked.extend([weights, biases])
 
     return tuple(stacked)  # type: ignore[return-value]
@@ -94,6 +144,12 @@ def batched_forward(observations: torch.Tensor, weights: StackedWeights) -> torc
         steering in [-1, 1] (tanh), the other two in [0, 1] (sigmoid).
     """
     (w1, b1, w2, b2, w3, b3) = weights
+
+    # Adapter: observations come from numpy ray casting on the host. Moving
+    # them once to the weight device keeps bmm operands on the same device
+    # without adding a device parameter to every inference caller.
+    if observations.device != w1.device:
+        observations = observations.to(device=w1.device)
 
     # hidden1: (N,1,32) = (N,1,12) x (N,12,32); squeeze the singleton bmm dim
     h1 = torch.bmm(observations.unsqueeze(1), w1).squeeze(1) + b1

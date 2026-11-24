@@ -77,7 +77,9 @@ def load_checkpoint(path: str) -> Tuple[np.ndarray, Tuple[int, ...], Dict[str, A
         ValueError: If genome size doesn't match expected size or architecture
             doesn't match the expected ARCHITECTURE.
     """
-    data = np.load(path, allow_pickle=True)
+    # The format contains only numeric arrays and a JSON string; pickle is
+    # unnecessary and would execute arbitrary code from an imported file.
+    data = np.load(path, allow_pickle=False)
     genome = data["genome"].astype(np.float32)
     architecture = tuple(data["architecture"].tolist())
     metadata = json.loads(data["metadata"].item())

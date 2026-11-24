@@ -74,16 +74,19 @@ def set_deterministic_seeds(config: DeterminismConfig) -> None:
     if config.device == "cuda":
         torch.cuda.manual_seed_all(config.torch_seed)
 
-    # Deterministic algorithms (CPU and CUDA)
-    # Note: torch.use_deterministic_algorithms(True) may raise on some ops
-    # that lack deterministic implementations. We catch and warn.
-    try:
-        torch.use_deterministic_algorithms(True, warn_only=False)
-    except RuntimeError as e:
-        # Some operations (e.g., atomicAdd on CUDA) lack deterministic impl
-        # Fall back to warn_only=True for those
-        torch.use_deterministic_algorithms(True, warn_only=True)
-        print(f"[determinism] Warning: {e}", file=sys.stderr)
+    # Deterministic algorithms are only meaningful for the cpu-deterministic
+    # tier. Forcing them on the GPU tier can make cuBLAS raise on matmuls and
+    # gives no reproducibility claim, so non-deterministic runs opt out.
+    if config.reproducibility_tier == "cpu-deterministic":
+        # Note: torch.use_deterministic_algorithms(True) may raise on some ops
+        # that lack deterministic implementations. We catch and warn.
+        try:
+            torch.use_deterministic_algorithms(True, warn_only=False)
+        except RuntimeError as e:
+            # Some operations (e.g., atomicAdd on CUDA) lack deterministic impl
+            # Fall back to warn_only=True for those
+            torch.use_deterministic_algorithms(True, warn_only=True)
+            print(f"[determinism] Warning: {e}", file=sys.stderr)
 
     # Thread pinning for CPU reproducibility
     torch.set_num_threads(config.num_threads)
@@ -98,10 +101,12 @@ def set_deterministic_seeds(config: DeterminismConfig) -> None:
     os.environ["MKL_NUM_THREADS"] = str(config.num_threads)
     os.environ["NUMEXPR_NUM_THREADS"] = str(config.num_threads)
 
-    # CuDNN determinism (only relevant on CUDA)
+    # CuDNN flags (only relevant on CUDA). On the non-deterministic tier the
+    # benchmark mode is allowed to pick the fastest kernel for the GPU.
     if config.device == "cuda":
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        deterministic = config.reproducibility_tier == "cpu-deterministic"
+        torch.backends.cudnn.deterministic = deterministic
+        torch.backends.cudnn.benchmark = not deterministic
 
     # Record config for metadata
     _SEED_CONFIG_STACK.append(config)
@@ -132,7 +137,7 @@ def set_all_seeds(
         numpy_seed: Seed for np.random.seed()
         random_seed: Seed for random.seed()
         device: "cpu" or "cuda"
-        reproducibility_tier: "cpu-deterministic" or "gpu"
+        reproducibility_tier: "cpu-deterministic" or "non-deterministic"
         num_threads: Thread count for torch CPU operations
 
     Returns:

@@ -48,6 +48,7 @@ from experiments.experiment_runner import (load_calibration_scales,  # noqa: E40
                                            train_best_genome)
 from experiments.run_coevolution import (_build_world, _spawn_positions,  # noqa: E402
                                          apply_seed_determinism)
+from neural.checkpoint import load_checkpoint  # noqa: E402
 from neural.genome import genome_size  # noqa: E402
 from simulation.geometry import AGENT_SPAWN_CLEARANCE  # noqa: E402
 from simulation.world_config import BaselineConfig, load_config  # noqa: E402
@@ -159,75 +160,98 @@ def replay_solo(config: BaselineConfig, genome: np.ndarray, steps: int,
 
 def build_scenarios(seed: int, steps: Optional[int], solo_agents: int,
                     coev_generations: Optional[int],
-                    solo_generations: Optional[int]) -> Dict:
-    """Train both scenarios and record untrained vs evolved replays."""
+                    solo_generations: Optional[int],
+                    solo_genome_path: Optional[Path] = None,
+                    solo_config_path: Optional[Path] = None,
+                    solo_only: bool = False) -> Dict:
+    """Record untrained vs evolved replays; the evolved solo brain may be imported."""
     timings: Dict[str, float] = {}
+    scenarios: List[Dict] = []
 
     # --- predator / prey -------------------------------------------------
-    coev_config = load_config(COEV_CONFIG)
-    if coev_generations is not None:
-        coev_config.evolution.generations = coev_generations
-    coev_steps = steps or coev_config.evolution.evaluation_steps
-    started = time.perf_counter()
-    prey_final, predators_final = train_coevolution(coev_config, seed)
-    timings["coev_training_seconds"] = time.perf_counter() - started
+    if not solo_only:
+        coev_config = load_config(COEV_CONFIG)
+        if coev_generations is not None:
+            coev_config.evolution.generations = coev_generations
+        coev_steps = steps or coev_config.evolution.evaluation_steps
+        started = time.perf_counter()
+        prey_final, predators_final = train_coevolution(coev_config, seed)
+        timings["coev_training_seconds"] = time.perf_counter() - started
 
-    init_rng = np.random.default_rng(seed + 90_000)
-    size = genome_size()
-    prey_random = [init_rng.uniform(-1, 1, size).astype(np.float32)
-                   for _ in prey_final]
-    predators_random = [init_rng.uniform(-1, 1, size).astype(np.float32)
-                        for _ in predators_final]
+        init_rng = np.random.default_rng(seed + 90_000)
+        size = genome_size()
+        prey_random = [init_rng.uniform(-1, 1, size).astype(np.float32)
+                       for _ in prey_final]
+        predators_random = [init_rng.uniform(-1, 1, size).astype(np.float32)
+                            for _ in predators_final]
 
-    coev = {
-        "id": "coev",
-        "title": "Predator and prey",
-        "description": ("Prey eat food and avoid predators; predators chase "
-                        "and capture prey. Both populations evolve together."),
-        "generations": coev_config.evolution.generations,
-        "runs": {
-            "untrained": replay_coevolution(
-                coev_config, prey_random, predators_random, coev_steps, seed),
-            "evolved": replay_coevolution(
-                coev_config, prey_final, predators_final, coev_steps, seed),
-        },
-    }
+        scenarios.append({
+            "id": "coev",
+            "title": "Predator and prey",
+            "description": ("Prey eat food and avoid predators; predators chase "
+                            "and capture prey. Both populations evolve together."),
+            "generations": coev_config.evolution.generations,
+            "runs": {
+                "untrained": replay_coevolution(
+                    coev_config, prey_random, predators_random, coev_steps, seed),
+                "evolved": replay_coevolution(
+                    coev_config, prey_final, predators_final, coev_steps, seed),
+            },
+        })
 
     # --- solo food seeker ------------------------------------------------
-    _, solo_config = load_layouts(SOLO_BASE_CONFIG)[0]
-    if solo_generations is not None:
+    if solo_config_path is not None:
+        solo_config = load_config(str(solo_config_path))
+    else:
+        _, solo_config = load_layouts(SOLO_BASE_CONFIG)[0]
+    if solo_generations is not None and solo_genome_path is None:
         solo_config.evolution.generations = solo_generations
     solo_steps = steps or solo_config.evolution.evaluation_steps
-    started = time.perf_counter()
     random_genome = make_population(solo_config, seed)[0].genome.copy()
-    best_genome, _ = train_best_genome(solo_config, run_seed=seed)
-    timings["solo_training_seconds"] = time.perf_counter() - started
+
+    if solo_genome_path is not None:
+        # Imported brain: skip local training entirely, which is the point
+        # of running the expensive generations on Colab instead of here.
+        started = time.perf_counter()
+        imported, _, metadata = load_checkpoint(str(solo_genome_path))
+        best_genome = np.asarray(imported, dtype=np.float32).copy()
+        reported_generations = int(metadata.get("generation", 0) or 0)
+        timings["solo_import_seconds"] = time.perf_counter() - started
+    else:
+        started = time.perf_counter()
+        best_genome, _ = train_best_genome(solo_config, run_seed=seed)
+        timings["solo_training_seconds"] = time.perf_counter() - started
+        reported_generations = solo_config.evolution.generations
 
     replay_config = solo_config.model_copy(deep=True)
     replay_config.population.size = solo_agents
-    solo = {
+    scenarios.append({
         "id": "solo",
         "title": "Solo food seeker",
         "description": ("A single kind of agent that must find food before "
                         "it starves. No predators."),
-        "generations": solo_config.evolution.generations,
+        "generations": reported_generations,
         "runs": {
             "untrained": replay_solo(replay_config, random_genome,
                                      solo_steps, seed),
             "evolved": replay_solo(replay_config, best_genome,
                                    solo_steps, seed),
         },
-    }
-    return {"scenarios": [coev, solo], "timings": timings}
+    })
+    return {"scenarios": scenarios, "timings": timings}
 
 
 def build_recording(seed: int = 1, steps: Optional[int] = None,
                     solo_agents: int = 10,
                     coev_generations: Optional[int] = None,
-                    solo_generations: Optional[int] = None) -> Dict:
+                    solo_generations: Optional[int] = None,
+                    solo_genome_path: Optional[Path] = None,
+                    solo_config_path: Optional[Path] = None,
+                    solo_only: bool = False) -> Dict:
     """Full recording document (JSON-serialisable)."""
     built = build_scenarios(seed, steps, solo_agents, coev_generations,
-                            solo_generations)
+                            solo_generations, solo_genome_path,
+                            solo_config_path, solo_only)
     return {
         "version": RECORDING_VERSION,
         "seed": seed,
@@ -257,12 +281,20 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--solo-agents", type=int, default=10)
     parser.add_argument("--coev-generations", type=int, default=None)
     parser.add_argument("--solo-generations", type=int, default=None)
+    parser.add_argument("--solo-genome", type=Path, default=None,
+                        help="Imported best-genome .npz to replay as the evolved brain")
+    parser.add_argument("--solo-config", type=Path, default=None,
+                        help="Config used for the imported genome's training run")
+    parser.add_argument("--solo-only", action="store_true",
+                        help="Skip co-evolution training; record only the solo scenario")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
 
     started = time.perf_counter()
     document = build_recording(args.seed, args.steps, args.solo_agents,
-                               args.coev_generations, args.solo_generations)
+                               args.coev_generations, args.solo_generations,
+                               args.solo_genome, args.solo_config,
+                               args.solo_only)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(document, separators=(",", ":"), ensure_ascii=True),

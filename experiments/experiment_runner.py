@@ -11,13 +11,16 @@ is identical, the returned mean fitness is that genome's score on the layout
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from agents.organism import Organism
 from agents.energy import EnergyConfig, energy_config_from_settings
 from evolution.genetic_algorithm import run_generation
+from experiments.run_state import (append_history_csv, load_run_state,
+                                   restore_population, restore_rng,
+                                   save_run_state, verify_config)
 from neural.genome import genome_size
 from simulation.world_config import BaselineConfig
 
@@ -136,10 +139,16 @@ def _clone_agent(agent_id: int, x: float, y: float,
 
 
 def train_best_genome(config: BaselineConfig, run_seed: int,
-                      calibration_scales: Optional[Dict[str, float]] = None
+                      calibration_scales: Optional[Dict[str, float]] = None,
+                      *,
+                      checkpoint_path: Optional[str] = None,
+                      resume: bool = False,
+                      save_interval: Optional[int] = None,
+                      history_csv: Optional[str] = None,
+                      progress_callback: Optional[Callable[[int, Dict], None]] = None,
                       ) -> Tuple[np.ndarray, List[Dict]]:
     """
-    Run a full GA training run and return (best_genome, per-generation metrics).
+    Run a GA training run, optionally resuming from a full-state checkpoint.
 
     The best genome is the top elite of the final population (run_generation
     assigns elite genomes in fitness order, so index 0 is the best of the
@@ -152,19 +161,43 @@ def train_best_genome(config: BaselineConfig, run_seed: int,
             measured scales from configs/calibration.json (Phase 3 rule:
             never hand-picked constants). Pass explicitly only for
             isolated tests.
+        checkpoint_path: Where to persist full run state.
+        resume: Restore population, RNGs and history from checkpoint_path.
+        save_interval: Generations between checkpoint and CSV flushes.
+        history_csv: Append-only per-generation CSV for long runs.
+        progress_callback: Called with (completed_generations, metrics).
 
     Raises:
         ValueError: If elitism_count < 1 - without elites, population[0]
             is an arbitrary offspring and "best genome" is undefined.
+        ValueError: If resume is requested without a checkpoint, or the
+            checkpoint was produced under a different config.
     """
     if config.evolution.elitism_count < 1:
         raise ValueError("train_best_genome requires elitism_count >= 1")
     if calibration_scales is None:
         calibration_scales = load_calibration_scales()
-    population = make_population(config, run_seed)
-    rng = np.random.default_rng(run_seed)
-    history: List[Dict] = []
-    for gen in range(config.evolution.generations):
+
+    interval = save_interval or config.experiment.save_interval
+    if resume:
+        if checkpoint_path is None:
+            raise ValueError("resume=True requires checkpoint_path")
+        state = load_run_state(checkpoint_path)
+        verify_config(state, config)
+        population = restore_population(state, config)
+        rng = np.random.default_rng(run_seed)
+        restore_rng(state, rng)
+        history: List[Dict] = list(state["history"])
+        start_generation = state["generation"]
+    else:
+        population = make_population(config, run_seed)
+        rng = np.random.default_rng(run_seed)
+        history = []
+        start_generation = 0
+
+    pending_csv_rows: List[Dict] = []
+    last_generation = config.evolution.generations
+    for gen in range(start_generation, last_generation):
         population, metrics = run_generation(
             config=config,
             population=population,
@@ -173,7 +206,23 @@ def train_best_genome(config: BaselineConfig, run_seed: int,
             fitness_weights=config.fitness_weights,
             rng=rng,
         )
-        history.append(vars(metrics))
+        row = vars(metrics)
+        history.append(row)
+        pending_csv_rows.append(row)
+        completed = gen + 1
+        is_last = completed == last_generation
+
+        # Flush in chunks so a Colab disconnect costs at most one interval
+        # of work, and Drive sees few small writes instead of one huge file.
+        if history_csv is not None and (completed % interval == 0 or is_last):
+            append_history_csv(history_csv, pending_csv_rows)
+            pending_csv_rows = []
+        if checkpoint_path is not None and (completed % interval == 0 or is_last):
+            save_run_state(checkpoint_path, completed, population, rng,
+                           history, config, run_seed)
+        if progress_callback is not None:
+            progress_callback(completed, row)
+
     return population[0].genome.copy(), history
 
 

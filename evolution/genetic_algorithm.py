@@ -235,16 +235,19 @@ def run_generation(
         observations = raycaster.observe_population(live_agents, world)
 
         genomes = np.stack([a.genome for a in live_agents]).astype(np.float32)
-        weights = stack_population_weights(genomes)
+        weights = stack_population_weights(genomes, device=config.device)
         action_logits = batched_forward(
             torch.as_tensor(observations, dtype=torch.float32),
             weights,
         )
+        # The agent loop reads every action as a Python float. Copying the
+        # small (N,3) result back once avoids one CUDA sync per agent per step.
+        actions = action_logits.detach().cpu()
 
         for idx, agent in enumerate(live_agents):
-            steering = float(action_logits[idx, 0])
-            acceleration = float(action_logits[idx, 1])
-            eat_signal = float(action_logits[idx, 2])
+            steering = float(actions[idx, 0])
+            acceleration = float(actions[idx, 1])
+            eat_signal = float(actions[idx, 2])
             agent.apply_action(steering, acceleration, eat_signal, world,
                                dt=1.0)
             if eat_signal > 0.5:
