@@ -163,8 +163,10 @@ def build_scenarios(seed: int, steps: Optional[int], solo_agents: int,
                     solo_generations: Optional[int],
                     solo_genome_path: Optional[Path] = None,
                     solo_config_path: Optional[Path] = None,
-                    solo_only: bool = False) -> Dict:
-    """Record untrained vs evolved replays; the evolved solo brain may be imported."""
+                    solo_only: bool = False,
+                    coev_prey_genome_path: Optional[Path] = None,
+                    coev_predator_genome_path: Optional[Path] = None) -> Dict:
+    """Record untrained vs evolved replays using imported elite brains when given."""
     timings: Dict[str, float] = {}
     scenarios: List[Dict] = []
 
@@ -174,9 +176,28 @@ def build_scenarios(seed: int, steps: Optional[int], solo_agents: int,
         if coev_generations is not None:
             coev_config.evolution.generations = coev_generations
         coev_steps = steps or coev_config.evolution.evaluation_steps
-        started = time.perf_counter()
-        prey_final, predators_final = train_coevolution(coev_config, seed)
-        timings["coev_training_seconds"] = time.perf_counter() - started
+        use_imported_coev = (coev_prey_genome_path is not None
+                             and coev_predator_genome_path is not None)
+        if use_imported_coev:
+            started = time.perf_counter()
+            prey_elite, _, prey_meta = load_checkpoint(
+                str(coev_prey_genome_path))
+            predator_elite, _, _ = load_checkpoint(
+                str(coev_predator_genome_path))
+            # The saved files hold one elite genome per role; replay clones
+            # so the arena still shows a full population of that brain.
+            prey_final = [np.asarray(prey_elite, dtype=np.float32).copy()
+                          for _ in range(coev_config.population.size)]
+            predators_final = [np.asarray(predator_elite, dtype=np.float32).copy()
+                               for _ in range(coev_config.predation.predator_count)]
+            reported_coev_generations = int(
+                prey_meta.get("generation", coev_config.evolution.generations))
+            timings["coev_import_seconds"] = time.perf_counter() - started
+        else:
+            started = time.perf_counter()
+            prey_final, predators_final = train_coevolution(coev_config, seed)
+            timings["coev_training_seconds"] = time.perf_counter() - started
+            reported_coev_generations = coev_config.evolution.generations
 
         init_rng = np.random.default_rng(seed + 90_000)
         size = genome_size()
@@ -189,8 +210,11 @@ def build_scenarios(seed: int, steps: Optional[int], solo_agents: int,
             "id": "coev",
             "title": "Predator and prey",
             "description": ("Prey eat food and avoid predators; predators chase "
-                            "and capture prey. Both populations evolve together."),
-            "generations": coev_config.evolution.generations,
+                            "and capture prey. Both populations evolve together."
+                            if not use_imported_coev else
+                            "Clones of the final-generation elite prey and "
+                            "predator brains in the same shared world."),
+            "generations": reported_coev_generations,
             "runs": {
                 "untrained": replay_coevolution(
                     coev_config, prey_random, predators_random, coev_steps, seed),
@@ -247,11 +271,14 @@ def build_recording(seed: int = 1, steps: Optional[int] = None,
                     solo_generations: Optional[int] = None,
                     solo_genome_path: Optional[Path] = None,
                     solo_config_path: Optional[Path] = None,
-                    solo_only: bool = False) -> Dict:
+                    solo_only: bool = False,
+                    coev_prey_genome_path: Optional[Path] = None,
+                    coev_predator_genome_path: Optional[Path] = None) -> Dict:
     """Full recording document (JSON-serialisable)."""
     built = build_scenarios(seed, steps, solo_agents, coev_generations,
                             solo_generations, solo_genome_path,
-                            solo_config_path, solo_only)
+                            solo_config_path, solo_only,
+                            coev_prey_genome_path, coev_predator_genome_path)
     return {
         "version": RECORDING_VERSION,
         "seed": seed,
@@ -287,6 +314,10 @@ def main(argv: Optional[list] = None) -> int:
                         help="Config used for the imported genome's training run")
     parser.add_argument("--solo-only", action="store_true",
                         help="Skip co-evolution training; record only the solo scenario")
+    parser.add_argument("--coev-prey-genome", type=Path, default=None,
+                        help="Imported elite prey .npz for the co-evolution replay")
+    parser.add_argument("--coev-predator-genome", type=Path, default=None,
+                        help="Imported elite predator .npz for the co-evolution replay")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
 
@@ -294,7 +325,8 @@ def main(argv: Optional[list] = None) -> int:
     document = build_recording(args.seed, args.steps, args.solo_agents,
                                args.coev_generations, args.solo_generations,
                                args.solo_genome, args.solo_config,
-                               args.solo_only)
+                               args.solo_only, args.coev_prey_genome,
+                               args.coev_predator_genome)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(document, separators=(",", ":"), ensure_ascii=True),

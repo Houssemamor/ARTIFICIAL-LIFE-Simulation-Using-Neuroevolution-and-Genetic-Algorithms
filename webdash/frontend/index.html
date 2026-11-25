@@ -3,125 +3,233 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f0e9">
+  <link rel="icon" href="data:,">
   <title>Neuroevolution Showcase</title>
   <style>
     /* Self-contained: no CDN, so the exported file works offline.
-       Okabe-Ito color-blind-safe palette. */
+       Okabe-Ito accents keep verdicts distinguishable without relying on hue. */
     :root {
-      --ok-orange: #E69F00; --ok-sky: #56B4E9; --ok-green: #009E73;
-      --ok-vermillion: #D55E00; --ok-yellow: #F0E442; --muted: #b8b8c8;
-      --panel: #1d1d28; --line: #2c2c3a;
+      color-scheme: light;
+      --paper: #f3f0e9;
+      --paper-2: #e9e5db;
+      --ink: #15181d;
+      --muted: #5c6270;
+      --rule: #cfc9bc;
+      --instrument: #111820;
+      --instrument-2: #192532;
+      --instrument-line: #2b3a49;
+      --instrument-text: #e8e8ef;
+      --ok-orange: #b26a00; --ok-sky: #0b6e9e; --ok-green: #00795c;
+      --ok-vermillion: #b4462f; --ok-yellow: #8a6d00;
+      --surface: #fff;
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --paper: #12151a; --paper-2: #191d24;
+      --ink: #e8e8ef; --muted: #9aa3b0; --rule: #333b46;
+      --surface: #1b2028;
+      --ok-orange: #e0a33c; --ok-sky: #6dc4ec; --ok-green: #4cc59b;
+      --ok-vermillion: #ec7a62; --ok-yellow: #d8bd46;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #14141c; color: #e8e8ef;
-           font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    header.top { padding: 28px 24px 8px; max-width: 1200px; margin: 0 auto; }
-    header.top h1 { margin: 0 0 4px; font-size: 28px; }
+    body { margin: 0; background: var(--paper); color: var(--ink);
+           font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
     .text-secondary { color: var(--muted); }
     .small { font-size: 13px; }
-    main { padding: 0 24px 48px; max-width: 1200px; margin: 0 auto; }
-    section { margin-top: 36px; }
-    h2 { font-size: 20px; margin: 0 0 4px; }
-    h3 { font-size: 16px; margin: 0 0 6px; }
-    .lede { color: var(--muted); margin: 0 0 14px; }
+    a { color: var(--ok-sky); text-underline-offset: 3px; }
+    .skip-link { position: absolute; left: -9999px; top: 0; background: var(--surface);
+                 padding: 8px 12px; z-index: 20; }
+    .skip-link:focus { left: 12px; }
 
-    .toolbar { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; }
-    .seg { display: inline-flex; border: 1px solid #555; border-radius: 6px;
-           overflow: hidden; }
-    .seg button { border: 0; border-radius: 0; padding: 6px 14px; }
+    .masthead-bar { display: flex; align-items: flex-start; justify-content: space-between;
+                    gap: 16px; }
+    .theme-toggle { white-space: nowrap; }
+    .help-note { border: 1px solid var(--rule); border-left: 3px solid var(--ok-sky);
+                 background: var(--surface); padding: 10px 14px; margin: 12px 0 16px; }
+    .help-note summary { font-size: 14px; }
+    .help-note p { max-width: 65ch; margin: 8px 0 0; color: var(--muted); }
+    .help-note code { font-size: 13px; }
+
+    .masthead { border-bottom: 1px solid var(--rule); background: var(--paper-2); }
+    .masthead-inner { max-width: 1180px; margin: 0 auto; padding: 30px 24px 22px; }
+    .kicker { font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+              font-weight: 700; color: var(--ok-vermillion); margin: 0 0 10px; }
+    .masthead h1 { margin: 0; font-size: clamp(30px, 5vw, 46px); line-height: 1.05;
+                   letter-spacing: -.03em; font-weight: 700; }
+    .masthead .sub { max-width: 65ch; margin: 12px 0 0; color: var(--muted); }
+    .stats-strip { display: grid; grid-template-columns: repeat(auto-fit,
+                   minmax(170px, 1fr)); gap: 1px; margin-top: 20px;
+                   border: 1px solid var(--rule); background: var(--rule); }
+    .stat { background: var(--surface); padding: 10px 14px; }
+    .stat b { display: block; font-size: 22px; line-height: 1.1;
+              letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 11px; letter-spacing: .09em; text-transform: uppercase;
+                 color: var(--muted); }
+    .section-nav { position: sticky; top: 0; z-index: 5; background: var(--paper);
+                   border-bottom: 1px solid var(--rule); }
+    .section-nav ul { max-width: 1180px; margin: 0 auto; padding: 0 24px;
+                      list-style: none; display: flex; gap: 22px; flex-wrap: wrap; }
+    .section-nav a { display: block; padding: 10px 0; color: var(--muted);
+                     text-decoration: none; font-size: 13px; font-weight: 600; }
+    .section-nav a:hover { color: var(--ink); }
+
+    main { padding: 8px 24px 64px; max-width: 1180px; margin: 0 auto; }
+    section { margin-top: 42px; scroll-margin-top: 56px; }
+    .section-head { display: flex; align-items: baseline; gap: 14px;
+                    border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+    .section-index { font-variant-numeric: tabular-nums; font-size: 12px;
+                     font-weight: 700; color: var(--ok-vermillion); }
+    h2 { font-size: 21px; margin: 0; letter-spacing: -.02em; }
+    h3 { font-size: 16px; margin: 0 0 6px; letter-spacing: -.01em; }
+    .lede { color: var(--muted); margin: 10px 0 16px; max-width: 65ch; }
+    [id^="f-EXP"], #findings-grid article { scroll-margin-top: 64px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+    .seg { display: inline-flex; border: 1px solid var(--rule); background: var(--surface); }
+    .seg button { border: 0; border-radius: 0; padding: 7px 14px; }
     .seg button[aria-pressed="true"] { background: var(--ok-sky); color: #0b0b12;
-                                       font-weight: 600; }
-    button, select { background: #14141c; color: #e8e8ef; border: 1px solid #555;
-                     border-radius: 4px; padding: 4px 12px; font: inherit; }
-    button { cursor: pointer; }
-    button:focus-visible, select:focus-visible, .stage:focus-visible,
-    input[type=range]:focus-visible, summary:focus-visible {
+                                       font-weight: 650; }
+    button, select { background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+                     border-radius: 3px; padding: 5px 12px; font: inherit;
+                     transition: transform 140ms var(--ease-out),
+                                 border-color 140ms var(--ease-out); }
+    button:hover, select:hover { border-color: var(--ok-sky); }
+    button:active { transform: scale(.97); }
+    button:focus-visible, select:focus-visible, a:focus-visible,
+    .stage:focus-visible, input[type=range]:focus-visible, summary:focus-visible {
       outline: 2px solid var(--ok-yellow); outline-offset: 2px; }
+    button { cursor: pointer; }
 
-    .stage { background: var(--panel); border: 1px solid var(--line);
-             border-radius: 8px; padding: 12px; }
-    #arena { width: 100%; display: block; background: #0f0f16; border-radius: 4px; }
+    .stage { background: var(--instrument); color: var(--instrument-text);
+             border: 1px solid var(--instrument-line); border-radius: 6px; padding: 12px; }
+    #arena { width: 100%; display: block; background: #0b1018; border-radius: 3px; }
     .controls { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
     .controls input[type=range] { flex: 1; }
+    .stage button, .stage select { background: var(--instrument-2);
+                                   color: var(--instrument-text);
+                                   border-color: var(--instrument-line); }
     .hud { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px;
-           font-size: 13px; color: var(--muted); }
-    .hud b { color: #e8e8ef; font-weight: 600; }
+           font-size: 13px; color: #9fb0c0; font-variant-numeric: tabular-nums; }
+    .hud b { color: #fff; font-weight: 650; }
     .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px;
               color: var(--muted); margin-top: 6px; }
     .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
            margin-right: 5px; vertical-align: middle; }
 
     table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--line); }
-    th { color: var(--muted); font-weight: 600; }
+    th, td { padding: 5px 8px; text-align: left; border-bottom: 1px solid var(--rule); }
+    th { color: var(--muted); font-weight: 650; }
     td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     .compare { max-width: 560px; margin-top: 14px; }
 
-    .brain-grid { display: grid; gap: 16px;
+    .brain-grid { display: grid; gap: 14px;
                   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
-    .brain { background: var(--panel); border: 1px solid var(--line);
-             border-radius: 8px; padding: 12px; }
+    .brain { background: var(--instrument); color: var(--instrument-text);
+             border: 1px solid var(--instrument-line); border-radius: 6px; padding: 12px; }
     .brain canvas { width: 100%; display: block; }
 
-    .cards { display: grid; gap: 16px;
+    .elite-grid { display: grid; gap: 14px;
+                  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+    .weight-map { width: 100%; height: 132px; display: block;
+                  background: var(--instrument); border-radius: 3px; }
+    .elite-card dl { margin: 8px 0; }
+
+    .finding-index { border: 1px solid var(--rule); background: var(--surface);
+                     padding: 10px 16px; margin-bottom: 16px; }
+    .finding-index ol { margin: 6px 0 0; padding-left: 20px; }
+    .finding-index li { padding: 2px 0; }
+    .coverage { font-size: 13px; color: var(--muted); margin: 0 0 12px;
+                font-variant-numeric: tabular-nums; }
+    .cards { display: grid; gap: 14px;
              grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
-    .card { background: var(--panel); border: 1px solid var(--line);
-            border-radius: 8px; padding: 16px; }
+    .card { background: var(--surface); border: 1px solid var(--rule);
+            border-top: 3px solid var(--ok-sky); border-radius: 2px; padding: 16px; }
     .card dl { margin: 8px 0; }
-    .card dt { font-weight: 600; font-size: 13px; color: var(--muted); }
+    .card dt { font-weight: 700; font-size: 12px; letter-spacing: .06em;
+               text-transform: uppercase; color: var(--muted); }
     .card dd { margin: 0 0 6px; }
     .facts td:first-child { color: var(--muted); }
-    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px;
-             font-size: 13px; font-weight: 600; border: 1px solid; }
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 2px;
+             font-size: 12px; font-weight: 700; border: 1px solid;
+             vertical-align: middle; margin-left: 6px; }
     .v-positive { color: var(--ok-green); border-color: var(--ok-green); }
     .v-mixed { color: var(--ok-orange); border-color: var(--ok-orange); }
-    .v-null { color: var(--muted); border-color: #777; }
+    .v-null { color: var(--muted); border-color: #999; }
     .takeaway { border-left: 3px solid var(--ok-sky); padding-left: 10px;
                 margin-top: 10px; }
     .chart { margin: 8px 0; }
     .chart svg { width: 100%; height: auto; display: block; }
     .strip { display: flex; flex-wrap: wrap; gap: 6px; }
-    .strip span { width: 38px; text-align: center; border-radius: 4px;
-                  font-size: 12px; padding: 3px 0; border: 1px solid; }
+    .strip span { width: 38px; text-align: center; border-radius: 3px;
+                  font-size: 12px; padding: 3px 0; border: 1px solid;
+                  font-variant-numeric: tabular-nums; }
     .strip .ok { color: var(--ok-green); border-color: var(--ok-green); }
     .strip .bad { color: var(--ok-vermillion); border-color: var(--ok-vermillion); }
 
-    details { margin-top: 36px; background: var(--panel); border: 1px solid var(--line);
-              border-radius: 8px; padding: 12px 16px; }
-    summary { cursor: pointer; font-weight: 600; }
-    .tabs { display: flex; gap: 4px; margin: 12px 0 12px; padding: 0;
-            list-style: none; border-bottom: 1px solid var(--line); }
+    details { margin-top: 42px; background: var(--surface); border: 1px solid var(--rule);
+              border-radius: 2px; padding: 12px 16px; }
+    summary { cursor: pointer; font-weight: 700; }
+    .tabs { display: flex; gap: 4px; margin: 12px 0; padding: 0;
+            list-style: none; border-bottom: 1px solid var(--rule); }
     .nav-link { display: block; padding: 8px 16px; color: var(--muted);
                 cursor: pointer; border-bottom: 2px solid transparent; }
-    .nav-link.active { color: #fff; border-bottom-color: var(--ok-sky); }
+    .nav-link.active { color: var(--ink); border-bottom-color: var(--ok-sky); }
     .picker { margin-bottom: 12px; }
     .card img, #detail-body img { max-width: 100%; }
     .d-none { display: none; }
-    .sig { color: var(--ok-green); font-weight: 600; }
+    .sig { color: var(--ok-green); font-weight: 650; }
     .ns { color: var(--muted); }
-    .warn { color: var(--ok-orange); font-weight: 600; }
+    .warn { color: var(--ok-orange); font-weight: 650; }
     code { color: var(--ok-sky); }
-    .notice { padding: 12px; border: 1px dashed #777; border-radius: 6px;
-              color: var(--muted); }
+    .notice { padding: 12px; border: 1px dashed var(--rule); color: var(--muted); }
+
+    @media (prefers-reduced-motion: reduce) {
+      button, select { transition: none; }
+      button:active { transform: none; }
+    }
   </style>
 </head>
 <body>
-<header class="top">
-  <h1>Neuroevolution Showcase</h1>
-  <p class="text-secondary" style="margin:0">Small neural-network agents evolved by a genetic algorithm.
-    Watch the best brains act, look inside them, then see what each experiment found.</p>
+<a class="skip-link" href="#showcase">Skip to the replay</a>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-bar">
+      <p class="kicker">Artificial life / experiment record</p>
+      <button type="button" id="theme-toggle" class="theme-toggle"
+              aria-pressed="false" aria-label="Switch to dark mode">Dark mode</button>
+    </div>
+    <h1>Neuroevolution Showcase</h1>
+    <p class="sub">Small neural-network agents evolved by a genetic algorithm. The replay uses
+      recorded states from the simulation itself; the findings below are computed from the
+      experiment artifacts, not written by hand.</p>
+    <div class="stats-strip" id="stats-strip" aria-label="Study at a glance"></div>
+  </div>
 </header>
+<nav class="section-nav" aria-label="Sections">
+  <ul>
+    <li><a href="#showcase">01 Replay</a></li>
+    <li><a href="#brains">02 Controller</a></li>
+    <li><a href="#elite">03 Elite brains</a></li>
+    <li><a href="#findings">04 Findings</a></li>
+    <li><a href="#raw">05 Raw data</a></li>
+  </ul>
+</nav>
 
 <main>
   <section id="showcase" aria-labelledby="h-showcase">
-    <h2 id="h-showcase">1. Watch the evolved agents</h2>
-    <p class="lede">A recording of the real simulation, replayed here. Pick a world and
-      compare untrained random brains with evolved ones on the same arena and start positions.</p>
+    <div class="section-head"><span class="section-index">01</span>
+      <h2 id="h-showcase">Watch the evolved agents</h2></div>
+    <p class="lede">A recording of the real simulation, replayed here. The evolved runs use
+      clones of the final-generation elite brains from the balance study. Pick a world and
+      compare them with untrained random brains on the same arena and start positions.</p>
     <div id="showcase-body"></div>
   </section>
 
   <section id="brains" aria-labelledby="h-brains">
-    <h2 id="h-brains">2. Look inside the brain</h2>
+    <div class="section-head"><span class="section-index">02</span>
+      <h2 id="h-brains">Look inside the brain</h2></div>
     <p class="lede">Each agent is a small network (12 sensors, 32 and 16 hidden units, 3 actions).
       Blue lines push a unit up, orange lines push it down; moving dots show the signals
       flowing from sensors to actions for the featured agent, step by step.</p>
@@ -129,16 +237,33 @@
     <div class="legend" id="brain-legend"></div>
   </section>
 
+  <section id="elite" aria-labelledby="h-elite">
+    <div class="section-head"><span class="section-index">03</span>
+      <h2 id="h-elite">Elite controllers</h2></div>
+    <p class="lede">The two genomes kept from generation 1000 of the balance run. Each card
+      shows the first weight layer of that genome, with blue for positive weights and orange
+      for negative ones. The replay above runs clones of these exact brains.</p>
+    <div id="elite-grid" class="elite-grid"></div>
+  </section>
+
   <section id="findings" aria-labelledby="h-findings">
-    <h2 id="h-findings">3. What the experiments found</h2>
-    <p class="lede">Each card says what was tested and what was measured. Verdicts are
-      computed from the statistics: a result only counts as supported when it passes the
-      significance test, and many here are trends that need more data.</p>
+    <div class="section-head"><span class="section-index">04</span>
+      <h2 id="h-findings">What the experiments found</h2></div>
+    <p class="lede">Every card states the question, the method and the measured result. A verdict
+      counts as supported only when it passes the stated significance test; results that do not
+      clear that bar are labelled as such.</p>
+    <p class="coverage" id="findings-coverage"></p>
+    <nav class="finding-index" id="findings-index" aria-label="All findings"></nav>
     <div id="findings-grid" class="cards"></div>
   </section>
 
   <details id="raw">
-    <summary>Raw experiment data</summary>
+    <summary>Raw experiment data: runs and families</summary>
+    <details class="help-note">
+      <summary>What do EXP-* names mean?</summary>
+      <p>EXP-* is the folder name of one experiment run under experiments/. Each folder holds a summary JSON, optionally SVG plots, and sometimes .npz controller weights. The part after EXP- is the family: the question that run was built to answer. Here EXP-GEN tests generalization, EXP-D tests fitness weighting, EXP-E tests crossover, EXP-COEV covers predator and prey, EXP-NEAT covers network structure, and EXP-TENSOR covers the tensor ecosystem.</p>
+      <p>Family in the table comes from that prefix. Seeds is the number of independent repeats of the same condition. Plots lists charts embedded in this page. Open shows the recorded generations.</p>
+    </details>
     <ul class="tabs" id="tabs">
       <li><a class="nav-link active" data-view="list" tabindex="0">Experiments</a></li>
       <li><a class="nav-link" data-view="detail" tabindex="0">Detail</a></li>
@@ -167,6 +292,31 @@
 // Static export replaces the marker below with the bundled data; when it
 // stays null the page runs in live mode against the FastAPI backend.
 const EMBEDDED = /*__EMBEDDED_DATA__*/ null;
+
+// ---------------------------------------------------------------- theme
+const THEME_KEY = 'neuroevolution-theme';
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  const dark = theme === 'dark';
+  const button = document.getElementById('theme-toggle');
+  button.textContent = dark ? 'Light mode' : 'Dark mode';
+  button.setAttribute('aria-pressed', String(dark));
+  button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  document.querySelector('meta[name="theme-color"]').setAttribute(
+    'content', dark ? '#12151a' : '#f3f0e9');
+}
+function initialTheme() {
+  let stored = null;
+  try { stored = localStorage.getItem(THEME_KEY); } catch (error) { stored = null; }
+  if (stored === 'dark' || stored === 'light') return stored;
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+applyTheme(initialTheme());
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch (error) { /* storage blocked */ }
+});
 
 // ---------------------------------------------------------------- helpers
 // Artifact values reach innerHTML below; escape them so a crafted
@@ -202,7 +352,9 @@ async function getSummary(runId) {
   return response.json();
 }
 async function getShowcase() {
-  if (EMBEDDED) return { findings: EMBEDDED.findings ?? [], recording: EMBEDDED.recording ?? null };
+  if (EMBEDDED) return { findings: EMBEDDED.findings ?? [],
+                         recording: EMBEDDED.recording ?? null,
+                         elite: EMBEDDED.elite ?? null };
   const response = await fetch('/showcase');
   return response.json();
 }
@@ -744,14 +896,105 @@ function renderChart(chart) {
   return '';
 }
 
+function buildStats(elite, findingCount) {
+  const host = document.getElementById('stats-strip');
+  const items = [
+    { label: 'Findings', value: String(findingCount) },
+    { label: 'Elite generation', value: elite ? String(elite.generation) : '-' },
+    { label: 'Prey mean fitness',
+      value: elite ? elite.roles.prey.mean_fitness.toFixed(3) : '-' },
+    { label: 'Peak VRAM', value: elite ? `${elite.peak_vram_mb} MB` : '-' },
+  ];
+  host.innerHTML = items.map(item =>
+    `<div class="stat"><b>${esc(item.value)}</b><span>${esc(item.label)}</span></div>`
+  ).join('');
+}
+
+function drawWeightMap(canvas, genome) {
+  const context = canvas.getContext('2d');
+  const columns = 32, rows = 12, cellWidth = 12, cellHeight = 11;
+  canvas.width = columns * cellWidth;
+  canvas.height = rows * cellHeight;
+  context.fillStyle = '#111820';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const firstLayer = genome.slice(0, columns * rows);
+  const scale = Math.max(0.0001, ...firstLayer.map(Math.abs));
+  firstLayer.forEach((weight, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const strength = 0.15 + 0.75 * Math.abs(weight) / scale;
+    const rgb = weight >= 0 ? '86,180,233' : '213,94,0';
+    context.fillStyle = `rgba(${rgb},${strength.toFixed(3)})`;
+    context.fillRect(column * cellWidth, row * cellHeight,
+                     cellWidth - 1, cellHeight - 1);
+  });
+}
+
+function buildElite(elite) {
+  const grid = document.getElementById('elite-grid');
+  if (!elite) {
+    grid.innerHTML = '<p class="notice">No exported elite genomes were found.</p>';
+    return;
+  }
+  grid.innerHTML = ['prey', 'predator'].map(role => {
+    const data = elite.roles[role];
+    return `<article class="card reveal" aria-labelledby="elite-${role}">
+      <h3 id="elite-${role}">${role === 'prey' ? 'Prey' : 'Predator'} elite</h3>
+      <canvas class="weight-map" id="map-${role}" role="img"
+        aria-label="First weight layer of the ${role} elite genome"></canvas>
+      <dl>
+        <dt>Generation</dt><dd>${esc(elite.generation)}</dd>
+        <dt>Mean fitness</dt><dd>${data.mean_fitness.toFixed(3)}</dd>
+        <dt>Architecture</dt><dd>${esc(elite.architecture.join(' - '))}</dd>
+        <dt>Weights in genome</dt><dd>${esc(data.weights.length)}</dd>
+      </dl>
+    </article>`;
+  }).join('');
+  for (const role of ['prey', 'predator']) {
+    drawWeightMap(document.getElementById(`map-${role}`), elite.roles[role].weights);
+  }
+}
+
+function observeReveals() {
+  const targets = [...document.querySelectorAll('.reveal')];
+  if (reducedMotion || !window.IntersectionObserver || !Element.prototype.animate) {
+    return;
+  }
+  // Content stays visible. The observer only adds a short, interruptible
+  // entrance when a card first enters view, so a missed observer never
+  // leaves a blank panel.
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.animate([
+        { opacity: 0.55, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'none' },
+      ], { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+      observer.unobserve(entry.target);
+    }
+  }, { threshold: 0.08 });
+  targets.forEach(element => observer.observe(element));
+}
+
 function buildFindings(findings) {
   const grid = document.getElementById('findings-grid');
+  const index = document.getElementById('findings-index');
+  const coverage = document.getElementById('findings-coverage');
   if (!findings.length) {
+    index.innerHTML = '';
+    coverage.textContent = '0 findings from committed artifacts';
     grid.innerHTML = '<p class="notice">No experiment artifacts were found to summarise.</p>';
     return;
   }
+  coverage.textContent = `${findings.length} findings from committed artifacts`;
+  index.innerHTML = '<ol>' + findings.map(f => {
+    const level = esc(f.verdict.level);
+    const label = esc(VERDICT_LABEL[f.verdict.level] ?? f.verdict.level);
+    return `<li><a href="#f-${esc(f.id)}">${esc(f.title)}</a>` +
+      ` <span class="badge v-${level}">${label}</span></li>`;
+  }).join('') + '</ol>';
   grid.innerHTML = findings.map(f => `
-    <article class="card" aria-labelledby="f-${esc(f.id)}">
+    <article class="card reveal" aria-labelledby="f-${esc(f.id)}">
       <h3 id="f-${esc(f.id)}">${esc(f.title)} <span class="badge v-${esc(f.verdict.level)}">${esc(VERDICT_LABEL[f.verdict.level] ?? f.verdict.level)}</span></h3>
       <dl>
         <dt>What was tested</dt><dd>${esc(f.question)}</dd>
@@ -798,6 +1041,10 @@ async function showDetail(runId) {
   const generations = summary.generations ?? [];
   let html = '';
   const run = runs.find(r => r.id === runId);
+  if (run) {
+    html += `<p class="text-secondary small">Run <code>${esc(run.id)}</code> belongs to ` +
+      `family ${esc(run.family)}. The EXP- prefix names the question this run answers.</p>`;
+  }
   for (const plot of (run?.plots ?? [])) {
     html += `<div class="card"><img alt="${esc(plot)}" src="${esc(plotUrl(runId, plot))}"></div>`;
   }
@@ -914,9 +1161,12 @@ for (const select of ['detail-run', 'compare-run']) {
 // ================================================================= start
 (async function start() {
   try {
-    const { findings, recording } = await getShowcase();
+    const { findings, recording, elite } = await getShowcase();
     buildShowcase(recording);
+    buildStats(elite, findings.length);
+    buildElite(elite);
     buildFindings(findings);
+    observeReveals();
   } catch (error) {
     document.getElementById('showcase-body').innerHTML =
       '<p class="notice">Could not load the showcase data.</p>';

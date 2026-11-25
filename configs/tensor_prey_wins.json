@@ -1,0 +1,83 @@
+{
+  "experiment_name": "tensor_prey_wins",
+  "mode": "headless",
+  "device": "cuda",
+  "reproducibility_tier": "non-deterministic",
+  "seed": {
+    "torch": 11,
+    "numpy": 12,
+    "random": 13
+  },
+  "world": {
+    "width": 600,
+    "height": 400,
+    "food_count": 80,
+    "obstacle_count": 8,
+    "layout_seed": 42,
+    "food_regrowth_per_step": 0.6
+  },
+  "population": {
+    "size": 24,
+    "agent": {
+      "sensors": 7,
+      "brain": {
+        "architecture": [
+          12,
+          32,
+          16,
+          3
+        ]
+      }
+    }
+  },
+  "evolution": {
+    "generations": 1000,
+    "mutation_rate": 0.05,
+    "crossover_rate": 0.7,
+    "elitism_count": 2,
+    "evaluation_steps": 100
+  },
+  "experiment": {
+    "seeds": 3,
+    "save_interval": 2
+  },
+  "crossover_method": "blend",
+  "fitness_weights": {
+    "survival": 0.4,
+    "food": 0.3,
+    "exploration": 0.2,
+    "collision": 0.1
+  },
+  "fitness_weights_prey": {
+    "survival": 0.45,
+    "food": 0.25,
+    "exploration": 0.2,
+    "collision": 0.1
+  },
+  "fitness_weights_predator": {
+    "survival": 0.2,
+    "food": 0.55,
+    "exploration": 0.2,
+    "collision": 0.05
+  },
+  "predation": {
+    "predator_count": 2,
+    "capture_radius": 10,
+    "capture_energy_transfer": 15
+  },
+  "reproduction": {
+    "enabled": true,
+    "min_age": 40,
+    "min_energy": 30,
+    "min_fitness": 0.35,
+    "mutation_rate": 0.05,
+    "mutation_strength": 0.1,
+    "reproduction_cost": 20,
+    "max_population_prey": 40,
+    "max_population_predator": 2
+  },
+  "phase_tier": "advanced",
+  "energy": {
+    "metabolic_base_cost": 0.2
+  }
+}

@@ -23,6 +23,7 @@ FAMILY_BY_PREFIX = {
     "EXP-NEAT": "NEAT extension",
     "EXP-HEADLESS": "Headless smoke",
     "EXP-GUI": "GUI checkpoint",
+    "EXP-TENSOR": "Tensor ecosystem",
 }
 
 # Which summary file to serve per run when a directory holds several
@@ -69,6 +70,7 @@ def scan_experiments(root: Optional[Path] = None) -> List[Dict]:
 # Replay written by experiments/record_showcase.py. Only this schema
 # version and size cap are accepted, so a stray or oversized file cannot
 # bloat or break the page.
+ELITE_PATH = Path("EXP-TENSOR") / "weights" / "elite.json"
 RECORDING_PATH = Path("EXP-SHOWCASE") / "recording.json"
 RECORDING_VERSION = 2
 MAX_RECORDING_BYTES = 8 * 1024 * 1024
@@ -87,6 +89,19 @@ def load_recording(root: Optional[Path] = None) -> Optional[Dict]:
         return None
     if (not isinstance(data, dict) or data.get("version") != RECORDING_VERSION
             or not isinstance(data.get("scenarios"), list)):
+        return None
+    return data
+
+
+def load_elite(root: Optional[Path] = None) -> Optional[Dict]:
+    """Final-generation elite genomes exported by the tensor runner."""
+    if root is None:
+        root = EXPERIMENTS_ROOT
+    try:
+        data = json.loads((root / ELITE_PATH).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or not data.get("roles"):
         return None
     return data
 

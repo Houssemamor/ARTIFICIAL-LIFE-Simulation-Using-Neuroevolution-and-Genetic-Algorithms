@@ -294,12 +294,63 @@ def _neat(directory: Path) -> Optional[Dict]:
     )
 
 
+def _tensor_ecosystem(directory: Path) -> Optional[Dict]:
+    data = _load(directory / "tensor_ecosystem.json")
+    if not data or not all(k in data for k in
+                           ("prey_wins", "predator_wins", "balance")):
+        return None
+    regimes = ("prey_wins", "predator_wins", "balance")
+    labels = {"prey_wins": "prey wins", "predator_wins": "predator wins",
+              "balance": "balance"}
+    facts = []
+    for key in regimes:
+        row = data[key]
+        facts.append({
+            "label": f"{labels[key]}: prey / predators alive (step mean)",
+            "value": f"{row['prey_alive_step_mean']:.2f} / "
+                     f"{row['predator_alive_step_mean']:.2f}",
+        })
+        facts.append({
+            "label": f"{labels[key]}: captures per generation",
+            "value": f"{row['captures_mean']:.2f}",
+        })
+    if data["balance"].get("weights"):
+        facts.append({"label": "Saved controller weights",
+                      "value": "prey.npz, predator.npz"})
+    bars = []
+    for key in regimes:
+        row = data[key]
+        bars.extend([
+            {"label": f"{labels[key]} prey", "value": row["prey_alive_step_mean"]},
+            {"label": f"{labels[key]} predators",
+             "value": row["predator_alive_step_mean"]},
+        ])
+    return _finding(
+        "EXP-TENSOR", "Tensor ecosystem regimes",
+        "Can one tensor-native world produce prey dominance, predator "
+        "dominance and coexistence under different parameters?",
+        "Three fixed-seed runs of the Torch pipeline on an RTX 3060, 1000 "
+        "generations each. Counts are means over every simulation step in "
+        "the last 50 generations; the "
+        "three configs change capture range, food regrowth and reproduction "
+        "limits.",
+        facts,
+        {"kind": "bars", "unit": "agents alive (step mean)", "items": bars},
+        "positive",
+        "All three parameter sets produced different population regimes.",
+        f"Coexistence retained {data['balance']['prey_alive_step_mean']:.2f} "
+        f"prey and {data['balance']['predator_alive_step_mean']:.2f} "
+        "predators on average, with neither role extinct.",
+    )
+
+
 _BUILDERS = (
     ("EXP-GEN", _generalization),
     ("EXP-D", _fitness_weighting),
     ("EXP-E", _crossover),
     ("EXP-COEV", _coevolution),
     ("EXP-NEAT", _neat),
+    ("EXP-TENSOR", _tensor_ecosystem),
 )
 
 

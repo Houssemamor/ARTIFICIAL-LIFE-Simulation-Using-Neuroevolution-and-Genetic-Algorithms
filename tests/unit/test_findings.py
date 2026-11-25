@@ -103,10 +103,21 @@ def test_generalization_negative_gap_reports_unseen_as_higher(tmp_path):
     assert "indistinguishable" in finding["verdict"]["text"]
 
 
-def test_committed_artifacts_produce_all_five_honest_cards():
+def test_committed_artifacts_produce_all_honest_cards():
     findings = build_findings(Path("experiments"))
     by_id = {f["id"]: f for f in findings}
-    assert set(by_id) == {"EXP-GEN", "EXP-D", "EXP-E", "EXP-COEV", "EXP-NEAT"}
+    assert set(by_id) == {"EXP-GEN", "EXP-D", "EXP-E", "EXP-COEV", "EXP-NEAT",
+                          "EXP-TENSOR"}
+    assert "Coexistence retained" in by_id["EXP-TENSOR"]["takeaway"]
+    regimes = json.loads(Path("experiments/EXP-TENSOR/tensor_ecosystem.json")
+                         .read_text(encoding="utf-8"))
+    assert regimes["prey_wins"]["prey_alive_step_mean"] > (
+        3.0 * regimes["prey_wins"]["predator_alive_step_mean"])
+    assert regimes["predator_wins"]["predator_alive_step_mean"] > (
+        regimes["predator_wins"]["prey_alive_step_mean"])
+    balance = regimes["balance"]
+    ratio = balance["prey_alive_step_mean"] / balance["predator_alive_step_mean"]
+    assert 0.25 <= ratio <= 4.0
     # The committed results have no pair that survives correction, so
     # nothing statistical may be labelled "positive".
     for exp_id in ("EXP-GEN", "EXP-D", "EXP-E"):

@@ -20,8 +20,8 @@ from typing import Dict, Optional
 # Allow running as a plain script from any working directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from webdash.artifacts import (load_recording, read_summary,  # noqa: E402
-                               scan_experiments)
+from webdash.artifacts import (load_elite, load_recording,  # noqa: E402
+                               read_summary, scan_experiments)
 from webdash.findings import build_findings  # noqa: E402
 
 TEMPLATE_PATH = Path(__file__).resolve().parent / "frontend" / "index.html"
@@ -60,7 +60,8 @@ def build_payload(root: Path) -> Dict:
         kept_runs.append(run)
     return {"experiments": kept_runs, "summaries": summaries, "plots": plots,
             "findings": build_findings(root),
-            "recording": load_recording(root)}
+            "recording": load_recording(root),
+            "elite": load_elite(root)}
 
 
 def render_html(template: str, payload: Dict) -> str:

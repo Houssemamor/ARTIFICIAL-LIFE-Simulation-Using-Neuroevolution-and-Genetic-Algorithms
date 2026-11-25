@@ -49,3 +49,33 @@ def test_imported_genome_replays_without_local_training(tmp_path: Path,
     assert scenario["generations"] == 400
     assert set(scenario["runs"]) == {"untrained", "evolved"}
     assert "solo_import_seconds" in recording["environment"]["training_seconds"]
+
+
+def test_coevolution_replay_uses_imported_elites(tmp_path: Path,
+                                                 monkeypatch) -> None:
+    """Both co-evolution roles can come from saved elite genomes."""
+    config_path = Path("configs/tensor_balance.json")
+    prey_path = tmp_path / "prey.npz"
+    predator_path = tmp_path / "predator.npz"
+    genome = np.zeros(genome_size(), dtype=np.float32)
+    save_checkpoint(str(prey_path), genome, metadata={"generation": 1000})
+    save_checkpoint(str(predator_path), genome, metadata={"generation": 1000})
+
+    def _forbidden(*args, **kwargs):
+        raise AssertionError("local co-evolution training must be skipped")
+
+    monkeypatch.setattr(record_showcase, "train_coevolution", _forbidden)
+
+    recording = record_showcase.build_recording(
+        seed=3, steps=5, solo_agents=2,
+        solo_genome_path=prey_path, solo_config_path=config_path,
+        coev_prey_genome_path=prey_path,
+        coev_predator_genome_path=predator_path)
+
+    by_id = {scenario["id"]: scenario for scenario in recording["scenarios"]}
+    assert set(by_id) == {"coev", "solo"}
+    assert by_id["coev"]["generations"] == 1000
+    assert "elite" in by_id["coev"]["description"]
+    timings = recording["environment"]["training_seconds"]
+    assert "coev_import_seconds" in timings
+

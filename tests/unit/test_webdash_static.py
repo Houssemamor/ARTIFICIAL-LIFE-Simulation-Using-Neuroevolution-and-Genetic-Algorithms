@@ -111,6 +111,18 @@ def test_real_template_contains_placeholder_exactly_once():
     assert "cdn." not in template and "http://" not in template
 
 
+def test_real_template_has_navigation_and_all_findings_surface():
+    template = build_static.TEMPLATE_PATH.read_text(encoding="utf-8")
+    assert 'id="findings-index"' in template
+    assert 'id="findings-coverage"' in template
+    assert 'class="skip-link"' in template
+    assert 'prefers-reduced-motion' in template
+    assert 'transition: all' not in template
+    assert 'id="theme-toggle"' in template
+    assert 'html[data-theme="dark"]' in template
+    assert 'What do EXP-* names mean?' in template
+
+
 def test_main_writes_file_and_fails_on_empty_root(tmp_path, capsys):
     _make_run(tmp_path, "EXP-GOOD", {"n_seeds": 2}, "<svg/>")
     out = tmp_path / "out.html"

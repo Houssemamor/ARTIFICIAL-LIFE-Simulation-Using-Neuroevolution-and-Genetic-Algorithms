@@ -104,3 +104,6 @@ skills-lock.json
 RTK.md
 # Build artifacts
 *.egg-info/
+
+# Browser tool snapshots
+.playwright-mcp/

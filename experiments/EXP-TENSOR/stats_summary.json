@@ -1,0 +1,20 @@
+{
+  "experiment_name": "tensor_ecosystem",
+  "device": "cuda",
+  "reproducibility_tier": "non-deterministic",
+  "generations": 1000,
+  "regimes": [
+    "prey_wins",
+    "predator_wins",
+    "balance"
+  ],
+  "seconds_per_generation": {
+    "prey_wins": 1.799,
+    "predator_wins": 1.642,
+    "balance": 1.682
+  },
+  "saved_weights": {
+    "prey": "experiments/EXP-TENSOR/weights/prey.npz",
+    "predator": "experiments/EXP-TENSOR/weights/predator.npz"
+  }
+}

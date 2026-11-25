@@ -1,0 +1,39 @@
+{
+  "prey_wins": {
+    "generations": 1000,
+    "seconds_per_generation": 1.799,
+    "elapsed_seconds": 1798.91,
+    "prey_alive_step_mean": 23.66,
+    "predator_alive_step_mean": 0.91,
+    "prey_food_mean": 74.08,
+    "captures_mean": 0.38,
+    "peak_vram_mb": 8.6,
+    "device": "cuda"
+  },
+  "predator_wins": {
+    "generations": 1000,
+    "seconds_per_generation": 1.642,
+    "elapsed_seconds": 1641.62,
+    "prey_alive_step_mean": 5.08,
+    "predator_alive_step_mean": 10.36,
+    "prey_food_mean": 1.6,
+    "captures_mean": 25.6,
+    "peak_vram_mb": 8.9,
+    "device": "cuda"
+  },
+  "balance": {
+    "generations": 1000,
+    "seconds_per_generation": 1.682,
+    "elapsed_seconds": 1681.95,
+    "prey_alive_step_mean": 17.81,
+    "predator_alive_step_mean": 5.18,
+    "prey_food_mean": 43.64,
+    "captures_mean": 11.38,
+    "peak_vram_mb": 8.7,
+    "device": "cuda",
+    "weights": {
+      "prey": "experiments/EXP-TENSOR/weights/prey.npz",
+      "predator": "experiments/EXP-TENSOR/weights/predator.npz"
+    }
+  }
+}
